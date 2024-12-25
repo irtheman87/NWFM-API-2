@@ -5,7 +5,7 @@ export interface IIssue extends Document {
   orderId: string; // Order ID related to the issue
   title: string;   // Title of the issue
   complain: string; // Detailed complaint description
-  status: 'pending' | 'attending' | 'closed'; // Status of the issue
+  status: 'pending' | 'opened' | 'closed'; // Status of the issue
   cid?: string;    // Consultant ID or assigned personnel
   createdAt: Date;
 }
@@ -19,7 +19,7 @@ const issueSchema = new Schema<IIssue>(
     complain: { type: String, required: true },
     status: {
       type: String,
-      enum: ['pending', 'attending', 'closed'],
+      enum: ['pending', 'opened', 'closed'],
       default: 'pending',
     },
     cid: { type: String, required: true },

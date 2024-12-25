@@ -1031,15 +1031,14 @@ export const fetchSingleRequest = async (req: Request, res: Response): Promise<R
       startTime = moment(booktime).utcOffset('+01:00').format(gmtPlusOneFormat);
 
       // Calculate `endTime` by adding 1 hour to `booktime`
-      const endDateTime = add(new Date(booktime), { hours: 1 });
-      endTime = moment(endDateTime).utcOffset('+01:00').format(gmtPlusOneFormat);
+      // const endDateTime = add(new Date(booktime), { hours: 1 });
+      // endTime = moment(endDateTime).utcOffset('+01:00').format(gmtPlusOneFormat);
     }
 
     // Send a single response with the updated request and consultant ID
     return res.status(200).json({
       ...request.toObject(),
       startTime,
-      endTime,
       userinfo,
       consultantId: appointment.cid, // Include cid in the response
     });
