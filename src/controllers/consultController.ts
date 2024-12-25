@@ -1,0 +1,1667 @@
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import Consultant, {IConsultant} from '../models/consultant';
+import crypto from 'crypto';
+import sendEmail from '../utils/sendEmail'; // Assumes you have a sendEmail function
+import Availability from '../models/Availability';
+import { Time } from '../types';
+import AssignmentModel from '../models/Assignment';
+import RequestModel from '../models/Request';
+import AppointmentModel from '../models/Appointment';
+import Transaction, {generateOrderId} from '../models/SetTransaction';
+import mongoose from 'mongoose';
+import { fetchRequestByOrderId } from '../utils/UtilityFunctions';
+import Preference, {IPreference} from '../models/PreferenceModel';
+import ConsultantPreference, {IConsultPreference} from '../models/ConsultantPrefs';
+import User from '../models/User';
+import multerS3 from 'multer-s3';
+import { S3Client, PutObjectCommand, GetObjectAclCommand} from '@aws-sdk/client-s3';
+import multer from 'multer';
+import Notification from '../models/Notification';
+import Task from '../models/task'; // Ensure this path points to your Task model file
+import { format, parseISO, add } from 'date-fns';
+import moment from 'moment-timezone';
+import { createNotification } from '../utils/UtilityFunctions';
+import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne} from '../utils/UtilityFunctions';
+import { fetchConsultantEmail, fetchUserEmail } from './adminController';
+import { uploads } from '../utils/UtilityFunctions';
+import Resolve from '../models/Resolve';
+import MusingModel from '../models/Musing';
+import { userInfo } from 'os';
+
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+// Configure multer to use multer-s3 as the storage engine
+const storage = multerS3({
+  s3: s3,
+  bucket: process.env.AWS_S3_BUCKET_NAME || '',
+  metadata: (req, file, cb) => {
+    cb(null, { fieldName: file.fieldname });
+  },
+  key: (req, file, cb) => {
+    // Define a unique filename pattern for the uploaded files
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  },
+});
+
+// Generate Access Token
+export const generateAccessToken = (userId: string, role: string) => {
+  return jwt.sign(
+    { userId, role },
+    process.env.JWT_ACCESS_SECRET as string,
+    { expiresIn: process.env.JWT_ACCESS_EXPIRATION }
+  );
+};
+
+// Generate Refresh Token
+export const generateRefreshToken = (userId: string) => {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_REFRESH_SECRET as string,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
+  );
+};
+
+
+// Create the multer upload function using the S3 storage configuration
+export const upload = multer({ storage }).single('file');
+
+function getDayOfWeek(date: Date | string): string {
+  // Convert date string to Date object if necessary
+  const dayDate = typeof date === 'string' ? new Date(date) : date;
+
+  // Array of day names
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  // Get day of week index and return corresponding name
+  const dayIndex = dayDate.getDay();
+  return daysOfWeek[dayIndex];
+}
+
+// Register Consultant
+export const registerConsult = async (req: Request, res: Response) => {
+  const { fname, lname, phone, email, password, expertise} = req.body;
+  
+  try {
+    // Check for duplicate email
+    const existingConsult = await Consultant.findOne({ email });
+    if (existingConsult) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newConsult = new Consultant({
+      fname,
+      lname,
+      phone,
+      email,
+      password: hashedPassword,
+      role: 'consultant',
+      expertise
+    });
+
+    await newConsult.save();
+
+    const accessToken = generateAccessToken(String(newConsult._id), newConsult.role);
+    const refreshToken = generateRefreshToken(String(newConsult._id));
+
+    const userInfo = {
+      id: newConsult._id,
+      email: newConsult.email,
+      phone: newConsult.phone,
+      fname: newConsult.fname,
+      lname: newConsult.lname,
+      role: newConsult.role,
+      expertise: newConsult.expertise
+    };
+
+    // Send verification email (this step is optional based on your flow)
+    // const verificationLink = `${process.env.BASE_URL}/api/consultants/verify/${verificationToken}`;
+    // await sendEmail(email, 'Verify your email', `Click here to verify your email: ${verificationLink}`);
+
+    res.status(201).json({ accessToken, refreshToken, user: userInfo, message: 'Please check your email to verify your account.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error registering consultant', error });
+  }
+};
+
+// Login Consultant
+export const loginConsult = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  
+  try {
+    const consult = await Consultant.findOne({ email });
+    if (!consult || consult.role !== 'consultant') {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    
+    const isPasswordValid = await bcrypt.compare(password, consult.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    
+    const accessToken = generateAccessToken(String(consult._id), consult.role);
+    const refreshToken = generateRefreshToken(String(consult._id));
+
+    const userInfo = {
+      id: consult._id,
+      fname: consult.fname,
+      lname: consult.lname,
+      phone: consult.phone,
+      email: consult.email,
+      role: consult.role,
+      expertise: consult.expertise,
+      profilepics: consult.profilepics
+    };
+
+    res.json({ accessToken, refreshToken, user: userInfo });
+  } catch (error) {
+    res.status(500).json({ message: 'Error logging in', error });
+  }
+};
+
+// Refresh Token for Consultant
+export const refreshConsultantToken = async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No refresh token provided' });
+  }
+
+  const refreshToken = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as { userId: string };
+    const accessToken = generateAccessToken(decoded.userId, 'consultant');
+
+    res.json({ accessToken });
+  } catch (error) {
+    res.status(403).json({ message: 'Invalid or expired refresh token' });
+  }
+};
+
+ export const createAvailability = async (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+  
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token missing' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { userId: string; role: string };
+  
+      // Check if the user has a 'consultant' role
+      if (decoded.role !== 'consultant') {
+        return res.status(403).json({ message: 'Access denied: Consultants only' });
+      }
+  
+      const { schedule } = req.body;
+      const cid = decoded.userId;
+  
+      if (!Array.isArray(schedule)) {
+        return res.status(200).json({ message: 'Invalid input: Schedule should be an array' });
+      }
+  
+      const availabilityResults = [];
+  
+      // Loop through each availability entry in the schedule array
+      for (const entry of schedule) {
+        const { otime, ctime, expertise, day, status } = entry;
+  
+        // Validate the time objects and ensure expertise is an array of non-empty strings
+        if (
+          !isValidTime(otime) ||
+          !isValidTime(ctime) ||
+          !Array.isArray(expertise) ||
+          !expertise.every(exp => typeof exp === 'string' && exp.trim().length > 0)
+        ) {
+          return res.status(400).json({ message: 'Invalid input: Time or expertise format is incorrect' });
+        }
+  
+        // Check if an availability entry for this day already exists for the consultant
+        const existingAvailability = await Availability.findOne({ cid, day });
+  
+        if (existingAvailability) {
+          // Update existing availability entry
+          existingAvailability.otime = otime;
+          existingAvailability.ctime = ctime;
+          existingAvailability.expertise = expertise;
+          existingAvailability.status = status;
+          await existingAvailability.save();
+          availabilityResults.push({ day, action: 'updated', availability: existingAvailability });
+        } else {
+          // Create a new availability entry
+          const newAvailability = new Availability({
+            cid,
+            otime,
+            ctime,
+            day,
+            status,
+            expertise
+          });
+          await newAvailability.save();
+          availabilityResults.push({ day, action: 'created', availability: newAvailability });
+        }
+      }
+  
+      res.status(200).json({
+        message: 'Availability schedule processed successfully',
+        results: availabilityResults
+      });
+    } catch (error) {
+      console.error('Error processing availability schedule:', error);
+      return res.status(500).json({ message: 'Error processing availability schedule', error });
+    }
+  };
+
+  export const fetchPendingAssignmentsByUserId = async (req: Request, res: Response): Promise<Response> => {
+    const { uid } = req.params; // Get uid from the URL params
+  
+    try {
+      // Find assignments with the specified uid and a status of 'pending'
+      const assignments = await AssignmentModel.find({ cid: uid, status: 'pending' });
+  
+      if (assignments.length === 0) {
+        return res.status(200).json({
+          message: 'No pending assignments found for this user.',
+          assignments: [],
+        });
+      }
+  
+      // Fetch user info and corresponding requests for each assignment
+      const assignmentsWithDetails = await Promise.all(
+        assignments.map(async (assignment) => {
+          const user = await User.findById(assignment.uid).select('email profilepics fname lname');
+          const request = await RequestModel.findOne({ orderId: assignment.orderId }).select('chat_title nameofservice stattusof createdAt');
+  
+          return {
+            assignment,
+            info: {
+              chat_title: request ? request.chat_title : null,
+              nameofservice : request ? request.nameofservice : null,
+              status: request ? request.stattusof : null,
+              created: request ? request.createdAt : null,
+            },
+            user: user
+              ? {
+                  email: user.email,
+                  profilepics: user.profilepics,
+                  fullname: `${user.fname} ${user.lname}`,
+                }
+              : null
+          };
+        })
+      );
+  
+      return res.status(200).json({
+        message: 'Pending assignments fetched successfully',
+        assignments: assignmentsWithDetails,
+      });
+    } catch (error) {
+      console.error('Error fetching pending assignments:', error);
+      return res.status(500).json({ message: 'Failed to fetch pending assignments', error });
+    }
+  };
+  
+    
+
+export const acceptAssignment = async (req: Request, res: Response): Promise<Response> => {
+  const { uid, assignmentId } = req.params; // Extract uid and assignmentId from URL params
+
+  try {
+    // Find the assignment by id and ensure the uid matches
+    const assignment = await AssignmentModel.findOne({ _id: assignmentId, cid: uid });
+
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found or user not authorized.' });
+    }
+
+    // Update assignment status to 'completed'
+    assignment.status = 'completed';
+    await assignment.save();
+
+    // Find and update the related request where orderId matches assignment's orderId
+    const updatedRequest = await RequestModel.findOneAndUpdate(
+      { orderId: assignment.orderId },
+      { stattusof: 'ongoing' }, // Update status of the request to 'ongoing'
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedRequest) {
+      return res.status(404).json({ message: 'Related request not found.' });
+    }
+
+    // Create a new appointment with the provided date and time
+    const newAppointment = new AppointmentModel({
+      date: new Date(updatedRequest.date), // Ensure date is passed in the correct format
+      time: {
+        hours: updatedRequest.time?.hours,
+        minutes: updatedRequest.time?.minutes,
+        seconds: updatedRequest.time?.seconds,
+      },
+      uid: updatedRequest.userId,
+      cid: assignment.cid,
+      orderId: assignment.orderId,
+      expertise: updatedRequest.expertise
+    });
+
+    await newAppointment.save();
+
+    return res.status(200).json({
+      message: 'Assignment accepted, related request updated, and appointment created successfully.',
+      assignment,
+      updatedRequest,
+      appointment: newAppointment,
+    });
+  } catch (error) {
+    console.error('Error accepting assignment:', error);
+    return res.status(500).json({ message: 'Failed to accept assignment and create appointment', error });
+  }
+};
+
+export const declineAssignment = async (req: Request, res: Response): Promise<Response> => {
+  const { uid, assignmentId } = req.params; // Extract uid and assignmentId from URL params
+
+  try {
+    // Find the assignment by id and ensure the uid matches
+    const assignment = await AssignmentModel.findOne({ _id: assignmentId, cid: uid });
+
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found or user not authorized.' });
+    }
+
+    // Update assignment status to 'completed'
+    assignment.status = 'pending';
+    await assignment.save();
+
+    fetchRequestByOrderId(assignment.orderId);
+
+    return res.status(200).json({ message: 'Request Declined' });
+
+  } catch (error) {
+    console.error('Error accepting assignment:', error);
+    return res.status(500).json({ message: 'Failed to accept assignment and create appointment', error });
+  }
+};
+
+export const fetchTransactionAndRequestByOrderId = async (req: Request, res: Response): Promise<Response> => {
+  const { orderId } = req.params; // Extract orderId from URL params
+
+  try {
+    // Fetch transaction based on orderId
+    const transaction = await Transaction.findOne({ orderId });
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found for the given orderId.' });
+    }
+
+    // Fetch request based on orderId
+    const request = await RequestModel.findOne({ orderId });
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found for the given orderId.' });
+    }
+
+    // Fetch user based on uid from the request
+    const user = await User.findById(request.userId).select('fname lname email');
+    const email = user?.email;
+    const fullName = user ? `${user.fname} ${user.lname}` : null;
+
+    // Return both transaction, request, and user's full name in the response
+    return res.status(200).json({
+      message: 'Transaction, request, and user information fetched successfully.',
+      transaction,
+      request,
+      user: {
+        fullName,
+        email,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching transaction, request, or user:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch transaction, request, or user information',
+      error,
+    });
+  }
+};
+
+
+// Function to retrieve preferences by userId
+export const getPreferencesByUserId = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Find the preferences based on userId
+    const preferences: IPreference | null = await Preference.findOne({ userId });
+
+    if (!preferences) {
+      // Return a default response if preferences are not set
+      return res.status(404).json({
+        message: 'Preferences not found for this user.',
+        defaultPreferences: {
+          newRequestOrder: 'off',
+          updateOnMyOrders: 'off',
+          recommendation: 'off',
+          currency: 'NGN',
+          timezone: 'GMT+1',
+        },
+      });
+    }
+
+    res.status(200).json({ preferences });
+  } catch (error) {
+    console.error('Error fetching preferences:', error);
+    res.status(500).json({ message: 'Error retrieving preferences' });
+  }
+};
+
+
+export const getAppointmentsByConsultantId = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params;
+
+  try {
+    // Fetch all appointments for the given consultant ID
+    const appointments = await AppointmentModel.find({ cid });
+
+    // Check if any appointments were found
+    if (!appointments.length) {
+      return res.status(200).json({ message: 'No appointments found for this consultant' });
+    }
+
+    // Enhance appointments with additional data from Request and User models
+    const enhancedAppointments = await Promise.all(
+      appointments.map(async (appointment) => {
+        const relatedRequest = await RequestModel.findOne({ orderId: appointment.orderId });
+
+        // Fetch user information based on `uid`, excluding sensitive fields
+        const userInfo = await User.findById(appointment.uid).select(
+          '-password -verificationToken -isVerified'
+        );
+
+        return {
+          ...appointment.toObject(),
+          chat_title: relatedRequest?.chat_title || null,
+          nameofservice: relatedRequest?.nameofservice || null,
+          booktime: relatedRequest?.booktime || null,
+          roomId: relatedRequest?.orderId,
+          user: userInfo || null, // Include user info or null if not found
+        };
+      })
+    );
+
+    // Return the enhanced appointments
+    return res.status(200).json({
+      message: 'Appointments fetched successfully',
+      appointments: enhancedAppointments,
+    });
+  } catch (error) {
+    console.error('Error fetching appointments by consultant ID:', error);
+    return res.status(500).json({ message: 'Failed to fetch appointments', error });
+  }
+};
+
+
+export const getAvailabilityByCid = async (req: Request, res: Response) => {
+  try {
+    const { cid } = req.params;
+
+    // Find all availability entries based on the `cid`
+    const availability = await Availability.find({ cid });
+
+    // If no availability is found, return a 404 response
+    if (!availability || availability.length === 0) {
+      return res.status(404).json({ message: 'No availability found for this user.' });
+    }
+
+    // Return the found availability entries
+    res.status(200).json({ availability });
+  } catch (error) {
+    console.error('Error fetching availability:', error);
+    res.status(500).json({ message: 'Error retrieving availability data' });
+  }
+};
+
+export async function fetchConsultantById(req: Request, res: Response): Promise<void> {
+  const consultantId = req.params.id;
+
+  try {
+    // Check if the ID is a valid MongoDB ObjectID
+    if (!mongoose.Types.ObjectId.isValid(consultantId)) {
+      res.status(400).json({ message: 'Invalid consultant ID format' });
+      return;
+    }
+
+    // Fetch the consultant by ID
+    const consultant: IConsultant | null = await Consultant.findById(consultantId).exec();
+
+    if (consultant) {
+      res.status(200).json(consultant);
+    } else {
+      res.status(404).json({ message: 'Consultant not found' });
+    }
+  } catch (error) {
+    const errorMessage = (error as Error).message || 'Error retrieving consultant';
+    console.error(`Error fetching consultant by ID: ${errorMessage}`);
+    res.status(500).json({ message: errorMessage });
+  }
+}
+
+// Helper function to validate the time object
+function isValidTime(time: Time): boolean {
+  return (
+    typeof time.hours === 'number' &&
+    typeof time.minutes === 'number' &&
+    typeof time.seconds === 'number' &&
+    time.hours >= 0 && time.hours < 24 &&
+    time.minutes >= 0 && time.minutes < 60 &&
+    time.seconds >= 0 && time.seconds < 60
+  );
+}
+
+export const updateConsultantById = async (req: Request, res: Response): Promise<void> => {
+  const consultantIdFromParams = req.params.id;
+
+  // Check if the ID in the params matches the ID from the token
+  if (consultantIdFromParams !== req.consultantId) {
+    res.status(403).json({ message: 'Access denied. You are not authorized to update this consultant.' });
+    return;
+  }
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(consultantIdFromParams)) {
+      res.status(400).json({ message: 'Invalid consultant ID format' });
+      return;
+    }
+
+    const updateFields = req.body;
+
+    const updatedConsultant = await Consultant.findByIdAndUpdate(
+      consultantIdFromParams,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (updatedConsultant) {
+      res.status(200).json(updatedConsultant.profilepics);
+    } else {
+      res.status(404).json({ message: 'Consultant not found' });
+    }
+  } catch (error) {
+    const errorMessage = (error as Error).message || 'Error updating consultant';
+    console.error(`Error updating consultant by ID: ${errorMessage}`);
+    res.status(500).json({ message: errorMessage });
+  }
+};
+
+export const fetchConsultantProfilePicById = async (req: Request, res: Response): Promise<void> => {
+  const consultantId = req.params.id;
+
+  try {
+    // Validate the consultant ID format
+    if (!mongoose.Types.ObjectId.isValid(consultantId)) {
+      res.status(400).json({ message: 'Invalid consultant ID format' });
+      return;
+    }
+
+    // Fetch only the profilepics field of the consultant
+    const consultant = await Consultant.findById(consultantId, 'profilepics').exec();
+
+    if (consultant) {
+      res.status(200).json({ profilepics: consultant.profilepics });
+    } else {
+      res.status(404).json({ message: 'Consultant not found' });
+    }
+  } catch (error) {
+    const errorMessage = (error as Error).message || 'Error retrieving profile picture';
+    console.error(`Error fetching consultant profile picture by ID: ${errorMessage}`);
+    res.status(500).json({ message: errorMessage });
+  }
+};
+
+export const updateConsultantProfilePic = async (req: Request, res: Response): Promise<Response> => {
+  const consultantIdFromParams = req.params.id;
+
+  // Check if the ID in the params matches the ID from the token
+  if (consultantIdFromParams !== req.consultantId) {
+    return res.status(403).json({ message: 'Access denied. You are not authorized to update this consultant.' });
+  }
+
+  try {
+    const consultantId = consultantIdFromParams;
+
+    // Validate the consultant ID
+    if (!mongoose.Types.ObjectId.isValid(consultantId)) {
+      return res.status(400).json({ message: 'Invalid consultant ID format' });
+    }
+
+    // Check if a file has been uploaded
+    const file = req.file as Express.MulterS3.File | undefined;
+    if (!file) {
+      return res.status(400).json({ message: 'No file uploaded' }); // Inform the user if no file is uploaded
+    }
+
+    // S3 file URL from multer-s3 upload
+    const fileUrl = file.location; // S3 URL is available in the 'location' property
+
+    // Update the consultant's profilepics field
+    const updatedConsultant = await Consultant.findByIdAndUpdate(
+      consultantId,
+      { $set: { profilepics: fileUrl } }, // Use $set to update the profilepics field
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedConsultant) {
+      return res.status(404).json({ message: `Consultant with ID ${consultantId} not found` });
+    }
+
+    return res.status(200).json({
+      message: 'Profile picture updated successfully',
+      profilepics: updatedConsultant.profilepics,
+    });
+  } catch (error) {
+    console.error('Error updating consultant profile picture:', error);
+    return res.status(500).json({ message: 'Failed to update consultant profile picture', error });
+  }
+};
+
+export const getActiveRequest = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params; // Consultant ID
+  const { page = 1, limit = 10, sort = 'desc' } = req.query;
+
+  try {
+    // Parse page and limit to integers
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+
+    // Fetch all appointments for the given consultant ID with pagination and sorting
+    const appointments = await AppointmentModel.find({ cid: id })
+      .sort({ creationDate: sort === 'asc' ? 1 : -1 })
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
+
+    if (!appointments.length) {
+      return res.status(200).json({ message: 'No appointments found for this consultant' });
+    }
+
+    // Fetch requests and user details for each appointment
+    const appointmentsWithDetails = await Promise.all(
+      appointments.map(async (appointment) => {
+        const request = await RequestModel.findOne({
+          orderId: appointment.orderId,
+          stattusof: { $nin: ['pending', 'completed'] }, // Exclude 'pending' and 'completed'
+        });
+
+        if (request) {
+          // Fetch user details by userId, excluding the password
+          const user = await User.findById(request.userId).select('-password -isVerified -verificationToken -createdAt -updatedAt -expertise');
+
+          if (user) {
+            return {
+              ...appointment.toObject(),
+              request: request.toObject(),
+              user: user.toObject(), // Include user details
+            };
+          }
+        }
+
+        return null; // Exclude appointments without valid requests or users
+      })
+    );
+
+    // Filter out null values
+    const validAppointments = appointmentsWithDetails.filter((appointment) => appointment !== null);
+
+    if (!validAppointments.length) {
+      return res.status(200).json({ message: 'No valid appointments found for this consultant' });
+    }
+
+    // Return the list of appointments with valid requests and user details
+    return res.status(200).json({
+      message: 'Appointments with valid requests and user details fetched successfully',
+      page: pageNumber,
+      limit: limitNumber,
+      total: validAppointments.length,
+      appointments: validAppointments,
+    });
+  } catch (error) {
+    console.error('Error fetching active requests:', error);
+    return res.status(500).json({ message: 'Failed to fetch active requests', error });
+  }
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  
+  // Check if the Authorization header exists and starts with 'Bearer '
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No refresh token provided' });
+  }
+
+  const refreshToken = authHeader.split(' ')[1]; // Get the token from the header
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as { userId: string };
+
+    // Generate a new access token
+    const accessToken = generateAccessToken(decoded.userId, 'consultant'); // Or fetch role from DB if needed
+
+    res.json({ accessToken });
+  } catch (error) {
+    res.status(403).json({ message: 'Invalid or expired refresh token' });
+  }
+};
+
+export const updateConsultantPassword = async (req: Request, res: Response): Promise<Response> => {
+  const { userId } = req.params; // Extract userId from URL params
+  const { currentPassword, newPassword } = req.body; // Extract currentPassword and newPassword from the request body
+
+  try {
+    // Validate the userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Find the user by userId
+    const consultant = await Consultant.findById(userId);
+    if (!consultant) {
+      return res.status(404).json({ message: `User with ID ${userId} not found` });
+    }
+
+    // Compare current password with stored password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, consultant.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Ensure the new password is different from the current password
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: 'New password cannot be the same as the current password' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password field only
+    const updatedUser = await Consultant.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: `Consultant with ID ${userId} not found` });
+    }
+
+    return res.status(200).json({
+      message: 'Successfully updated password',
+      status: 'completed',
+    });
+
+  } catch (error) {
+    console.error('Error updating user password:', error);
+    return res.status(500).json({ message: 'Failed to update user password', error });
+  }
+};
+
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    // Find user by email
+    const consultant = await Consultant.findOne({ email });
+    if (!consultant) {
+      return res.status(404).json({ message: 'User with this email does not exist.' });
+    }
+
+    // Generate a unique token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Store a hashed version of the token in the user's document for verification
+    consultant.verificationToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    await consultant.save();
+
+    // Generate the password reset URL
+    const resetUrl = `${req.protocol}://${req.get('host')}/api/consultants/resetpassword/${resetToken}`;
+    console.log(resetUrl);
+    
+    await sendEmail({
+      to: consultant.email,
+      subject: 'Password Reset Request',
+      text: `You requested a password reset. Click the following link to reset your password: ${resetUrl}. If you did not request this, please ignore this email.`,
+    });
+
+    res.status(200).json({ message: 'Password reset link has been sent to your email.' });
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    res.status(500).json({ message: 'Server error, please try again later.' });
+  }
+};
+
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    // Check if token is provided
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required.' });
+    }
+
+    // Hash the token and find the user
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const consultant = await Consultant.findOne({
+      verificationToken: hashedToken,
+    });
+
+    if (!consultant) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    // Update user's password and clear the token
+    consultant.password = await bcrypt.hash(newPassword, 10); // Ensure this is hashed as needed
+    consultant.verificationToken = undefined;
+    await consultant.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Server error, please try again later.' });
+  }
+};
+
+export const fetchConsultantPref = async (req: Request, res: Response): Promise<Response> => {
+  const { userId } = req.params; // Extract userId from URL params
+
+  try {
+    // Validate the userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Find the user's preferences by userId
+    const preferences = await ConsultantPreference.findOne({ userId });
+
+    if (!preferences) {
+      return res.status(404).json({ message: `Preferences not found for user ID ${userId}` });
+    }
+
+    return res.status(200).json({ preferences });
+
+  } catch (error) {
+    console.error('Error fetching user preferences:', error);
+    return res.status(500).json({ message: 'Failed to fetch user preferences', error });
+  }
+};
+
+export const updateConsultantPreference = async (req: Request, res: Response): Promise<Response> => {
+  const { userId } = req.params; // Extract userId from the URL params
+  const { iupdateOrder, newOrder, recommendation, timezone } = req.body; // Extract the preference data from the request body
+
+  try {
+    // Validate the userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Find the existing preference document for the user
+    const preference = await ConsultantPreference.findOne({ userId });
+
+    if (!preference) {
+      // If no preference document exists, create a new one with the provided data
+      const newPreference = new ConsultantPreference({
+        userId,
+        iupdateOrder,
+        newOrder,
+        recommendation,
+        timezone,
+      });
+
+      await newPreference.save();
+
+      return res.status(201).json({ message: 'Preference created successfully', preference: newPreference });
+    }
+
+    // If the preference document exists, update it with the new values
+    preference.iupdateOrder = iupdateOrder ?? preference.iupdateOrder;
+    preference.newOrder = newOrder ?? preference.newOrder;
+    preference.recommendation = recommendation ?? preference.recommendation;
+    preference.timezone = timezone ?? preference.timezone;
+
+    const updatedPreference = await preference.save();
+
+    return res.status(200).json({ message: 'Preference updated successfully', preference: updatedPreference });
+  } catch (error) {
+    console.error('Error updating user preferences:', error);
+    return res.status(500).json({ message: 'Failed to update user preferences', error });
+  }
+};
+
+export const fetchAssignmentsAndRequests = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params;
+
+  try {
+    // Validate consultant ID (cid)
+    if (!cid || !mongoose.Types.ObjectId.isValid(cid)) {
+      return res.status(400).json({ message: 'Invalid consultant ID (cid)' });
+    }
+
+    // Fetch assignments (appointments) for the given consultant ID
+    const assignments = await AppointmentModel.find({ cid }, 'orderId');
+
+    // Extract order IDs from the fetched assignments
+    const orderIds = assignments.map((assignment) => assignment.orderId);
+
+    if (orderIds.length === 0) {
+      return res.status(404).json({ requests: [] }); // No assignments found
+    }
+
+    // Fetch and sort requests by `booktime` in ascending order (earliest first)
+    const requests = await RequestModel.find(
+      {
+        orderId: { $in: orderIds }, // Match order IDs
+        type: 'Chat',
+        stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
+      },
+      'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Fields to return
+    ).sort({ booktime: -1 }); // Sort by `booktime` (ascending)
+
+    // Process and format each request to include `startTime`
+    const processedRequests = requests.map((request) => {
+      const { booktime } = request.toObject(); // Convert request to plain object
+      let startTime: string | null = null;
+
+      if (booktime) {
+        // Format `booktime` for GMT+1 timezone
+        const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
+        startTime = moment(booktime).utcOffset('+01:00').format(gmtPlusOneFormat);
+      }
+
+      return {
+        ...request.toObject(),
+        startTime, // Add formatted start time
+      };
+    });
+
+    // Respond with sorted and processed requests
+    return res.status(200).json({ requests: processedRequests });
+  } catch (error) {
+    console.error('Error fetching assignments and requests:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch assignments and requests',
+      error,
+    });
+  }
+};
+
+
+export const fetchHistoryByCid = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params;
+  const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
+
+  try {
+    // Validate cid
+    if (!cid || typeof cid !== 'string') {
+      return res.status(400).json({ message: 'Invalid consultant ID (cid)' });
+    }
+
+    // Ensure page and limit are numbers
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+      return res.status(400).json({ message: 'Invalid page or limit parameter' });
+    }
+
+    // Fetch appointments with the given cid
+    const appointments = await AppointmentModel.find({ cid }, 'orderId');
+
+    // Extract orderIds from the appointments
+    const orderIds = appointments.map((appointment) => appointment.orderId);
+
+    // Fetch paginated completed requests
+    const completedRequests = await RequestModel.find(
+      {
+        orderId: { $in: orderIds }, // Match the orderIds
+        stattusof: 'completed',    // Status must be completed
+      },
+      'movie_title chat_title stattusof time userId orderId nameofservice date createdAt updatedAt' // Select specific fields
+    )
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
+      .sort({ updatedAt: -1 }) // Sort by most recent updatedAt;
+
+    // Count total documents for pagination info
+    const totalCount = await RequestModel.countDocuments({
+      orderId: { $in: orderIds },
+      stattusof: 'completed',
+    });
+
+    // Process musings and fetch user info
+    const musings = [];
+    for (const request of completedRequests) {
+      const { userId } = request;
+
+      // Fetch user details
+      const user = await User.findById(userId, 'fname lname email profilepics role expertise');
+
+      // Check if a musing already exists for the userId
+      let musing = await MusingModel.findOne({ userId });
+
+      // If no musing exists, create a new one with a summary placeholder
+      if (!musing) {
+        musing = await MusingModel.create({
+          userId,
+          summary: `Default summary for user: ${user?.fname} ${user?.lname}`,
+        });
+      }
+
+      musings.push({
+        request,
+        userInfo: user,
+        musing,
+      });
+    }
+
+    return res.status(200).json({
+      totalItems: totalCount,
+      totalPages: Math.ceil(totalCount / limitNumber),
+      currentPage: pageNumber,
+      itemsPerPage: limitNumber,
+      completedRequests: musings,
+    });
+  } catch (error) {
+    console.error('Error fetching assignments and requests:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch assignments and requests',
+      error: error,
+    });
+  }
+};
+
+export const fetchPendingRequestsByConsultantExpertise = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params; // Consultant ID from request parameters
+
+  try {
+    // Validate consultant ID
+    if (!mongoose.Types.ObjectId.isValid(cid)) {
+      return res.status(400).json({ message: 'Invalid consultant ID' });
+    }
+
+    // Fetch the consultant's expertise
+    const consultant = await Consultant.findById(cid, 'expertise');
+    if (!consultant) {
+      return res.status(404).json({ message: 'Consultant not found' });
+    }
+
+    const { expertise } = consultant;
+
+    // Validate expertise
+    if (!expertise || expertise.length === 0) {
+      return res.status(404).json({ message: 'Consultant has no expertise defined' });
+    }
+
+    // Fetch requests where expertise matches at least one of the consultant's expertise,
+    // type is 'request', and stattusof is 'pending'
+    const matchingRequests = await RequestModel.find(
+      {
+        expertise: { $in: expertise }, // Match any expertise in the consultant's expertise array
+        type: 'request', // Only include requests of type 'request'
+        stattusof: 'pending', // Only include requests with status 'pending'
+      },
+      'chat_title type stattusof orderId nameofservice date createdAt expertise' // Fields to return
+    );
+
+    return res.status(200).json({ requests: matchingRequests });
+  } catch (error) {
+    console.error('Error fetching requests by consultant expertise:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch requests by consultant expertise',
+      error,
+    });
+  }
+};
+
+export const completeRequest = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Extract the Bearer token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    // Verify the token
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+
+    // Extract orderId from request body
+    const { orderId } = req.body;
+    if (!orderId) {
+      return res.status(400).json({ message: 'Missing orderId in the request body' });
+    }
+
+    // Find and update the request
+    const updatedRequest = await RequestModel.findOneAndUpdate(
+      { orderId }, // Match the request by orderId
+      { $set: { stattusof: 'completed' } }, // Set `stattusof` to "completed"
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedRequest) {
+      return res.status(404).json({ message: `Request with orderId ${orderId} not found` });
+    }
+
+    return res.status(200).json({
+      message: 'Request updated to completed successfully',
+      request: updatedRequest,
+    });
+  } catch (error) {
+    console.error('Error updating request status:', error);
+    return res.status(500).json({ message: 'Failed to update request status', error });
+  }
+};
+
+export const fetchNotifications = async (req: Request, res: Response): Promise<Response> => {
+  const { userId } = req.params; // Extract userId from request parameters
+  const { page = 1, limit = 10, isRead } = req.query; // Extract query parameters with defaults
+  const token = req.headers.authorization?.split(' ')[1]; // Extract Bearer token
+
+  if (!token) {
+    return res.status(403).json({ message: 'Access denied. No token provided.' });
+  }
+
+  try {
+    // Verify token and extract payload
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { userId: string; role: string };
+
+    // Validate role and userId
+    if (decoded.role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Only consultants are allowed.' });
+    }
+
+    if (decoded.userId !== userId) {
+      return res.status(403).json({ message: 'Access denied. User ID mismatch.' });
+    }
+
+    // Parse pagination values
+    const pageNumber = Math.max(Number(page), 1); // Ensure page number is at least 1
+    const pageSize = Math.max(Number(limit), 1); // Ensure limit is at least 1
+
+    // Build the query filter
+    const filter: Record<string, any> = { userId };
+    if (isRead !== undefined) {
+      filter.isRead = isRead === 'true'; // Convert string to boolean
+    }
+
+    // Fetch notifications with pagination
+    const totalDocuments = await Notification.countDocuments(filter);
+    const notifications = await Notification.find(filter)
+      .sort({ createdAt: -1 }) // Sort by creation date in descending order
+      .skip((pageNumber - 1) * pageSize) // Skip documents for previous pages
+      .limit(pageSize); // Limit to the specified number of items per page
+
+    // Return response
+    return res.status(200).json({
+      pagination: {
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalDocuments / pageSize),
+        totalDocuments,
+      },
+      notifications,
+    });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    if (error === 'JsonWebTokenError') {
+      return res.status(403).json({ message: 'Invalid or expired token.' });
+    }
+    return res.status(500).json({ message: 'Failed to fetch notifications.', error });
+  }
+};
+
+export const getTasksByConsultant = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Check if the Bearer token is provided
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Extract role and userId from token
+    const { role, userId } = decodedToken as { role: string; userId: string };
+
+    // Ensure the role is 'consultant'
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+
+    // Ensure the userId matches the cid parameter
+    const { cid } = req.params;
+    if (userId !== cid) {
+      return res.status(403).json({ message: 'Access denied. User ID does not match consultant ID.' });
+    }
+
+    // Fetch tasks associated with the given cid
+    const tasks = await Task.find({ cid, status: 'pending' });
+
+    if (!tasks.length) {
+      return res.status(404).json({ message: 'No tasks found for the specified consultant.' });
+    }
+
+    // Enhance tasks with movie_title and user info
+    const enhancedTasks = await Promise.all(
+      tasks.map(async (task) => {
+        const relatedRequest = await RequestModel.findOne({ orderId: task.orderId }).select('movie_title');
+        const relatedUser = await User.findById(task.uid).select('-password -verificationToken -isVerified');
+
+        return {
+          ...task.toObject(),
+          movie_title: relatedRequest?.movie_title || null,
+          user_info: relatedUser || null,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      message: 'Tasks fetched successfully',
+      tasks: enhancedTasks,
+    });
+  } catch (error) {
+    console.error('Error fetching tasks for consultant:', error);
+    return res.status(500).json({ message: 'Failed to fetch tasks', error });
+  }
+};
+
+
+function getTimeFromDate(date: Date) {
+  const targetDate = moment(date).tz('Africa/Lagos'); // Change timezone to Lagos
+  const hours = targetDate.hour();
+  const minutes = targetDate.minute();
+  const seconds = targetDate.second();
+
+  return { hours, minutes, seconds };
+}
+
+async function chatTransaction(
+  title: string,
+  userId: string,
+  type: string,
+  chat_title: string,
+  date: string, // ISO 8601 date string
+  time: string, // JavaScript Date object
+  summary: string,
+  consultant: string,
+  originalOrderId: string,
+  cid: string,
+): Promise<{ transaction: any; request: any }> { // Allow undefined in return type if necessary
+  try {
+    // Fetch service price and user email
+    const price = await getServicePriceByName(title);
+    const userEmail = await fetchUserEmailById(userId);
+
+    // Process time
+    const result = getTimeFromDate(new Date(time));
+
+    const booktime = {
+      hours: result.hours,
+      minutes: result.minutes,
+      seconds: result.seconds,
+    };
+
+    // Handle index validation and removal
+    try {
+      const indexes = await Transaction.collection.indexes();
+      const indexExists = indexes.some((index) => index.name === 'reference_1');
+      if (indexExists) {
+        await Transaction.collection.dropIndex('reference_1');
+        console.log('Index on "reference" dropped successfully.');
+      }
+    } catch (error) {
+      console.error('Error checking or dropping index:', error);
+    }
+
+    // Create new transaction
+    const newTransaction = new Transaction({
+      title,
+      userId,
+      type,
+      orderId: generateOrderId(),
+      price,
+      reference: '',
+      status: 'completed',
+      originalOrderId: originalOrderId,
+    });
+    await newTransaction.save();
+
+    let endTime: string | null = null;
+
+    const dayofWeek = getDayOfWeek(date);
+
+    const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
+    const endDateTime = add(new Date(time), { hours: 1 });
+    endTime = moment(endDateTime).utcOffset('+01:00').format(gmtPlusOneFormat);
+
+
+    // Create new request
+    const newRequest = new RequestModel({
+      chat_title,
+      stattusof: 'awaiting',
+      type,
+      date,
+      time: booktime,
+      booktime: time,
+      summary,
+      consultant,
+      nameofservice: title,
+      orderId: newTransaction.orderId, 
+      userId,
+      expertise: consultant,
+      day: dayofWeek,
+      endTime: endTime,
+      cid: cid,
+    });
+    await newRequest.save();
+
+    // Create the new appointment
+    // const newAppointment = new AppointmentModel({
+    //   date,
+    //   time: booktime,
+    //   uid: userId,
+    //   cid,
+    //   orderId: newTransaction.orderId,
+    //   expertise: consultant,
+    // });
+
+    // // Save the appointment to the database
+    // const savedAppointment = await newAppointment.save();
+
+    if (newRequest) {
+      const updatedRequest = await RequestModel.findOneAndUpdate(
+        { orderId: originalOrderId }, // Match the orderId
+        { stattusof: 'completed' }, // Update the stattusof field to "ready"
+        { new: true } // Return the updated document
+      );
+
+      if (updatedRequest) {
+        await Task.findOneAndUpdate(
+          { orderId: originalOrderId }, // Match the orderId
+          { status: 'completed' }, // Update the stattusof field to "completed"
+          { new: true } // Return the updated document
+        );
+      }
+    }
+
+    // Consultant Notification Created
+    createNotification(cid.toString(), userId.toString(), 'consultant', 'Chat', newTransaction.orderId.toString(), 'New Order', 'You have a New Order Match');
+    // User Notification Created
+    createNotification(userId.toString(), cid.toString(), 'user', 'Chat', newTransaction.orderId.toString(), 'Chat Assigned', 'Your Chat Request Has Been Assigned to a Consultant');
+
+    const email = await fetchConsultantEmail(cid);
+    const useremail = await fetchUserEmail(userId);
+
+    // const dated = newRequest.date.split('T')[0];
+    const dated = new Date(newRequest.date).toISOString().split('T')[0];
+    const timed = `${newRequest.time?.hours}:${newRequest.time?.minutes}`;
+
+    console.log('My Date', dated);
+    console.log('My Time', timed);
+
+    if (email) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'New Order',
+          text: `You Have A New Order`,
+        });
+        console.log('Email sent successfully.');
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+    } else {
+      console.log('Consultant not found');
+    }
+
+    if (useremail) {
+      try {
+        await sendEmail({
+          to: useremail,
+          subject: 'New Order',
+          text: `Select your desired date and time to book a Chat here https://nollywood-filmaker-deploy.vercel.app/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}`,
+        });
+        console.log('Email sent successfully.');
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+    } else {
+      console.log('Consultant not found');
+    }
+
+    // Return both transaction and request data
+    return {
+      transaction: newTransaction,
+      request: newRequest,
+    };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error in chatTransaction:', error.message);
+      throw new Error(`Error creating transaction and request: ${error.message}`);
+    } else {
+      console.error('Unknown error in chatTransaction');
+      throw new Error('An unknown error occurred while creating transaction and request.');
+    }
+  }
+}
+
+
+export const handleChatTransaction = async (req: Request, res: Response) => {
+  const { title, userId, type, chat_title, date, time, summary, consultant, originalOrderId, cid } = req.body;
+
+  try {
+    // Call the chatTransaction function with the request data
+    const result = await chatTransaction(
+      title,
+      userId,
+      type,
+      chat_title,
+      date,
+      time, // Ensure `time` is converted to a Date object
+      summary,
+      consultant,
+      originalOrderId,
+      cid
+    );
+
+    // Send success response
+    res.status(201).json({
+      message: 'Transaction and request created successfully',
+      transaction: result.transaction,
+      request: result.request,
+    });
+  } catch (error) {
+    // Handle errors
+    if (error instanceof Error) {
+      res.status(500).json({
+        message: 'Error creating transaction and request',
+        error: error.message,
+      });
+    } else {
+      res.status(500).json({
+        message: 'Unknown error occurred',
+      });
+    }
+  }
+};
+
+
+
+export const uploadConsultantFiles = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Handle file upload with multer
+    const files = await new Promise<Express.MulterS3.File[]>((resolve, reject) => {
+      uploads(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+          console.error('Multer Error:', err.message);
+          return reject(new Error(`Multer error: ${err.message}`));
+        } else if (err) {
+          console.error('Upload Error:', err.message);
+          return reject(new Error(`File upload failed: ${err.message}`));
+        }
+
+        if (!req.files || !(req.files instanceof Array)) {
+          return reject(new Error('No files uploaded'));
+        }
+
+        resolve(req.files as Express.MulterS3.File[]);
+      });
+    });
+
+    // Extract orderId from the request body
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ message: 'Order ID is required' });
+    }
+
+    // Insert each file as a separate Resolve record
+    const resolveRecords = files.map((file) => ({
+      orderId,
+      filename: file.originalname,
+      filepath: file.location,
+      size: file.size,
+    }));
+
+    // Save the records in bulk
+    await Resolve.insertMany(resolveRecords);
+
+    // Update the related request status to "ready"
+    await RequestModel.findOneAndUpdate(
+      { orderId }, // Match the orderId
+      { stattusof: 'ready' }, // Update the stattusof field to "ready"
+      { new: true } // Return the updated document
+    );
+
+    return res.status(200).json({
+      message: 'Files uploaded and records created successfully',
+      resolve: resolveRecords,
+    });
+  } catch (error) {
+    console.error('Error uploading files:', error);
+    return res.status(500).json({
+      message: 'Failed to upload files and create records',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+export const fetchResolveFiles = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { orderId } = req.params; // Extract orderId from the request parameters
+
+    if (!orderId) {
+      return res.status(400).json({ message: 'Order ID is required' });
+    }
+
+    // Find all resolve records by orderId
+    const resolveRecords = await Resolve.find({ orderId });
+
+    if (resolveRecords.length === 0) {
+      return res.status(404).json({ message: `No resolve records found for orderId ${orderId}` });
+    }
+
+    // Transform records into a more user-friendly format
+    const files = resolveRecords.map((record) => ({
+      filename: record.filename,
+      filepath: record.filepath,
+      size: record.size,
+      createdAt: record.createdAt,
+    }));
+
+    return res.status(200).json({
+      message: 'Resolve files fetched successfully',
+      orderId,
+      files,
+    });
+  } catch (error) {
+    console.error('Error fetching resolve files:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch resolve files',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+export const verifyEmailAndSetPassword = async (req: Request, res: Response): Promise<Response> => {
+  const { token, password } = req.body;
+
+  try {
+    // Validate input for missing token or password
+    if (!token) {
+      return res.status(400).json({ message: 'Verification token is required.' });
+    }
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required.' });
+    }
+
+    // Find consultant by verification token
+    const consultant = await Consultant.findOne({ verificationToken: token });
+    if (!consultant) {
+      return res.status(400).json({ message: 'Invalid or expired verification token.' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update the consultant record
+    consultant.password = hashedPassword;
+    consultant.verificationToken = undefined; // Remove token after verification
+    consultant.status = 'active';
+
+    await consultant.save();
+
+    return res.status(200).json({ message: 'Email verified and password set successfully.' });
+  } catch (error) {
+    console.error('Error verifying email and setting password:', error);
+    return res.status(500).json({ message: 'Failed to verify email and set password.', error });
+  }
+};
