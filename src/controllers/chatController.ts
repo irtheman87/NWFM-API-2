@@ -485,6 +485,9 @@ export const createIssueThread = async (req: Request, res: Response): Promise<Re
   }
 
   try {
+    // Check if an IssueThread with the specified `isid` and role "admin" already exists
+    const existingThread = await IssuesThread.findOne({ isid, role: 'admin' });
+
     // Create a new IssueThread
     const newThread = new IssuesThread({
       isid,
@@ -493,9 +496,30 @@ export const createIssueThread = async (req: Request, res: Response): Promise<Re
       role,
     });
 
-    // Save the IssueThread to the database
-    const savedThread = await newThread.save();
+    if (!existingThread) {
+      if (role === 'admin') {
+        // If no thread exists with role admin and the current role is admin, update issue status
+        const updatedIssue = await Issue.findOneAndUpdate(
+          { _id: isid }, // Assuming the `isid` matches the `_id` field in the `Issues` collection
+          { status: 'opened' },
+          { new: true } // Return the updated issue document
+        );
 
+        if (!updatedIssue) {
+          return res.status(404).json({ message: 'Associated issue not found, but thread created' });
+        }
+
+        const savedThread = await newThread.save();
+        return res.status(201).json({
+          message: 'Issue thread created successfully and issue status updated to "opened"',
+          thread: savedThread,
+          issue: updatedIssue,
+        });
+      }
+    }
+
+    // Save the thread regardless of role if a thread already exists or role isn't admin
+    const savedThread = await newThread.save();
     return res.status(201).json({
       message: 'Issue thread created successfully',
       thread: savedThread,
