@@ -1129,8 +1129,3 @@ export const closeIssue = async (req: Request, res: Response): Promise<Response>
     });
   }
 };
-
-// Create a new IssueThread
-
-
-// Fetch IssueThreads by isid
