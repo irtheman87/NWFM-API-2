@@ -18,6 +18,7 @@ import Issue from '../models/Issuess';
 import IssuesThread from '../models/Issuess' 
 import Feedback from '../models/Feedback';
 import mongoose from 'mongoose';
+import MusingModel from '../models/Musing';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -1348,5 +1349,202 @@ export const fetchCompletedUserRequests = async (req: Request, res: Response): P
   } catch (error) {
     console.error('Error fetching completed requests:', error);
     return res.status(500).json({ message: 'Failed to fetch completed requests', error });
+  }
+};
+
+export const getActiveRequestForConsultant = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params; // Consultant ID
+  const { page = 1, limit = 10, sort = 'desc' } = req.query;
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Parse page and limit to integers
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+
+    // Fetch all appointments for the given consultant ID with pagination and sorting
+    const appointments = await AppointmentModel.find({ cid: id })
+      .sort({ creationDate: sort === 'asc' ? 1 : -1 })
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
+
+    if (!appointments.length) {
+      return res.status(200).json({ message: 'No appointments found for this consultant' });
+    }
+
+    // Fetch requests and user details for each appointment
+    const appointmentsWithDetails = await Promise.all(
+      appointments.map(async (appointment) => {
+        const request = await RequestModel.findOne({
+          orderId: appointment.orderId,
+          stattusof: { $nin: ['pending', 'completed'] }, // Exclude 'pending' and 'completed'
+        });
+
+        if (request) {
+          // Fetch user details by userId, excluding the password
+          const user = await User.findById(request.userId).select('-password -isVerified -verificationToken -createdAt -updatedAt -expertise');
+
+          if (user) {
+            return {
+              ...appointment.toObject(),
+              request: request.toObject(),
+              user: user.toObject(), // Include user details
+            };
+          }
+        }
+
+        return null; // Exclude appointments without valid requests or users
+      })
+    );
+
+    // Filter out null values
+    const validAppointments = appointmentsWithDetails.filter((appointment) => appointment !== null);
+
+    if (!validAppointments.length) {
+      return res.status(200).json({ message: 'No valid appointments found for this consultant' });
+    }
+
+    // Return the list of appointments with valid requests and user details
+    return res.status(200).json({
+      message: 'Appointments with valid requests and user details fetched successfully',
+      page: pageNumber,
+      limit: limitNumber,
+      total: validAppointments.length,
+      appointments: validAppointments,
+    });
+  } catch (error) {
+    console.error('Error fetching active requests:', error);
+    return res.status(500).json({ message: 'Failed to fetch active requests', error });
+  }
+};
+
+export const fetchConsultantHistoryByCid = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params;
+  const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Validate cid
+    if (!cid || typeof cid !== 'string') {
+      return res.status(400).json({ message: 'Invalid consultant ID (cid)' });
+    }
+
+    // Ensure page and limit are numbers
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+      return res.status(400).json({ message: 'Invalid page or limit parameter' });
+    }
+
+    // Fetch appointments with the given cid
+    const appointments = await AppointmentModel.find({ cid }, 'orderId');
+
+    // Extract orderIds from the appointments
+    const orderIds = appointments.map((appointment) => appointment.orderId);
+
+    // Fetch paginated completed requests
+    const completedRequests = await RequestModel.find(
+      {
+        orderId: { $in: orderIds }, // Match the orderIds
+        stattusof: 'completed',    // Status must be completed
+      },
+      'movie_title chat_title stattusof time userId orderId nameofservice date createdAt updatedAt' // Select specific fields
+    )
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
+      .sort({ updatedAt: -1 }) // Sort by most recent updatedAt;
+
+    // Count total documents for pagination info
+    const totalCount = await RequestModel.countDocuments({
+      orderId: { $in: orderIds },
+      stattusof: 'completed',
+    });
+
+    // Process musings and fetch user info
+    const musings = [];
+    for (const request of completedRequests) {
+      const { userId } = request;
+
+      // Fetch user details
+      const user = await User.findById(userId, 'fname lname email profilepics role expertise');
+
+      // Check if a musing already exists for the userId
+      let musing = await MusingModel.findOne({ userId });
+
+      // If no musing exists, create a new one with a summary placeholder
+      if (!musing) {
+        musing = await MusingModel.create({
+          userId,
+          summary: `Default summary for user: ${user?.fname} ${user?.lname}`,
+        });
+      }
+
+      musings.push({
+        request,
+        userInfo: user,
+        musing,
+      });
+    }
+
+    return res.status(200).json({
+      totalItems: totalCount,
+      totalPages: Math.ceil(totalCount / limitNumber),
+      currentPage: pageNumber,
+      itemsPerPage: limitNumber,
+      completedRequests: musings,
+    });
+  } catch (error) {
+    console.error('Error fetching assignments and requests:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch assignments and requests',
+      error: error,
+    });
   }
 };
