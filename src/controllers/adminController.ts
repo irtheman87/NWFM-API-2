@@ -1381,65 +1381,71 @@ export const getActiveRequestForConsultant = async (req: Request, res: Response)
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
+
     // Parse page and limit to integers
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
 
-    // Fetch all appointments for the given consultant ID with pagination and sorting
-    const appointments = await AppointmentModel.find({ cid: id })
-      .sort({ creationDate: sort === 'asc' ? 1 : -1 })
-      .skip((pageNumber - 1) * limitNumber)
-      .limit(limitNumber);
+    // Fetch all appointments and tasks for the given consultant ID
+    const appointments = await AppointmentModel.find({ cid: id }, 'orderId');
+    const tasks = await Task.find({ cid: id }, 'orderId');
 
-    if (!appointments.length) {
-      return res.status(200).json({ message: 'No appointments found for this consultant' });
-    }
+    // Combine orderIds from appointments and tasks
+    const combinedOrderIds = [
+      ...appointments.map((appointment) => appointment.orderId),
+      ...tasks.map((task) => task.orderId),
+    ];
 
-    // Fetch requests and user details for each appointment
-    const appointmentsWithDetails = await Promise.all(
-      appointments.map(async (appointment) => {
+    // Fetch requests and user details for the combined orderIds
+    const requestsWithDetails = await Promise.all(
+      combinedOrderIds.map(async (orderId) => {
         const request = await RequestModel.findOne({
-          orderId: appointment.orderId,
+          orderId,
           stattusof: { $nin: ['pending', 'completed'] }, // Exclude 'pending' and 'completed'
         });
 
         if (request) {
-          // Fetch user details by userId, excluding the password
+          // Fetch user details by userId, excluding sensitive fields
           const user = await User.findById(request.userId).select('-password -isVerified -verificationToken -createdAt -updatedAt -expertise');
 
           if (user) {
             return {
-              ...appointment.toObject(),
+              orderId,
               request: request.toObject(),
               user: user.toObject(), // Include user details
             };
           }
         }
 
-        return null; // Exclude appointments without valid requests or users
+        return null; // Exclude invalid or unmatched records
       })
     );
 
     // Filter out null values
-    const validAppointments = appointmentsWithDetails.filter((appointment) => appointment !== null);
+    const validRequests = requestsWithDetails.filter((entry) => entry !== null);
 
-    if (!validAppointments.length) {
-      return res.status(200).json({ message: 'No valid appointments found for this consultant' });
+    if (!validRequests.length) {
+      return res.status(200).json({ message: 'No active requests found for this consultant' });
     }
 
-    // Return the list of appointments with valid requests and user details
+    // Apply pagination to valid requests
+    const startIndex = (pageNumber - 1) * limitNumber;
+    const paginatedRequests = validRequests.slice(startIndex, startIndex + limitNumber);
+
+    // Return the list of requests with valid details
     return res.status(200).json({
-      message: 'Appointments with valid requests and user details fetched successfully',
+      message: 'Active requests fetched successfully',
       page: pageNumber,
       limit: limitNumber,
-      total: validAppointments.length,
-      appointments: validAppointments,
+      total: validRequests.length,
+      requests: paginatedRequests,
     });
   } catch (error) {
     console.error('Error fetching active requests:', error);
     return res.status(500).json({ message: 'Failed to fetch active requests', error });
   }
 };
+
 
 export const fetchConsultantHistoryByCid = async (req: Request, res: Response): Promise<Response> => {
   const { cid } = req.params;
@@ -1470,6 +1476,7 @@ export const fetchConsultantHistoryByCid = async (req: Request, res: Response): 
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
+
     // Validate cid
     if (!cid || typeof cid !== 'string') {
       return res.status(400).json({ message: 'Invalid consultant ID (cid)' });
@@ -1483,27 +1490,28 @@ export const fetchConsultantHistoryByCid = async (req: Request, res: Response): 
       return res.status(400).json({ message: 'Invalid page or limit parameter' });
     }
 
-    // Fetch appointments with the given cid
+    // Fetch appointments and tasks with the given cid
     const appointments = await AppointmentModel.find({ cid }, 'orderId');
+    const tasks = await Task.find({ cid }, 'orderId');
 
-    // Extract orderIds from the appointments
-    const orderIds = appointments.map((appointment) => appointment.orderId);
+    // Combine orderIds and orderIdsss
+    const combinedOrderIds = [...appointments.map((appointment) => appointment.orderId), ...tasks.map((task) => task.orderId)];
 
     // Fetch paginated completed requests
     const completedRequests = await RequestModel.find(
       {
-        orderId: { $in: orderIds }, // Match the orderIds
-        stattusof: 'completed',    // Status must be completed
+        orderId: { $in: combinedOrderIds }, // Match the combined orderIds
+        stattusof: 'completed', // Status must be completed
       },
       'movie_title chat_title stattusof time userId orderId nameofservice date createdAt updatedAt' // Select specific fields
     )
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber)
-      .sort({ updatedAt: -1 }) // Sort by most recent updatedAt;
+      .sort({ updatedAt: -1 }); // Sort by most recent updatedAt
 
     // Count total documents for pagination info
     const totalCount = await RequestModel.countDocuments({
-      orderId: { $in: orderIds },
+      orderId: { $in: combinedOrderIds },
       stattusof: 'completed',
     });
 
