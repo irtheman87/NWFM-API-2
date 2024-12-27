@@ -17,6 +17,7 @@ import moment from 'moment-timezone';
 import Issue from '../models/Issuess';
 import IssuesThread from '../models/Issuess' 
 import Feedback from '../models/Feedback';
+import mongoose from 'mongoose';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -1272,5 +1273,80 @@ export const fetchUserDetails = async (req: Request, res: Response): Promise<Res
   } catch (error) {
     console.error('Error fetching user details:', error);
     return res.status(500).json({ message: 'Failed to fetch user details', error });
+  }
+};
+
+export const fetchCompletedUserRequests = async (req: Request, res: Response): Promise<Response> => {
+  const { userId } = req.params;
+  const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Validate the userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Convert query params to numbers
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+
+    if (pageNumber <= 0 || limitNumber <= 0) {
+      return res.status(400).json({ message: 'Page and limit must be positive integers.' });
+    }
+
+    // Fetch completed requests with pagination and sort by most recent updatedAt
+    const requests = await RequestModel.find(
+      {
+        userId, // Match userId
+        stattusof: 'completed', // Match completed status
+      },
+      'movie_title chat_title stattusof time orderId nameofservice date createdAt updatedAt' // Select specific fields
+    )
+      .sort({ updatedAt: -1 }) // Sort by most recent updatedAt
+      .skip((pageNumber - 1) * limitNumber) // Skip the records for pagination
+      .limit(limitNumber); // Limit the number of records per page
+
+    // Fetch the total number of completed requests to calculate the total pages
+    const totalRequests = await RequestModel.countDocuments({
+      userId,
+      stattusof: 'completed',
+    });
+
+    const totalPages = Math.ceil(totalRequests / limitNumber);
+
+    return res.status(200).json({
+      totalItems: totalRequests,
+      totalPages,
+      currentPage: pageNumber,
+      itemsPerPage: limitNumber,
+      requests,
+    });
+  } catch (error) {
+    console.error('Error fetching completed requests:', error);
+    return res.status(500).json({ message: 'Failed to fetch completed requests', error });
   }
 };
