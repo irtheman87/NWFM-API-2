@@ -1221,7 +1221,7 @@ export const fetchUserDetails = async (req: Request, res: Response): Promise<Res
     // Calculate the total number of successful transactions
     const successfulTransactions = await Transaction.find({
       userId: id,
-      status: 'successful',
+      status: 'completed',
     });
     const totalTransactions = successfulTransactions.length;
 
@@ -1252,7 +1252,7 @@ export const fetchUserDetails = async (req: Request, res: Response): Promise<Res
     // Fetch total number of chats with specified conditions
     const totalChats = await RequestModel.countDocuments({
       userId: id,
-      type: 'chat',
+      type: 'Chat',
       stattusof: { $in: ['ongoing', 'completed'] },
     });
 
