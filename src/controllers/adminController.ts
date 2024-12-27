@@ -717,7 +717,7 @@ export const fetchTransactionStats = async (req: Request, res: Response): Promis
       completedCount,
       totalTransactionsCount,
       failedOrPendingCount,
-      totalCompletedPrice,
+      totalCompletedPrice: (totalCompletedPrice/100),
     });
   } catch (error) {
     console.error('Error fetching transaction stats:', error);
@@ -1261,7 +1261,7 @@ export const fetchUserDetails = async (req: Request, res: Response): Promise<Res
       user,
       metrics: {
         totalTransactions,
-        totalPrice,
+        totalPrice: (totalPrice/100),
         averageRatings: {
           quality: averageQuality,
           speed: averageSpeed,
