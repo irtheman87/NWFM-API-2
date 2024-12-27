@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchRequestsWithPagination, fetchConsultantsByExpertise, 
     createAppointment, fetchAllUsers, createTask, fetchConsultants, fetchTransactionStats, fetchUserAndConsultantStats, 
-    fetchTopNewestUsers, fetchMonthlyTransactionTotals, fetchAllConsultants, createConsultant, closeIssue } from '../controllers/adminController';
+    fetchTopNewestUsers, fetchMonthlyTransactionTotals, fetchAllConsultants, createConsultant, closeIssue, fetchConsultantById, fetchUserDetails } from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -30,6 +30,12 @@ router.get('/fetch/consultants', fetchAllConsultants);
 router.post('/create/consultants', createConsultant);
 
 router.patch('/set/issue/:id', closeIssue);
+
+router.get('/fetch/consultants/:id', fetchConsultantById);
+
+router.get('/fetch/users/:id', fetchUserDetails);
+
+
 
 router.get('/transactions/monthly-totals', async (req: Request, res: Response) => {
     try {

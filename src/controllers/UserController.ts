@@ -1135,7 +1135,7 @@ export const fetchUserUpcomingRequest = async (req: Request, res: Response): Pro
       filter,
       'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Select specific fields
     )
-      .sort({ booktime: 1 }) // Sort by `booktime` in ascending order
+      .sort({ booktime: -1 }) // Sort by `booktime` in ascending order
       .skip((pageNumber - 1) * pageSize) // Skip requests for previous pages
       .limit(pageSize); // Limit to the specified number of items per page
 

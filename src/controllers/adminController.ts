@@ -16,6 +16,7 @@ import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
 import Issue from '../models/Issuess';
 import IssuesThread from '../models/Issuess' 
+import Feedback from '../models/Feedback';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -1127,5 +1128,149 @@ export const closeIssue = async (req: Request, res: Response): Promise<Response>
       message: 'Failed to update issue status',
       error,
     });
+  }
+};
+
+export const fetchConsultantById = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params; // Consultant ID from route parameters
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Fetch consultant by ID, excluding password
+    const consultant = await Consultant.findById(id).select('-password');
+
+    if (!consultant) {
+      return res.status(404).json({ message: 'Consultant not found' });
+    }
+
+    // Add dummy data
+    const stats = {
+      alltimerev: Math.floor(Math.random() * 10000) + 1000, // Random number between 1000 and 10999
+      alltimependingrev: Math.floor(Math.random() * 5000) + 500, // Random number between 500 and 5499
+      alltimeclaimedrev: Math.floor(Math.random() * 3000) + 200, // Random number between 200 and 3199
+    };
+
+    return res.status(200).json({
+      message: 'Consultant retrieved successfully',
+      consultant,
+      ...stats,
+    });
+  } catch (error) {
+    console.error('Error fetching consultant:', error);
+    return res.status(500).json({ message: 'Failed to fetch consultant', error });
+  }
+};
+
+export const fetchUserDetails = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params; // User ID from route parameters
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    const user = await User.findById(id).select('-password -verificationToken');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Calculate the total number of successful transactions
+    const successfulTransactions = await Transaction.find({
+      userId: id,
+      status: 'successful',
+    });
+    const totalTransactions = successfulTransactions.length;
+
+    // Calculate the total price of successful transactions
+    const totalPrice = successfulTransactions.reduce(
+      (sum, transaction) => sum + parseFloat(transaction.price),
+      0
+    );
+
+    // Fetch feedback and calculate the average ratings
+    const feedbacks = await Feedback.find({ userId: id });
+    const totalFeedbacks = feedbacks.length;
+
+    const averageRatings = feedbacks.reduce(
+      (averages, feedback) => {
+        averages.quality += feedback.quality;
+        averages.speed += feedback.speed;
+        return averages;
+      },
+      { quality: 0, speed: 0 }
+    );
+
+    const averageQuality =
+      totalFeedbacks > 0 ? averageRatings.quality / totalFeedbacks : 0;
+    const averageSpeed =
+      totalFeedbacks > 0 ? averageRatings.speed / totalFeedbacks : 0;
+
+    // Fetch total number of chats with specified conditions
+    const totalChats = await RequestModel.countDocuments({
+      userId: id,
+      type: 'chat',
+      stattusof: { $in: ['ongoing', 'completed'] },
+    });
+
+    return res.status(200).json({
+      message: 'User details fetched successfully',
+      user,
+      metrics: {
+        totalTransactions,
+        totalPrice,
+        averageRatings: {
+          quality: averageQuality,
+          speed: averageSpeed,
+        },
+        totalChats,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    return res.status(500).json({ message: 'Failed to fetch user details', error });
   }
 };

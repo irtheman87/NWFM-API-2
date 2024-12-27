@@ -174,6 +174,7 @@ export const fetchRequestByOrderId = async (orderId: string): Promise<IRequest |
       await notification.save();
 
       const userSocketId = users[userId];
+      // const userSocketId = users[userId];
       if (userSocketId) {
         io.to(userSocketId).emit('newNotification', notification);
         console.log(`Notification sent to user ${userId}`);
