@@ -15,7 +15,7 @@ import { verifyUserEmail } from '../controllers/utilityroute';
 import { createAppointment } from '../services/appointmentService';
 import { io, users } from '../index';
 import { Time } from '../types';
-import { fetchRequestByOrderId } from '../utils/UtilityFunctions';
+import { createAdminNotification, fetchRequestByOrderId } from '../utils/UtilityFunctions';
 import { requestPasswordReset, resetPassword, fetchNotificationsForUser, fetchUserUpcomingRequest, getDailyAvailability, updateRequestAndCreateAppointment, fetchUserSpecificIssues } from '../controllers/UserController';
 
  const crypto = require('crypto');
@@ -110,6 +110,11 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         const orderid =  result?.orderId as string;
         fetchRequestByOrderId(orderid); 
       }
+
+      if(result?.type){
+        createAdminNotification(result?.type, result?.orderId ,'New Service Order');
+      }
+      
      
 
       if (!result) {

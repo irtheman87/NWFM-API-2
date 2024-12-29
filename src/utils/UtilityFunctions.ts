@@ -10,6 +10,7 @@ import { io, users } from '..';
 import { S3Client } from '@aws-sdk/client-s3';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
+import AdminNotificationModel from '../models/AdminNotification';
 
 // Define the Time type
 type Time = {
@@ -185,6 +186,32 @@ export const fetchRequestByOrderId = async (orderId: string): Promise<IRequest |
       console.error('Error creating notification:', error);
     }
   };
+
+  export const createAdminNotification = async (
+    type: string, 
+    orderId: string, 
+    title: string, 
+  ): Promise<void> => {
+    try {
+      const notification = new AdminNotificationModel({
+        title,
+        type,
+        orderId,
+      });
+  
+      await notification.save();
+
+      // const userSocketId = users[userId];
+      // const userSocketId = users[userId];
+     
+      io.emit('adminNotification', notification);
+
+      console.log('Admin Notification created:', notification);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  };
+
 
   export function convertToGMTPlusOne(
     timestamp: string | Date
