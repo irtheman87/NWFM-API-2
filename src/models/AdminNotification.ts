@@ -11,10 +11,10 @@ export interface IAdminNotification extends Document {
 
 const AdminNotificationSchema = new Schema<IAdminNotification>(
   {
-    title: {type: String, required: true},
+    title: { type: String, required: true },
     type: { type: String, required: true }, // Notification type, e.g., 'new-request', 'order-update'
     orderId: { type: String, required: true }, // Associated Order ID
-    status: { type: String, required: true }, // Status of the notification, e.g., 'unread', 'read'
+    status: { type: String, required: false, default: 'unread' }, // Default set to 'unread'
   },
   { timestamps: true } // Automatically adds createdAt and updatedAt fields
 );
