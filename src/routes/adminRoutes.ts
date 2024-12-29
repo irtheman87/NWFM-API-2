@@ -2,7 +2,8 @@ import express, { Request, Response } from 'express';
 import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchRequestsWithPagination, fetchConsultantsByExpertise, 
     createAppointment, fetchAllUsers, createTask, fetchConsultants, fetchTransactionStats, fetchUserAndConsultantStats, 
     fetchTopNewestUsers, fetchMonthlyTransactionTotals, fetchAllConsultants, createConsultant, closeIssue, fetchConsultantById,
-     fetchUserDetails, fetchCompletedUserRequests, getActiveRequestForConsultant, fetchConsultantHistoryByCid } from '../controllers/adminController';
+     fetchUserDetails, fetchCompletedUserRequests, getActiveRequestForConsultant, fetchConsultantHistoryByCid, fetchAdminNotifications,
+     markNotificationAsRead, suspendConsultant, deleteConsultant } from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -42,6 +43,14 @@ router.get('/fetch/completed/user/:userId', fetchCompletedUserRequests);
 router.get('/consultant/active/:id', getActiveRequestForConsultant);
 
 router.get('/consultant/history/:cid', fetchConsultantHistoryByCid);
+
+router.delete('/consultants/:id', deleteConsultant);
+
+router.patch('/consultants/:id/suspend', suspendConsultant);
+
+router.put('/admin-notifications/:id/read', markNotificationAsRead);
+
+router.get('/admin-notifications', fetchAdminNotifications);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

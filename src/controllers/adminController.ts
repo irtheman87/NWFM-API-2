@@ -19,6 +19,7 @@ import IssuesThread from '../models/Issuess'
 import Feedback from '../models/Feedback';
 import mongoose from 'mongoose';
 import MusingModel from '../models/Musing';
+import AdminNotificationModel from '../models/AdminNotification';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -1554,5 +1555,230 @@ export const fetchConsultantHistoryByCid = async (req: Request, res: Response): 
       message: 'Failed to fetch assignments and requests',
       error: error,
     });
+  }
+};
+
+export const fetchAdminNotifications = async (req: Request, res: Response): Promise<Response> => {
+  const { page = 1, limit = 10, status, type, sort = 'asc' } = req.query;
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Parse pagination and sorting inputs
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+
+    // Validate page and limit
+    if (pageNumber < 1 || limitNumber < 1) {
+      return res.status(400).json({ message: 'Invalid page or limit values' });
+    }
+
+    // Build the filter object based on query parameters
+    const filter: Record<string, unknown> = {};
+    if (status) filter.status = status;
+    if (type) filter.type = type;
+
+    // Fetch filtered and paginated notifications
+    const notifications = await AdminNotificationModel.find(filter)
+      .sort({ createdAt: sort === 'desc' ? 1 : -1 }) // Sort by creation date
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
+
+    // Count total matching documents for pagination
+    const totalCount = await AdminNotificationModel.countDocuments(filter);
+
+    // Count total unread notifications
+    const unreadCount = await AdminNotificationModel.countDocuments({ status: 'unread' });
+
+    return res.status(200).json({
+      message: 'Admin notifications fetched successfully',
+      data: notifications,
+      pagination: {
+        totalItems: totalCount,
+        totalPages: Math.ceil(totalCount / limitNumber),
+        currentPage: pageNumber,
+        itemsPerPage: limitNumber,
+      },
+      unreadCount, // Include count of unread notifications
+    });
+  } catch (error) {
+    console.error('Error fetching admin notifications:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch admin notifications',
+      error,
+    });
+  }
+};
+
+export const markNotificationAsRead = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params; // ID of the notification to update
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Find the notification by ID and update its status to 'read'
+    const notification = await AdminNotificationModel.findByIdAndUpdate(
+      id,
+      { status: 'read' }, // Update the status field
+      { new: true } // Return the updated document
+    );
+
+    // Check if the notification exists
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    // Respond with the updated notification
+    return res.status(200).json({
+      message: 'Notification marked as read',
+      notification,
+    });
+  } catch (error) {
+    console.error('Error updating notification:', error);
+    return res.status(500).json({ message: 'Failed to update notification status', error });
+  }
+};
+
+export const suspendConsultant = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Find and update the consultant's status to "suspended"
+    const updatedConsultant = await Consultant.findByIdAndUpdate(
+      id,
+      { status: 'suspended' },
+      { new: true } // Return the updated document
+    );
+
+    // If consultant not found
+    if (!updatedConsultant) {
+      return res.status(404).json({ message: 'Consultant not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Consultant status updated to suspended',
+      consultant: updatedConsultant,
+    });
+  } catch (error) {
+    console.error('Error suspending consultant:', error);
+    return res.status(500).json({ message: 'Failed to suspend consultant', error });
+  }
+};
+
+export const deleteConsultant = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Find and delete the consultant by ID
+    const deletedConsultant = await Consultant.findByIdAndDelete(id);
+
+    // If consultant not found
+    if (!deletedConsultant) {
+      return res.status(404).json({ message: 'Consultant not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Consultant successfully deleted',
+      consultant: deletedConsultant,
+    });
+  } catch (error) {
+    console.error('Error deleting consultant:', error);
+    return res.status(500).json({ message: 'Failed to delete consultant', error });
   }
 };
