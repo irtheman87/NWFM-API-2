@@ -43,17 +43,24 @@ export const upload = multer({ storage }).single('file');
 // Function to save a new message
 export const saveMessage = async (req: Request, res: Response) => {
   try {
-    const { uid, role, name, room, message, type } = req.body;
+    const { mid, uid, role, name, room, message, type, replyto, replytoId } = req.body;
 
-    const newMessage = new Message({
+    // Create the message object with conditional inclusion for replyto and replytoId
+    const newMessageData: any = {
+      mid,
       uid,
       role,
       name,
       room,
       message,
-      type: type,
+      type,
       timestamp: new Date(), // Automatically add the timestamp
-    });
+    };
+
+    if (replyto) newMessageData.replyto = replyto;
+    if (replytoId) newMessageData.replytoId = replytoId;
+
+    const newMessage = new Message(newMessageData);
 
     const savedMessage = await newMessage.save();
     res.status(201).json({ message: 'Message saved successfully', savedMessage });
@@ -62,6 +69,7 @@ export const saveMessage = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error saving message' });
   }
 };
+
 
 export const fetchMessagesByRoom = async (req: Request, res: Response) => {
     try {
@@ -75,31 +83,38 @@ export const fetchMessagesByRoom = async (req: Request, res: Response) => {
     }
   };
 
-export const uploadChatFile = async (req: Request, res: Response) => {
+  export const uploadChatFile = async (req: Request, res: Response) => {
     try {
       upload(req, res, async function (err) {
         if (err) {
           return res.status(500).json({ message: 'Error uploading file to S3', error: err.message });
         }
   
-        const { uid, role, name, room, type } = req.body;
-        
+        const { mid, uid, role, name, room, type, replyto, replytoId } = req.body;
+  
         // Check if file exists in the request
         if (!req.file) {
           return res.status(400).json({ message: 'File is required.' });
         }
-
-        const newMessage = new Message({
+  
+        // Prepare message data and conditionally include replyto and replytoId
+        const newMessageData: any = {
+          mid,
           uid,
           role,
           name,
           room,
           message: (req.file as any).location,
-          type: type,
+          type,
           filename: (req.file as any).originalname,
           timestamp: new Date(), // Automatically add the timestamp
-        });
-    
+        };
+  
+        if (replyto) newMessageData.replyto = replyto;
+        if (replytoId) newMessageData.replytoId = replytoId;
+  
+        const newMessage = new Message(newMessageData);
+  
         const savedMessage = await newMessage.save();
   
         // Save file metadata to ChatFile model
@@ -110,12 +125,12 @@ export const uploadChatFile = async (req: Request, res: Response) => {
           room,
           path: (req.file as any).location,
           filename: (req.file as any).originalname,
-          filesize: (req.file as any).size, // The S3 file URL
+          filesize: (req.file as any).size, // The file size
           timestamp: new Date(),
         });
   
         await chatFile.save();
-
+  
         console.log(`${chatFile.filename} ${chatFile.filesize} ${savedMessage.filename}`);
   
         res.status(201).json({ message: 'File uploaded successfully', file: chatFile });

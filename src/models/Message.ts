@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 // Define the IMessage interface extending Document
 export interface IMessage extends Document {
+  mid: string,
   uid: string;
   role: 'user' | 'admin' | 'consult';
   name: string;
@@ -9,11 +10,14 @@ export interface IMessage extends Document {
   message: string;
   type: string;
   filename?: string;
+  replyto?: string;
+  replytoId?: string;
   timestamp: Date;
 }
 
 // Define the schema
 const messageSchema: Schema = new Schema({
+  mid: {type: String, required: true},
   uid: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin', 'consultant'], required: true },
   name: { type: String, required: true },
@@ -21,6 +25,8 @@ const messageSchema: Schema = new Schema({
   message: { type: String, required: true },
   type: {type: String},
   filename: {type: String},
+  replyto: {type: String},
+  replytoId: {type: String},
   timestamp: { type: Date, default: Date.now },
 });
 
