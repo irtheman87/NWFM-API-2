@@ -875,15 +875,14 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
           const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
           const startTime = moment(booktime).utcOffset('+01:00').format(gmtPlusOneFormat);
 
-          const endTime = moment(booktime)
-            .utcOffset('+01:00')
-            .add(1, 'hour')
-            .format(gmtPlusOneFormat);
+          // const endTime = moment(booktime)
+          //   .utcOffset('+01:00')
+          //   .add(1, 'hour')
+          //   .format(gmtPlusOneFormat);
 
           return {
             ...request.toObject(),
             startTime,
-            endTime,
           };
         }
 
