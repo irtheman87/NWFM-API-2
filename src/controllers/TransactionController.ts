@@ -5,7 +5,7 @@ import https from 'https'; // Ensure you import https if not already imported
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { S3Client, PutObjectCommand, GetObjectAclCommand} from '@aws-sdk/client-s3';
-import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, createAdminNotification} from '../utils/UtilityFunctions';
+import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne} from '../utils/UtilityFunctions';
 import { v4 as uuidv4 } from 'uuid';
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';

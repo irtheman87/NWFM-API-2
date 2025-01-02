@@ -43,7 +43,7 @@ export const upload = multer({ storage }).single('file');
 // Function to save a new message
 export const saveMessage = async (req: Request, res: Response) => {
   try {
-    const { mid, uid, role, name, room, message, type, replyto, replytoId } = req.body;
+    const { mid, uid, role, name, room, message, type, replyto, replytoId, replytousertype } = req.body;
 
     // Create the message object with conditional inclusion for replyto and replytoId
     const newMessageData: any = {
@@ -59,6 +59,8 @@ export const saveMessage = async (req: Request, res: Response) => {
 
     if (replyto) newMessageData.replyto = replyto;
     if (replytoId) newMessageData.replytoId = replytoId;
+    if (replytousertype) newMessageData.replytousertype = replytousertype;
+    
 
     const newMessage = new Message(newMessageData);
 
@@ -90,7 +92,7 @@ export const fetchMessagesByRoom = async (req: Request, res: Response) => {
           return res.status(500).json({ message: 'Error uploading file to S3', error: err.message });
         }
   
-        const { mid, uid, role, name, room, type, replyto, replytoId } = req.body;
+        const { mid, uid, role, name, room, type, replyto, replytoId, replytousertype } = req.body;
   
         // Check if file exists in the request
         if (!req.file) {
@@ -112,6 +114,7 @@ export const fetchMessagesByRoom = async (req: Request, res: Response) => {
   
         if (replyto) newMessageData.replyto = replyto;
         if (replytoId) newMessageData.replytoId = replytoId;
+        if (replytousertype) newMessageData.replytousertype = replytousertype;
   
         const newMessage = new Message(newMessageData);
   

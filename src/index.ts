@@ -65,6 +65,7 @@ app.use('/api/consultants', require('./routes/consultRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/admin-services', require('./routes/adminServiceRoutes'));
 app.use('/api/chat', require('./routes/chatRoute'));
+app.use('/api/join', require('./routes/joinRoute'));
 
 export { io, users };
 

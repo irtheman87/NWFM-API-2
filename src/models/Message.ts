@@ -12,6 +12,7 @@ export interface IMessage extends Document {
   filename?: string;
   replyto?: string;
   replytoId?: string;
+  replytousertype?: string;
   timestamp: Date;
 }
 
@@ -27,6 +28,7 @@ const messageSchema: Schema = new Schema({
   filename: {type: String},
   replyto: {type: String},
   replytoId: {type: String},
+  replytousertype: {type: String},
   timestamp: { type: Date, default: Date.now },
 });
 
