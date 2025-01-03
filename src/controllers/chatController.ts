@@ -137,7 +137,7 @@ export const fetchMessagesByRoom = async (req: Request, res: Response) => {
         console.log(`${chatFile.filename} ${chatFile.filesize} ${savedMessage.filename}`);
   
         res.status(201).json({ message: 'File uploaded successfully', file: chatFile });
-      });
+       });
     } catch (error) {
       console.error('Error uploading file:', error);
       res.status(500).json({ message: 'Server error, unable to upload file' });

@@ -1782,3 +1782,210 @@ export const deleteConsultant = async (req: Request, res: Response): Promise<Res
     return res.status(500).json({ message: 'Failed to delete consultant', error });
   }
 };
+export const updateConsultant = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params; // Consultant ID
+  const { fname, lname, email, phone, state, country, expertise } = req.body;
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Build the update object dynamically to avoid overwriting fields accidentally
+    const updates: any = {};
+    if (fname) updates.fname = fname;
+    if (lname) updates.lname = lname;
+    if (email) updates.email = email;
+    if (phone) updates.phone = phone;
+    if (state || country) {
+      updates.location = {}; // Initialize location if any location field exists
+      if (state) updates.location.state = state;
+      if (country) updates.location.country = country;
+    }
+    if (expertise) updates.expertise = expertise;
+
+    // Find and update the consultant
+    const updatedConsultant = await Consultant.findByIdAndUpdate(id, updates, { new: true });
+
+    // If consultant not found
+    if (!updatedConsultant) {
+      return res.status(404).json({ message: 'Consultant not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Consultant successfully updated',
+      consultant: updatedConsultant,
+    });
+  } catch (error) {
+    console.error('Error updating consultant:', error);
+    return res.status(500).json({ message: 'Failed to update consultant', error });
+  }
+};
+
+export const getAverageRatings = async (req: Request, res: Response): Promise<Response> => {
+  try {
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const averages = await Feedback.aggregate([
+      {
+        $group: {
+          _id: null, // Group all documents together
+          avgQuality: { $avg: '$quality' }, // Calculate average of quality field
+          avgSpeed: { $avg: '$speed' }, // Calculate average of speed field
+        },
+      },
+    ]);
+
+    // If no feedback exists, return zeros
+    if (averages.length === 0) {
+      return res.status(200).json({
+        message: 'No feedback data available',
+        avgQuality: 0,
+        avgSpeed: 0,
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Average ratings calculated successfully',
+      avgQuality: averages[0].avgQuality,
+      avgSpeed: averages[0].avgSpeed,
+    });
+  } catch (error) {
+    console.error('Error fetching average ratings:', error);
+    return res.status(500).json({
+      message: 'Failed to calculate average ratings',
+      error,
+    });
+  }
+};
+
+export const getTopConsultantByRating = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Aggregate feedback to find the top consultant
+    const topConsultant = await Feedback.aggregate([
+      {
+        $group: {
+          _id: '$userId', // Consultant ID
+          avgQuality: { $avg: '$quality' },
+          avgSpeed: { $avg: '$speed' },
+          avgSum: { $avg: { $add: ['$quality', '$speed'] } },
+        },
+      },
+      { $sort: { avgSum: -1 } },
+      { $limit: 1 },
+    ]);
+
+    if (topConsultant.length === 0) {
+      return res.status(200).json({
+        message: 'No feedback data available',
+        consultant: null,
+      });
+    }
+
+    const consultantId = topConsultant[0]._id;
+
+    // Fetch the top consultant's details
+    const consultant = await Consultant.findById(consultantId).select(
+      'fname lname email phone profilepics expertise bio'
+    );
+
+    if (!consultant) {
+      return res.status(404).json({ message: 'Consultant not found' });
+    }
+
+    // Count appointments where consultant ID matches
+    const appointmentCount = await AppointmentModel.countDocuments({ cid: consultantId });
+
+    // Count tasks where consultant ID matches
+    const taskCount = await Task.countDocuments({ cid: consultantId });
+
+    return res.status(200).json({
+      message: 'Top consultant fetched successfully',
+      consultant: {
+        ...consultant.toObject(),
+        avgQuality: topConsultant[0].avgQuality,
+        avgSpeed: topConsultant[0].avgSpeed,
+        avgSum: topConsultant[0].avgSum,
+        appointmentCount,
+        taskCount,
+        totalrequest: appointmentCount + taskCount,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching top consultant:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch top consultant',
+      error,
+    });
+  }
+};
