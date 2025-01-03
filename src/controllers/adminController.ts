@@ -1950,7 +1950,7 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
         },
       },
       { $sort: { avgSum: -1 } },
-      { $limit: 1 },
+      { $limit: 5 },
     ]);
 
     if (feedbackData.length === 0) {
