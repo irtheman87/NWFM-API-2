@@ -189,7 +189,6 @@ export const createCompany = async (req: Request, res: Response) => {
         !mobile ||
         !type ||
         useRateCard === undefined ||
-        !location ||
         !verificationDocType ||
         !idNumber ||
         !cacNumber
