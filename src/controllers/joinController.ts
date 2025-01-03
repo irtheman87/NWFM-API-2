@@ -29,8 +29,9 @@ const storage = multerS3({
 
 // Configure Multer for handling multiple file fields
 const upload = multer({ storage }).fields([
-  { name: "file", maxCount: 1 },
+  { name: "file", maxCount: 1},
   { name: "doc", maxCount: 1 },
+  { name: "card", maxCount: 1 },
 ]);
 
 // Create Crew Member Function
@@ -145,15 +146,16 @@ export const createCompany = async (req: Request, res: Response) => {
       };
 
       // Validate required files
-      if (!files?.file || !files?.doc) {
+      if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location) {
         return res.status(400).json({
           message: "Both profile picture and document are required.",
         });
       }
 
-      const profilePic = files.file[0]?.location;
-      const document = files.doc[0]?.location;
+      const profilePic = files.file[0].location;
+      const document = files.doc[0].location;
 
+      let rateCard = "";
       const {
         name,
         email,
@@ -163,7 +165,6 @@ export const createCompany = async (req: Request, res: Response) => {
         type,
         clientele,
         useRateCard,
-        rateCard,
         fee,
         location,
         verificationDocType,
@@ -171,13 +172,23 @@ export const createCompany = async (req: Request, res: Response) => {
         cacNumber,
       } = req.body;
 
+      // Validate useRateCard and check for the rate card file if required
+      if (useRateCard === "true") {
+        if (!files?.card?.[0]?.location) {
+          return res
+            .status(400)
+            .json({ message: "Rate card file is required when useRateCard is true." });
+        }
+        rateCard = files.card[0].location;
+      }
+
       // Validate required fields
       if (
         !name ||
         !email ||
         !mobile ||
         !type ||
-        !useRateCard ||
+        useRateCard === undefined ||
         !location ||
         !verificationDocType ||
         !idNumber ||
@@ -216,7 +227,7 @@ export const createCompany = async (req: Request, res: Response) => {
         .json({ message: "Company created successfully.", data: savedCompany });
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "An error occurred.", error: error });
+    console.error("Error in createCompany:", error);
+    return res.status(500).json({ message: "An error occurred.", error });
   }
 };
