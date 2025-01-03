@@ -31,7 +31,7 @@ const storage = multerS3({
 const upload = multer({ storage }).fields([
   { name: "file", maxCount: 1},
   { name: "doc", maxCount: 1 },
-  { name: "card", maxCount: 1 },
+  { name: "rateCard", maxCount: 1 },
 ]);
 
 // Create Crew Member Function
@@ -174,7 +174,7 @@ export const createCompany = async (req: Request, res: Response) => {
 
       // Validate useRateCard and check for the rate card file if required
       if (useRateCard === "true") {
-        if (!files?.card?.[0]?.location) {
+        if (!files?.rateCard?.[0]?.location) {
           return res
             .status(400)
             .json({ message: "Rate card file is required when useRateCard is true." });
