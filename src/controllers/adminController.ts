@@ -1942,24 +1942,8 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
         },
       },
       {
-        $lookup: {
-          from: 'tasks',
-          localField: 'orderId',
-          foreignField: 'orderId',
-          as: 'tasks',
-        },
-      },
-      {
-        $match: {
-          $or: [
-            { 'appointments.status': 'completed' },
-            { 'tasks.status': 'completed' },
-          ],
-        },
-      },
-      {
         $group: {
-          _id: { $ifNull: [{ $arrayElemAt: ['$appointments.cid', 0] }, { $arrayElemAt: ['$tasks.cid', 0] }] },
+          _id: { $arrayElemAt: ['$appointments.cid', 0] }, // Consultant ID
           avgQuality: { $avg: '$quality' },
           avgSpeed: { $avg: '$speed' },
           avgSum: { $avg: { $add: ['$quality', '$speed'] } },
@@ -1990,9 +1974,6 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
     // Count appointments where consultant ID matches
     const appointmentCount = await AppointmentModel.countDocuments({ cid: consultantId });
 
-    // Count tasks where consultant ID matches
-    const taskCount = await Task.countDocuments({ cid: consultantId });
-
     return res.status(200).json({
       message: 'Top consultant fetched successfully',
       consultant: {
@@ -2001,8 +1982,7 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
         avgSpeed: feedbackData[0].avgSpeed,
         avgSum: feedbackData[0].avgSum,
         appointmentCount,
-        taskCount,
-        totalrequest: appointmentCount + taskCount,
+        totalrequest: appointmentCount,
       },
     });
   } catch (error) {
