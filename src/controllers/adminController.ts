@@ -1904,7 +1904,7 @@ export const getAverageRatings = async (req: Request, res: Response): Promise<Re
   }
 };
 
-export const getTopConsultantByRating = async (req: Request, res: Response): Promise<Response> => {
+export const getTopConsultantsByRating = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -1931,7 +1931,7 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    // Aggregate feedback to find the top consultant
+    // Aggregate feedback to find the top 5 consultants
     const feedbackData = await Feedback.aggregate([
       {
         $lookup: {
@@ -1956,39 +1956,42 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
     if (feedbackData.length === 0) {
       return res.status(200).json({
         message: 'No feedback data available',
-        consultant: null,
+        consultants: [],
       });
     }
 
-    const consultantId = feedbackData[0]._id;
+    const consultantsData = await Promise.all(
+      feedbackData.map(async (feedback) => {
+        const consultant = await Consultant.findById(feedback._id).select(
+          'fname lname email phone profilepics expertise bio'
+        );
 
-    // Fetch the top consultant's details
-    const consultant = await Consultant.findById(consultantId).select(
-      'fname lname email phone profilepics expertise bio'
+        if (!consultant) return null;
+
+        const appointmentCount = await AppointmentModel.countDocuments({ cid: feedback._id });
+
+        return {
+          ...consultant.toObject(),
+          avgQuality: feedback.avgQuality,
+          avgSpeed: feedback.avgSpeed,
+          avgSum: feedback.avgSum,
+          appointmentCount,
+          totalRequest: appointmentCount,
+        };
+      })
     );
 
-    if (!consultant) {
-      return res.status(404).json({ message: 'Consultant not found' });
-    }
-
-    // Count appointments where consultant ID matches
-    const appointmentCount = await AppointmentModel.countDocuments({ cid: consultantId });
+    // Filter out any null consultants (in case a consultant was deleted but feedback remains)
+    const topConsultants = consultantsData.filter((consultant) => consultant !== null);
 
     return res.status(200).json({
-      message: 'Top consultant fetched successfully',
-      consultant: {
-        ...consultant.toObject(),
-        avgQuality: feedbackData[0].avgQuality,
-        avgSpeed: feedbackData[0].avgSpeed,
-        avgSum: feedbackData[0].avgSum,
-        appointmentCount,
-        totalrequest: appointmentCount,
-      },
+      message: 'Top consultants fetched successfully',
+      consultants: topConsultants,
     });
   } catch (error) {
-    console.error('Error fetching top consultant:', error);
+    console.error('Error fetching top consultants:', error);
     return res.status(500).json({
-      message: 'Failed to fetch top consultant',
+      message: 'Failed to fetch top consultants',
       error,
     });
   }
