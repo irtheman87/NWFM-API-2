@@ -179,7 +179,7 @@ export const createCompany = async (req: Request, res: Response) => {
             .status(400)
             .json({ message: "Rate card file is required when useRateCard is true." });
         }
-        rateCard = files.card[0].location;
+        rateCard = files.rateCard[0].location;
       }
 
       // Validate required fields
