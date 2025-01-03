@@ -1932,10 +1932,34 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
     }
 
     // Aggregate feedback to find the top consultant
-    const topConsultant = await Feedback.aggregate([
+    const feedbackData = await Feedback.aggregate([
+      {
+        $lookup: {
+          from: 'appointments',
+          localField: 'orderId',
+          foreignField: 'orderId',
+          as: 'appointments',
+        },
+      },
+      {
+        $lookup: {
+          from: 'tasks',
+          localField: 'orderId',
+          foreignField: 'orderId',
+          as: 'tasks',
+        },
+      },
+      {
+        $match: {
+          $or: [
+            { 'appointments.status': 'completed' },
+            { 'tasks.status': 'completed' },
+          ],
+        },
+      },
       {
         $group: {
-          _id: '$userId', // Consultant ID
+          _id: { $ifNull: [{ $arrayElemAt: ['$appointments.cid', 0] }, { $arrayElemAt: ['$tasks.cid', 0] }] },
           avgQuality: { $avg: '$quality' },
           avgSpeed: { $avg: '$speed' },
           avgSum: { $avg: { $add: ['$quality', '$speed'] } },
@@ -1945,14 +1969,14 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
       { $limit: 1 },
     ]);
 
-    if (topConsultant.length === 0) {
+    if (feedbackData.length === 0) {
       return res.status(200).json({
         message: 'No feedback data available',
         consultant: null,
       });
     }
 
-    const consultantId = topConsultant[0]._id;
+    const consultantId = feedbackData[0]._id;
 
     // Fetch the top consultant's details
     const consultant = await Consultant.findById(consultantId).select(
@@ -1973,9 +1997,9 @@ export const getTopConsultantByRating = async (req: Request, res: Response): Pro
       message: 'Top consultant fetched successfully',
       consultant: {
         ...consultant.toObject(),
-        avgQuality: topConsultant[0].avgQuality,
-        avgSpeed: topConsultant[0].avgSpeed,
-        avgSum: topConsultant[0].avgSum,
+        avgQuality: feedbackData[0].avgQuality,
+        avgSpeed: feedbackData[0].avgSpeed,
+        avgSum: feedbackData[0].avgSum,
         appointmentCount,
         taskCount,
         totalrequest: appointmentCount + taskCount,
