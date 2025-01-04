@@ -20,6 +20,7 @@ import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
 import { createNotification } from '../utils/UtilityFunctions';
 import Consultant from '../models/consultant';
+import WeeklySchedule from '../models/Availability';
 
 
 // Define the storage engine
@@ -608,37 +609,46 @@ export const createNewIssue = async (req: Request, res: Response): Promise<Respo
   }
 };
 // Initialize the upload middleware for a single file
-export const getAvailableHoursCount = async (req: Request, res: Response): Promise<Response> => {
+export const getAvailableHoursCount = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const { expertise, date } = req.query;
 
   const day = getDayOfWeek(date as string);
 
   if (!expertise || !day) {
-    return res.status(400).json({ message: 'Expertise and day are required' });
+    return res.status(400).json({ message: "Expertise and day are required" });
   }
 
   // Parse the date query parameter into a Date object
   const parsedDate = parseDateFromQuery(date as string);
   if (!parsedDate) {
-    return res.status(400).json({ message: 'Invalid date format' });
+    return res.status(400).json({ message: "Invalid date format" });
   }
 
   try {
-    // Find all availability entries for the given expertise and day
-    const availabilities = await AvailabilityModel.find({
-      expertise: { $in: [expertise] },
-      day,
-      status: 'open',
-    });
+    // Fetch all slots for the given expertise and day
+    const availabilities = await WeeklySchedule.find({
+      "schedule.day": day,
+      "schedule.status": "open",
+      "schedule.expertise": { $in: [expertise] },
+    }).populate("schedule.cid");
 
     if (!availabilities.length) {
-      return res.status(404).json({ message: 'No available consultants found for the given expertise and day' });
+      return res
+        .status(404)
+        .json({ message: "No available consultants found for the given expertise and day" });
     }
 
-    const availableHoursArray: { time: string; available: number; isAvailable: boolean }[] = [];
+    const availableHoursArray: {
+      time: string;
+      available: number;
+      isAvailable: boolean;
+    }[] = [];
 
-    // Initialize available hours spaced by 2 hours (9:00, 11:00, 13:00, etc.)
-    for (let hour = 9; hour <= 23; hour += 2) {
+    // Initialize available hours spaced by 1 hour
+    for (let hour = 9; hour <= 23; hour++) {
       availableHoursArray.push({
         time: `${hour}:00`,
         available: 0,
@@ -646,27 +656,28 @@ export const getAvailableHoursCount = async (req: Request, res: Response): Promi
       });
     }
 
-    // Loop through all the available entries
+    // Loop through all the consultants and their schedule
     for (const availability of availabilities) {
-      const { otime, ctime, cid } = availability;
+      for (const schedule of availability.schedule) {
+        if (schedule.day !== day || schedule.status !== "open") continue;
 
-      for (let hour = 9; hour <= 23; hour += 2) {
-        if (
-          (otime.hours <= hour && ctime.hours > hour) ||
-          (otime.hours === hour && otime.minutes === 0)
-        ) {
-          // Check if an appointment already exists for this consultant at this time slot
-          const existingAppointment = await AppointmentModel.findOne({
-            cid,
-            date: parsedDate,
-            'time.hours': hour,
-            'time.minutes': 0,
-          });
+        const { slots, cid } = schedule;
+        for (const slot of slots) {
+          const slotHour = parseInt(slot.split(":")[0], 10);
 
-          // Only increment if no appointment exists for this time slot
-          if (!existingAppointment) {
-            const hourEntry = availableHoursArray.find((entry) => entry.time === `${hour}:00`);
-            if (hourEntry) {
+          const hourEntry = availableHoursArray.find(
+            (entry) => entry.time === `${slotHour}:00`
+          );
+          if (hourEntry) {
+            // Check if there is an existing appointment for this time
+            const existingAppointment = await AppointmentModel.findOne({
+              cid: cid,
+              date: parsedDate,
+              "time.hours": slotHour,
+              "time.minutes": 0,
+            });
+
+            if (!existingAppointment) {
               hourEntry.available += 1;
             }
           }
@@ -674,27 +685,25 @@ export const getAvailableHoursCount = async (req: Request, res: Response): Promi
       }
     }
 
-    // Determine availability for each 2-hour time slot
-    for (let hour = 9; hour <= 23; hour += 2) {
-      const time = { hours: hour, minutes: 0, seconds: 0 };
-      const appointmentCount = await checkAppointmentsByDateAndTime(parsedDate, time);
-
-      const hourEntry = availableHoursArray.find((entry) => entry.time === `${hour}:00`);
-      if (hourEntry && hourEntry.available > appointmentCount) {
-        hourEntry.isAvailable = true;
+    // Mark availability for each hour
+    for (const entry of availableHoursArray) {
+      if (entry.available > 0) {
+        entry.isAvailable = true;
       }
     }
 
     return res.status(200).json({
-      message: 'Available hours calculated successfully',
+      message: "Available hours calculated successfully",
       availableHoursCount: availableHoursArray,
     });
   } catch (error) {
-    console.error('Error fetching availability hours:', error);
-    return res.status(500).json({ message: 'Error fetching available hours', error });
+    console.error("Error fetching availability hours:", error);
+    return res.status(500).json({
+      message: "Error fetching available hours",
+      error,
+    });
   }
 };
-
 
 
 export const checkAppointmentsByDateAndTime = async (date: Date, time: Time): Promise<number> => {
@@ -1214,81 +1223,85 @@ export const fetchAwaitingRequests = async (req: Request, res: Response): Promis
   }
 };
 
-export const getDailyAvailability = async (req: Request, res: Response): Promise<Response> => {
-  const { cid } = req.params; // Consultant ID
-  const { date } = req.query; // Date (YYYY-MM-DD)
+export const getDailyAvailability = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { date } = req.query; // Date in "YYYY-MM-DD" format
+  const { cid } = req.params; // Consultant ID, optional for all consultants
 
   try {
     // Validate input
-    if (!cid) {
-      return res.status(400).json({ message: 'Consultant ID is required' });
-    }
-
-    if (!date || typeof date !== 'string') {
-      return res.status(400).json({ message: 'Invalid or missing date. Use YYYY-MM-DD format.' });
+    if (!date || typeof date !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Invalid or missing date. Use YYYY-MM-DD format." });
     }
 
     // Validate date format
-    if (!moment(date, 'YYYY-MM-DD', true).isValid()) {
-      return res.status(400).json({ message: 'Invalid date format. Use YYYY-MM-DD format.' });
+    if (!moment(date, "YYYY-MM-DD", true).isValid()) {
+      return res
+        .status(400)
+        .json({ message: "Invalid date format. Use YYYY-MM-DD format." });
     }
 
-    // Get the day of the week from the provided date
-    const dayOfWeek = moment(date, 'YYYY-MM-DD').format('dddd');
+    // Determine the day of the week
+    const dayOfWeek = moment(date, "YYYY-MM-DD").format("dddd");
 
-    // Fetch availability for the specified day
-    const availability = await AvailabilityModel.find({
-      cid,
-      day: dayOfWeek,
-      status: 'open',
-    });
+    // Fetch all schedules for the specified day (and consultant, if provided)
+    const query = {
+      schedule: {
+        $elemMatch: {
+          day: dayOfWeek,
+          status: "open",
+          ...(cid ? { cid } : {}),
+        },
+      },
+    };
+    
+    const schedules = await WeeklySchedule.find(query).lean();
 
-    if (availability.length === 0) {
-      return res.status(404).json({ message: 'No availability found for the given day', availableHours: [] });
+    if (!schedules.length) {
+      return res.status(404).json({
+        message: "No availability found for the given day",
+        availableHoursCount: [],
+      });
     }
 
-    // Create an object to track the availability for each 2-hour slot
-    const timeSlots: { [key: string]: { available: number; isAvailable: boolean } } = {};
+    // Aggregate all slots
+    const slotCounts: { [key: string]: { available: number; isAvailable: boolean } } = {};
 
-    availability.forEach(slot => {
-      const startTime = moment()
-        .hours(slot.otime.hours)
-        .minutes(slot.otime.minutes)
-        .seconds(slot.otime.seconds);
-      const endTime = moment()
-        .hours(slot.ctime.hours)
-        .minutes(slot.ctime.minutes)
-        .seconds(slot.ctime.seconds);
-
-      let currentTime = startTime.clone();
-
-      while (currentTime.isBefore(endTime)) {
-        const time = currentTime.format('HH:mm');
-        timeSlots[time] = {
-          available: 1,
-          isAvailable: true,
-        };
-        currentTime.add(2, 'hours');
-      }
+    schedules.forEach((schedule) => {
+      schedule.schedule.forEach((daySlot) => {
+        if (daySlot.day === dayOfWeek) {
+          daySlot.slots.forEach((slot) => {
+            if (!slotCounts[slot]) {
+              slotCounts[slot] = { available: 0, isAvailable: true };
+            }
+            slotCounts[slot].available += 1;
+          });
+        }
+      });
     });
 
-    // Convert the time slots object to an array
-    const availableHoursCount = Object.keys(timeSlots).map(time => ({
-      time,
-      available: timeSlots[time].available,
-      isAvailable: timeSlots[time].isAvailable,
+    // Convert the aggregated data into an array
+    const availableHoursCount = Object.keys(slotCounts).map((slot) => ({
+      time: slot, // Slot time in "HH:mm" format
+      available: slotCounts[slot].available, // Count of consultants available
+      isAvailable: slotCounts[slot].isAvailable,
     }));
 
     return res.status(200).json({
-      message: 'Available hours calculated successfully',
+      message: "Available hours calculated successfully",
       availableHoursCount,
     });
   } catch (error) {
-    console.error('Error fetching availability:', error);
-    return res.status(500).json({ message: 'Failed to fetch daily availability', error });
+    console.error("Error fetching availability:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch daily availability", error });
   }
 };
-
 
 export const updateRequestAndCreateAppointment = async (req: Request, res: Response): Promise<Response> => {
   const { cid } = req.params; // Consultant ID
