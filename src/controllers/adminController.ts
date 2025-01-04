@@ -1845,7 +1845,6 @@ export const updateConsultant = async (req: Request, res: Response): Promise<Res
 
 export const getAverageRatings = async (req: Request, res: Response): Promise<Response> => {
   try {
-
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
@@ -1871,38 +1870,68 @@ export const getAverageRatings = async (req: Request, res: Response): Promise<Re
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    const averages = await Feedback.aggregate([
+    const feedbackStats = await Feedback.aggregate([
+      // First stage: Group by a null ID to calculate average ratings and count occurrences
       {
         $group: {
           _id: null, // Group all documents together
-          avgQuality: { $avg: '$quality' }, // Calculate average of quality field
-          avgSpeed: { $avg: '$speed' }, // Calculate average of speed field
-        },
-      },
+          avgQuality: { $avg: '$quality' }, // Average of quality
+          avgSpeed: { $avg: '$speed' },     // Average of speed
+          totalFeedbacks: { $sum: 1 }, // Count total feedbacks
+          qualityOne: { $sum: { $cond: [{ $eq: ['$quality', 1] }, 1, 0] } }, // Count 1 star quality feedbacks
+          qualityTwo: { $sum: { $cond: [{ $eq: ['$quality', 2] }, 1, 0] } }, // Count 2 star quality feedbacks
+          qualityThree: { $sum: { $cond: [{ $eq: ['$quality', 3] }, 1, 0] } }, // Count 3 star quality feedbacks
+          qualityFour: { $sum: { $cond: [{ $eq: ['$quality', 4] }, 1, 0] } }, // Count 4 star quality feedbacks
+          qualityFive: { $sum: { $cond: [{ $eq: ['$quality', 5] }, 1, 0] } }, // Count 5 star quality feedbacks
+          speedOne: { $sum: { $cond: [{ $eq: ['$speed', 1] }, 1, 0] } },     // Count 1 star speed feedbacks
+          speedTwo: { $sum: { $cond: [{ $eq: ['$speed', 2] }, 1, 0] } },     // Count 2 star speed feedbacks
+          speedThree: { $sum: { $cond: [{ $eq: ['$speed', 3] }, 1, 0] } },   // Count 3 star speed feedbacks
+          speedFour: { $sum: { $cond: [{ $eq: ['$speed', 4] }, 1, 0] } },    // Count 4 star speed feedbacks
+          speedFive: { $sum: { $cond: [{ $eq: ['$speed', 5] }, 1, 0] } },    // Count 5 star speed feedbacks
+        }
+      }
     ]);
 
-    // If no feedback exists, return zeros
-    if (averages.length === 0) {
+    if (feedbackStats.length === 0) {
       return res.status(200).json({
         message: 'No feedback data available',
         avgQuality: 0,
         avgSpeed: 0,
+        totalFeedbacks: 0,
+        qualityRatings: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        speedRatings: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
       });
     }
 
     return res.status(200).json({
-      message: 'Average ratings calculated successfully',
-      avgQuality: averages[0].avgQuality,
-      avgSpeed: averages[0].avgSpeed,
+      message: 'Average ratings and feedback data retrieved successfully',
+      avgQuality: feedbackStats[0].avgQuality,
+      avgSpeed: feedbackStats[0].avgSpeed,
+      totalFeedbacks: feedbackStats[0].totalFeedbacks,
+      qualityRatings: {
+        1: feedbackStats[0].qualityOne,
+        2: feedbackStats[0].qualityTwo,
+        3: feedbackStats[0].qualityThree,
+        4: feedbackStats[0].qualityFour,
+        5: feedbackStats[0].qualityFive,
+      },
+      speedRatings: {
+        1: feedbackStats[0].speedOne,
+        2: feedbackStats[0].speedTwo,
+        3: feedbackStats[0].speedThree,
+        4: feedbackStats[0].speedFour,
+        5: feedbackStats[0].speedFive,
+      },
     });
   } catch (error) {
-    console.error('Error fetching average ratings:', error);
+    console.error('Error fetching average ratings and statistics:', error);
     return res.status(500).json({
-      message: 'Failed to calculate average ratings',
+      message: 'Failed to calculate average ratings or fetch statistics',
       error,
     });
   }
 };
+
 
 export const getTopConsultantsByRating = async (req: Request, res: Response): Promise<Response> => {
   try {
