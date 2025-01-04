@@ -29,6 +29,7 @@ import { uploads } from '../utils/UtilityFunctions';
 import Resolve from '../models/Resolve';
 import MusingModel from '../models/Musing';
 import { userInfo } from 'os';
+import WeeklySchedule from '../models/Availability';
 
 
 const s3 = new S3Client({
@@ -190,81 +191,86 @@ export const refreshConsultantToken = async (req: Request, res: Response) => {
   }
 };
 
- export const createAvailability = async (req: Request, res: Response) => {
-    const authHeader = req.headers.authorization;
-  
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authorization token missing' });
+export const createAvailability = async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization token missing" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { userId: string; role: string };
+
+    // Ensure the user is a consultant
+    if (decoded.role !== "consultant") {
+      return res.status(403).json({ message: "Access denied: Consultants only" });
     }
-  
-    const token = authHeader.split(' ')[1];
-  
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { userId: string; role: string };
-  
-      // Check if the user has a 'consultant' role
-      if (decoded.role !== 'consultant') {
-        return res.status(403).json({ message: 'Access denied: Consultants only' });
+
+    const { schedule } = req.body;
+    const userId = decoded.userId;
+
+    if (!Array.isArray(schedule)) {
+      return res.status(400).json({ message: "Invalid input: Schedule should be an array" });
+    }
+
+    const updatedResults: { day: string; action: string }[] = [];
+
+    for (const entry of schedule) {
+      const { day, slots, expertise, status } = entry;
+
+      if (
+        !["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].includes(day) ||
+        !Array.isArray(slots) ||
+        !slots.every((slot) => typeof slot === "string" && /^\d{2}:\d{2}$/.test(slot)) ||
+        !Array.isArray(expertise) ||
+        !expertise.every((exp) => typeof exp === "string" && exp.trim().length > 0) ||
+        !["open", "closed"].includes(status)
+      ) {
+        return res.status(400).json({ message: "Invalid input: Check day, slots, expertise, or status format" });
       }
-  
-      const { schedule } = req.body;
-      const cid = decoded.userId;
-  
-      if (!Array.isArray(schedule)) {
-        return res.status(200).json({ message: 'Invalid input: Schedule should be an array' });
-      }
-  
-      const availabilityResults = [];
-  
-      // Loop through each availability entry in the schedule array
-      for (const entry of schedule) {
-        const { otime, ctime, expertise, day, status } = entry;
-  
-        // Validate the time objects and ensure expertise is an array of non-empty strings
-        if (
-          !isValidTime(otime) ||
-          !isValidTime(ctime) ||
-          !Array.isArray(expertise) ||
-          !expertise.every(exp => typeof exp === 'string' && exp.trim().length > 0)
-        ) {
-          return res.status(400).json({ message: 'Invalid input: Time or expertise format is incorrect' });
-        }
-  
-        // Check if an availability entry for this day already exists for the consultant
-        const existingAvailability = await Availability.findOne({ cid, day });
-  
-        if (existingAvailability) {
-          // Update existing availability entry
-          existingAvailability.otime = otime;
-          existingAvailability.ctime = ctime;
-          existingAvailability.expertise = expertise;
-          existingAvailability.status = status;
-          await existingAvailability.save();
-          availabilityResults.push({ day, action: 'updated', availability: existingAvailability });
+
+      // Find the weekly schedule for the user
+      const weeklySchedule = await WeeklySchedule.findOne({ userId });
+
+      if (weeklySchedule) {
+        // Check if a slot for the specified day exists
+        const daySlot = weeklySchedule.schedule.find((slot) => slot.day === day);
+
+        if (daySlot) {
+          // Update existing slot
+          daySlot.slots = slots;
+          daySlot.expertise = expertise;
+          daySlot.status = status;
+          updatedResults.push({ day, action: "updated" });
         } else {
-          // Create a new availability entry
-          const newAvailability = new Availability({
-            cid,
-            otime,
-            ctime,
-            day,
-            status,
-            expertise
-          });
-          await newAvailability.save();
-          availabilityResults.push({ day, action: 'created', availability: newAvailability });
+          // Add a new slot for the day
+          weeklySchedule.schedule.push({ cid: userId, day, slots, expertise, status });
+          updatedResults.push({ day, action: "added" });
         }
+
+        await weeklySchedule.save();
+      } else {
+        // Create a new weekly schedule
+        const newWeeklySchedule = new WeeklySchedule({
+          userId,
+          schedule: [{ cid: userId, day, slots, expertise, status }],
+        });
+        await newWeeklySchedule.save();
+        updatedResults.push({ day, action: "created" });
       }
-  
-      res.status(200).json({
-        message: 'Availability schedule processed successfully',
-        results: availabilityResults
-      });
-    } catch (error) {
-      console.error('Error processing availability schedule:', error);
-      return res.status(500).json({ message: 'Error processing availability schedule', error });
     }
-  };
+
+    return res.status(200).json({
+      message: "Availability schedule processed successfully",
+      results: updatedResults,
+    });
+  } catch (error) {
+    console.error("Error processing availability schedule:", error);
+    return res.status(500).json({ message: "Error processing availability schedule", error });
+  }
+};
 
   export const fetchPendingAssignmentsByUserId = async (req: Request, res: Response): Promise<Response> => {
     const { uid } = req.params; // Get uid from the URL params
@@ -516,21 +522,37 @@ export const getAvailabilityByCid = async (req: Request, res: Response) => {
   try {
     const { cid } = req.params;
 
-    // Find all availability entries based on the `cid`
-    const availability = await Availability.find({ cid });
+    // Validate the `cid`
+    if (!cid) {
+      return res.status(400).json({ message: "Consultant ID (cid) is required." });
+    }
 
-    // If no availability is found, return a 404 response
-    if (!availability || availability.length === 0) {
-      return res.status(404).json({ message: 'No availability found for this user.' });
+    // Find all weekly schedule entries for the given `cid`
+    const schedules = await WeeklySchedule.find({ "schedule.cid": cid });
+
+    // If no schedules are found, return a 404 response
+    if (!schedules || schedules.length === 0) {
+      return res.status(404).json({ message: "No availability found for this consultant." });
+    }
+
+    // Extract and aggregate the consultant's schedule
+    const availability = schedules.map((schedule) => {
+      return schedule.schedule.filter((slot) => String(slot.cid) === cid);
+    }).flat();
+
+    // If no individual availability slots are found, return a 404 response
+    if (availability.length === 0) {
+      return res.status(404).json({ message: "No availability found for this consultant." });
     }
 
     // Return the found availability entries
     res.status(200).json({ availability });
   } catch (error) {
-    console.error('Error fetching availability:', error);
-    res.status(500).json({ message: 'Error retrieving availability data' });
+    console.error("Error fetching availability:", error);
+    res.status(500).json({ message: "Error retrieving availability data", error });
   }
 };
+
 
 export async function fetchConsultantById(req: Request, res: Response): Promise<void> {
   const consultantId = req.params.id;
