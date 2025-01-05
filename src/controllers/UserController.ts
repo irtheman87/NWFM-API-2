@@ -662,6 +662,7 @@ export const getAvailableHoursCount = async (
         if (schedule.day !== day || schedule.status !== "open") continue;
 
         const { slots, cid } = schedule;
+
         for (const slot of slots) {
           const slotHour = parseInt(slot.split(":")[0], 10);
 
@@ -669,15 +670,15 @@ export const getAvailableHoursCount = async (
             (entry) => entry.time === `${slotHour}:00`
           );
           if (hourEntry) {
-            // Check if there is an existing appointment for this time
-            const existingAppointment = await AppointmentModel.findOne({
+            // Check if there are fewer than 3 existing appointments for this time slot
+            const existingAppointmentsCount = await AppointmentModel.countDocuments({
               cid: cid,
               date: parsedDate,
               "time.hours": slotHour,
               "time.minutes": 0,
             });
 
-            if (!existingAppointment) {
+            if (existingAppointmentsCount < 3) {
               hourEntry.available += 1;
             }
           }
@@ -704,6 +705,7 @@ export const getAvailableHoursCount = async (
     });
   }
 };
+
 
 
 export const checkAppointmentsByDateAndTime = async (date: Date, time: Time): Promise<number> => {
