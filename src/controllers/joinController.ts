@@ -4,6 +4,9 @@ import multer from "multer";
 import multerS3 from "multer-s3";
 import { S3Client } from "@aws-sdk/client-s3";
 import Company from "../models/Company";
+import CrewCompany from "../models/CrewCompany";
+import bcrypt from "bcryptjs";
+import jwt from 'jsonwebtoken';
 
 // Initialize S3 client
 const s3 = new S3Client({
@@ -228,5 +231,165 @@ export const createCompany = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error in createCompany:", error);
     return res.status(500).json({ message: "An error occurred.", error });
+  }
+};
+
+export const createCrewCompany = async (req: Request, res: Response) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Validate request body
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    // Check if email or username already exists
+    const existingUser = await CrewCompany.findOne({ 
+      $or: [{ username }, { email }] 
+    });
+    if (existingUser) {
+      return res
+        .status(409)
+        .json({ message: "Username or email already exists." });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new CrewCompany
+    const newCrewCompany = new CrewCompany({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
+    // Save to the database
+    const savedCrewCompany = await newCrewCompany.save();
+
+    // Respond with success
+    return res.status(201).json({
+      message: "CrewCompany created successfully.",
+      crewCompany: {
+        id: savedCrewCompany._id,
+        username: savedCrewCompany.username,
+        email: savedCrewCompany.email,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating CrewCompany:", error);
+    return res.status(500).json({ message: "Internal server error.", error });
+  }
+};
+
+export const loginCrewCompany = async (req: Request, res: Response) => {
+  try {
+    const { usernameOrEmail, password } = req.body;
+
+    // Validate request body
+    if (!usernameOrEmail || !password) {
+      return res.status(400).json({ message: "Username/Email and password are required." });
+    }
+
+    // Find the CrewCompany by username or email
+    const crewCompany = await CrewCompany.findOne({
+      $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
+    });
+
+    if (!crewCompany) {
+      return res.status(401).json({ message: "Invalid username/email or password." });
+    }
+
+    // Compare the password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, crewCompany.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid username/email or password." });
+    }
+
+    // Generate a JWT token
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: "JWT secret key is not configured." });
+    }
+
+    const token = jwt.sign(
+      { id: crewCompany._id, username: crewCompany.username },
+      JWT_SECRET,
+      { expiresIn: "1h" } // Token expires in 1 hour
+    );
+
+    // Respond with the token
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      crewCompany: {
+        id: crewCompany._id,
+        username: crewCompany.username,
+        email: crewCompany.email,
+      },
+    });
+  } catch (error) {
+    console.error("Error during login:", error);
+    return res.status(500).json({ message: "Internal server error.", error });
+  }
+};
+
+export const getCrewByEmail = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { email } = req.params;
+
+    // Validate email parameter
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Invalid email provided" });
+    }
+
+    // Find the Crew member by email
+    const crewMember = await Crew.findOne({ email });
+
+    if (!crewMember) {
+      return res.status(404).json({ message: "Crew member not found" });
+    }
+
+    // Return the crew member details
+    return res.status(200).json({ 
+      message: "Crew member fetched successfully",
+      crewMember
+    });
+  } catch (error) {
+    console.error("Error fetching crew member:", error);
+    return res.status(500).json({ 
+      message: "Failed to fetch crew member",
+      error 
+    });
+  }
+};
+
+export const getCompanyByEmail = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { email } = req.params;
+
+    // Check if email is provided
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Fetch the company details using the email
+    const company = await Company.findOne({ email });
+
+    // If the company is not found, return a 404 error
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    // Return the company details
+    return res.status(200).json({
+      message: "Company fetched successfully",
+      company,
+    });
+  } catch (error) {
+    console.error("Error fetching company:", error);
+    return res.status(500).json({
+      message: "Failed to fetch company",
+      error: error,
+    });
   }
 };

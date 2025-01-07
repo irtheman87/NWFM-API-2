@@ -35,7 +35,7 @@ interface Crew extends Document {
 const CrewSchema: Schema = new Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
     mobile: { type: String, required: true },
     dob: { type: Date, required: true },
     bio: { type: String },
