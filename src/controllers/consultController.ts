@@ -1722,6 +1722,31 @@ export async function getWalletByCid(req: Request, res: Response): Promise<Respo
   const { cid } = req.params; // Extracting cid from the URL parameter
 
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    } 
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consult') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
     const wallet: IWallet | null = await Wallet.findOne({ cid }).exec();
 
     if (!wallet) {
@@ -1739,6 +1764,31 @@ export async function getWalletHistory(req: Request, res: Response): Promise<Res
   const { cid } = req.params; // Extracting cid from the URL parameter
 
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    } 
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consult') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
     // Finding wallet history documents by cid
     const history = await WalletHistory.find({ cid }).exec();
 
