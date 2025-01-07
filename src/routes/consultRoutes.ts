@@ -4,7 +4,8 @@ import { registerConsult, loginConsult, refreshConsultantToken, createAvailabili
   fetchConsultantById, updateConsultantById, fetchConsultantProfilePicById, updateConsultantProfilePic, upload,getActiveRequest, refreshToken, 
   updateConsultantPassword, requestPasswordReset, resetPassword, fetchConsultantPref, updateConsultantPreference, 
   fetchHistoryByCid, fetchAssignmentsAndRequests, fetchPendingRequestsByConsultantExpertise, completeRequest, fetchNotifications, 
-  getTasksByConsultant, handleChatTransaction, uploadConsultantFiles, fetchResolveFiles, verifyEmailAndSetPassword } from '../controllers/consultController';
+  getTasksByConsultant, handleChatTransaction, uploadConsultantFiles, fetchResolveFiles, verifyEmailAndSetPassword, getWalletByCid,
+  getWalletHistory } from '../controllers/consultController';
 import { isAdmin, isnotAdmin } from '../middleware/authMiddleware';
 import { verifyConsultantToken } from '../middleware/TokenValidator';
 
@@ -42,6 +43,8 @@ router.post('/newchat', handleChatTransaction);
 router.post('/resolve-files', uploadConsultantFiles);
 router.get('/resolve/:orderId', fetchResolveFiles);
 router.post('/verify-email', verifyEmailAndSetPassword);
+router.get('/wallet/:cid', getWalletByCid);
+router.get('/wallet-history/:cid', getWalletHistory);
 
 
 

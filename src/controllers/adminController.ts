@@ -4,12 +4,12 @@ import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin';
 import crypto from 'crypto';
 import Extension, {IExtension} from '../models/Extension';
-import RequestModel from '../models/Request';
+import RequestModel, { IRequest } from '../models/Request';
 import Consultant from '../models/consultant';
 import AppointmentModel from '../models/Appointment';
 import User from '../models/User';
 import Transaction from '../models/SetTransaction';
-import { createNotification } from '../utils/UtilityFunctions';
+import { createNotification, credit } from '../utils/UtilityFunctions';
 import sendEmail from '../utils/sendEmail';
 import Task from '../models/task'; // Ensure this path points to your Task model file
 import { format, parseISO, add } from 'date-fns';
@@ -2025,3 +2025,159 @@ export const getTopConsultantsByRating = async (req: Request, res: Response): Pr
     });
   }
 };
+
+export async function getReadyRequests(req: Request, res: Response): Promise<Response> {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    } 
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Fetch all requests where 'stattusof' is 'ready'
+    const requests: IRequest[] = await RequestModel.find({ stattusof: 'ready' }).exec();
+    
+    if (requests.length === 0) {
+      return res.status(404).json({ message: 'No ready requests found' });
+    }
+
+    return res.status(200).json(requests);
+  } catch (error) {
+    console.error('Error fetching ready requests:', error);
+    return res.status(500).json({ message: 'Failed to fetch ready requests' });
+  }
+}
+
+export async function getRequestByOrderId(req: Request, res: Response): Promise<Response> {
+  const { orderId } = req.params; // Extract the orderId from URL parameters
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    } 
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Fetch the request using orderId
+    const request: IRequest | null = await RequestModel.findOne({ orderId }).exec();
+
+    if (!request) {
+      return res.status(404).json({ message: `Request with orderId ${orderId} not found` });
+    }
+
+    return res.status(200).json(request);
+  } catch (error) {
+    console.error('Error fetching request by orderId:', error);
+    return res.status(500).json({ message: 'Failed to fetch request' });
+  }
+}
+
+export async function setRequestStatusToCompleted(req: Request, res: Response): Promise<Response> {
+  const { orderId } = req.params; // Extracting orderId from URL parameters
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    } 
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Find the task by orderId
+    const task = await Task.findOne({ orderId }).exec();
+    
+    if (!task) {
+      return res.status(404).json({ message: `Task with orderId ${orderId} not found` });
+    }
+
+    // Fetch the request using orderId
+    const request: IRequest | null = await RequestModel.findOne({ orderId }).exec();
+
+    if (!request) {
+      return res.status(404).json({ message: `Request with orderId ${orderId} not found` });
+    }
+
+    // Set the 'stattusof' field to 'completed'
+    request.stattusof = 'completed';
+    await request.save(); // Save the updated request to the database
+
+    // Fetch the price from the Transaction model using orderId
+    const transaction = await Transaction.findOne({ orderId }).exec();
+    
+    if (!transaction) {
+      return res.status(404).json({ message: `Transaction with orderId ${orderId} not found` });
+    }
+
+    const price = transaction.price;
+
+    // Fetch the `cid` from the Task model
+    const cid = task.cid;
+    const actualIncome = parseFloat(price) * 0.5;
+    // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
+    credit(cid, actualIncome); // Example: assuming 'credit' needs `cid` and `price`
+
+    // Return the response with price information
+    return res.status(200).json({
+      message: 'Request status set to completed',
+      request,
+      cid,
+      price
+    });
+  } catch (error) {
+    console.error('Error updating request status to completed:', error);
+    return res.status(500).json({ message: 'Failed to update request status' });
+  }
+}

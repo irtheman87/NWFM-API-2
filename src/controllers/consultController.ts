@@ -11,7 +11,7 @@ import RequestModel from '../models/Request';
 import AppointmentModel from '../models/Appointment';
 import Transaction, {generateOrderId} from '../models/SetTransaction';
 import mongoose from 'mongoose';
-import { fetchRequestByOrderId } from '../utils/UtilityFunctions';
+// import { fetchRequestByOrderId } from '../utils/UtilityFunctions';
 import Preference, {IPreference} from '../models/PreferenceModel';
 import ConsultantPreference, {IConsultPreference} from '../models/ConsultantPrefs';
 import User from '../models/User';
@@ -30,6 +30,8 @@ import Resolve from '../models/Resolve';
 import MusingModel from '../models/Musing';
 import { userInfo } from 'os';
 import WeeklySchedule from '../models/Availability';
+import Wallet, { IWallet } from '../models/Wallet';
+import WalletHistory from '../models/walletHistoryModel';
 
 
 const s3 = new S3Client({
@@ -164,6 +166,9 @@ export const loginConsult = async (req: Request, res: Response) => {
       expertise: consult.expertise,
       profilepics: consult.profilepics
     };
+
+    const wallet = await createWalletIfNotExists(String(consult._id));
+    console.log('Wallet ensured:', wallet);
 
     res.json({ accessToken, refreshToken, user: userInfo });
   } catch (error) {
@@ -392,7 +397,7 @@ export const declineAssignment = async (req: Request, res: Response): Promise<Re
     assignment.status = 'pending';
     await assignment.save();
 
-    fetchRequestByOrderId(assignment.orderId);
+    // fetchRequestByOrderId(assignment.orderId);
 
     return res.status(200).json({ message: 'Request Declined' });
 
@@ -1687,3 +1692,63 @@ export const verifyEmailAndSetPassword = async (req: Request, res: Response): Pr
     return res.status(500).json({ message: 'Failed to verify email and set password.', error });
   }
 };
+
+export const createWalletIfNotExists = async (cid: string): Promise<IWallet> => {
+  try {
+    // Check if a wallet already exists for the given cid
+    let wallet = await Wallet.findOne({ cid });
+
+    // If it doesn't exist, create a new wallet
+    if (!wallet) {
+      wallet = new Wallet({
+        cid,
+        balance: 0,
+        availableBalance: 0,
+        status: 'verified',
+      });
+
+      await wallet.save();
+    }
+
+    // Return the existing or newly created wallet
+    return wallet;
+  } catch (error) {
+    console.error('Error creating or retrieving wallet:', error);
+    throw new Error('Failed to create or retrieve wallet');
+  }
+};
+
+export async function getWalletByCid(req: Request, res: Response): Promise<Response> {
+  const { cid } = req.params; // Extracting cid from the URL parameter
+
+  try {
+    const wallet: IWallet | null = await Wallet.findOne({ cid }).exec();
+
+    if (!wallet) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+
+    return res.status(200).json(wallet);
+  } catch (error) {
+    console.error('Error fetching wallet by cid:', error);
+    return res.status(500).json({ message: 'Error fetching wallet' });
+  }
+}
+
+export async function getWalletHistory(req: Request, res: Response): Promise<Response> {
+  const { cid } = req.params; // Extracting cid from the URL parameter
+
+  try {
+    // Finding wallet history documents by cid
+    const history = await WalletHistory.find({ cid }).exec();
+
+    if (!history || history.length === 0) {
+      return res.status(404).json({ message: 'No wallet history found for this cid' });
+    }
+
+    return res.status(200).json(history);
+  } catch (error) {
+    console.error('Error fetching wallet history:', error);
+    return res.status(500).json({ message: 'Error fetching wallet history' });
+  }
+}

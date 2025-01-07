@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import AssignmentModel, { IAssignment } from '../models/Assignment';
-import AvailabilityModel, { IAvailability } from '../models/Availability';
+// import AvailabilityModel, { IAvailability } from '../models/Availability';
 import RequestModel, { IRequest } from '../models/Request';
 import Service from '../models/Service';
 import User from '../models/User';
@@ -11,6 +11,9 @@ import { S3Client } from '@aws-sdk/client-s3';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import AdminNotificationModel from '../models/AdminNotification';
+import WalletHistory from '../models/walletHistoryModel';
+import WeeklySchedule from '../models/Availability';
+import Wallet, { IWallet } from '../models/Wallet';
 
 // Define the Time type
 type Time = {
@@ -29,81 +32,81 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
 }
 
 // Main function to match requests to open availability slots
-export const matchRequestToAvailabilityAndCreateAssignment = async (requestId: string) => {
-  try {
-    // Retrieve the request data
-    const userRequest = await RequestModel.findById(requestId) as IRequest;
-    if (!userRequest) {
-      throw new Error('Request not found');
-    }
+// export const matchRequestToAvailabilityAndCreateAssignment = async (requestId: string) => {
+//   try {
+//     // Retrieve the request data
+//     const userRequest = await RequestModel.findById(requestId) as IRequest;
+//     if (!userRequest) {
+//       throw new Error('Request not found');
+//     }
 
-    const { expertise, time: requestTime, userId, day } = userRequest;
+//     const { expertise, time: requestTime, userId, day } = userRequest;
 
-    console.log(`${expertise} ${requestTime} ${userId} ${day} Printed`);
+//     console.log(`${expertise} ${requestTime} ${userId} ${day} Printed`);
 
-    // Find an available consultant with a matching day, open status, and expertise
-    const matchingAvailability = await AvailabilityModel.findOne({
-      expertise: { $in: [expertise] }, // Checks if requested expertise exists in expertise array
-      day,
-      status: 'open',
-    }) as IAvailability;
+//     // Find an available consultant with a matching day, open status, and expertise
+//     const matchingAvailability = await WeeklySchedule.findOne({
+//       expertise: { $in: [expertise] }, // Checks if requested expertise exists in expertise array
+//       day,
+//       status: 'open',
+//     }) as IAvailability;
 
-    if (
-      matchingAvailability && 
-      matchingAvailability.otime && 
-      matchingAvailability.ctime && 
-      isTimeMatch(requestTime as Time, matchingAvailability.otime, matchingAvailability.ctime)
-    ) {
-      console.log(`${requestTime} ${matchingAvailability.otime} ${matchingAvailability.ctime} Matching`);
+//     if (
+//       matchingAvailability && 
+//       matchingAvailability.otime && 
+//       matchingAvailability.ctime && 
+//       isTimeMatch(requestTime as Time, matchingAvailability.otime, matchingAvailability.ctime)
+//     ) {
+//       console.log(`${requestTime} ${matchingAvailability.otime} ${matchingAvailability.ctime} Matching`);
 
-      // Create a new assignment with default status of 'pending'
-      const newAssignment: IAssignment = new AssignmentModel({
-        uid: userId,
-        cid: matchingAvailability.cid,
-        expertise: expertise,
-        type: userRequest.type,
-        orderId: userRequest.orderId,
-        createdDate: new Date(),
-        status: 'pending', // Default status for new assignments
-      });
+//       // Create a new assignment with default status of 'pending'
+//       const newAssignment: IAssignment = new AssignmentModel({
+//         uid: userId,
+//         cid: matchingAvailability.cid,
+//         expertise: expertise,
+//         type: userRequest.type,
+//         orderId: userRequest.orderId,
+//         createdDate: new Date(),
+//         status: 'pending', // Default status for new assignments
+//       });
 
-      await newAssignment.save();
+//       await newAssignment.save();
       
-      if (userRequest.type) {
-        createNotification(matchingAvailability.cid.toString(), userId, 'consultant', 'Assignment', userRequest.orderId, 'New Order', 'You have a New Order Match');
-      } else {
-        // Handle the case where orderId is undefined
-        console.error('orderId is required but not provided');
-      }
-      return { message: 'Assignment created successfully', assignment: newAssignment };
-    } else {
-      return { message: 'No available consultant matches the request criteria' };
-    }
-  } catch (error) {
-    console.error('Error matching request to availability:', error);
-    throw error;
-  }
-};
+//       if (userRequest.type) {
+//         createNotification(matchingAvailability.cid.toString(), userId, 'consultant', 'Assignment', userRequest.orderId, 'New Order', 'You have a New Order Match');
+//       } else {
+//         // Handle the case where orderId is undefined
+//         console.error('orderId is required but not provided');
+//       }
+//       return { message: 'Assignment created successfully', assignment: newAssignment };
+//     } else {
+//       return { message: 'No available consultant matches the request criteria' };
+//     }
+//   } catch (error) {
+//     console.error('Error matching request to availability:', error);
+//     throw error;
+//   }
+// };
 
 
-export const fetchRequestByOrderId = async (orderId: string): Promise<IRequest | null> => {
-    try {
-      const request = await RequestModel.findOne({ orderId });
-      if (!request) {
-        console.log(`No request found for orderId: ${orderId}`);
-        return null;
-      }
+// export const fetchRequestByOrderId = async (orderId: string): Promise<IRequest | null> => {
+//     try {
+//       const request = await RequestModel.findOne({ orderId });
+//       if (!request) {
+//         console.log(`No request found for orderId: ${orderId}`);
+//         return null;
+//       }
 
-      // console.log(request);
-      // console.log(request._id);
+//       // console.log(request);
+//       // console.log(request._id);
 
-      matchRequestToAvailabilityAndCreateAssignment(request._id as string);
-      return request;
-    } catch (error) {
-      console.error('Error fetching request by orderId:', error);
-      throw new Error('Failed to fetch request by orderId');
-    }
-  }
+//       matchRequestToAvailabilityAndCreateAssignment(request._id as string);
+//       return request;
+//     } catch (error) {
+//       console.error('Error fetching request by orderId:', error);
+//       throw new Error('Failed to fetch request by orderId');
+//     }
+//   }
 
   export const getServicePriceByName = async (name: string): Promise<string> => {
     try {
@@ -242,6 +245,73 @@ export const fetchRequestByOrderId = async (orderId: string): Promise<IRequest |
     } catch (error) {
       console.error("Error in convertToGMTPlusOne:", error);
       throw new Error("Failed to convert timestamp to GMT+1");
+    }
+  }
+
+  async function addWalletHistory(cid: string, amount: number, type: 'deposit' | 'withdrawal', status: 'completed' | 'pending' | 'failed') {
+    try {
+      const history = new WalletHistory({
+        cid,
+        amount,
+        type,
+        status,
+      });
+  
+      await history.save();
+      console.log('Wallet history entry added:', history);
+    } catch (error) {
+      console.error('Error adding wallet history:', error);
+    }
+  }
+
+  export async function credit(cid: string, amount: number): Promise<IWallet | null> {
+    try {
+      if (amount <= 0) throw new Error('Amount should be greater than 0');
+  
+      const wallet = await Wallet.findOne({ cid }).exec();
+      if (!wallet) throw new Error('Wallet not found');
+  
+      wallet.balance += amount;
+      wallet.availableBalance += amount;
+      await wallet.save();
+
+      addWalletHistory(cid, amount, 'deposit', 'completed')
+     .then(() => console.log('History added!'))
+     .catch(error => console.error('Failed:', error));
+
+
+      return wallet;
+    } catch (error) {
+      console.error('Error crediting wallet:', error);
+      throw new Error('Failed to credit wallet');
+    }
+  }
+  
+  // Function to debit the wallet (subtract funds from balance)
+  export async function debit(cid: string, amount: number): Promise<IWallet | null> {
+    try {
+      if (amount <= 0) throw new Error('Amount should be greater than 0');
+  
+      const wallet = await Wallet.findOne({ cid }).exec();
+      if (!wallet) throw new Error('Wallet not found');
+  
+      if (wallet.availableBalance < amount) {
+        throw new Error('Insufficient available balance');
+      }
+  
+      wallet.balance -= amount;
+      wallet.availableBalance -= amount;
+      await wallet.save();
+
+      addWalletHistory(cid, amount, 'withdrawal', 'completed')
+      .then(() => console.log('History added!'))
+      .catch(error => console.error('Failed:', error));
+ 
+  
+      return wallet;
+    } catch (error) {
+      console.error('Error debiting wallet:', error);
+      throw new Error('Failed to debit wallet');
     }
   }
 
