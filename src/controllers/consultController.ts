@@ -1743,8 +1743,8 @@ export async function getWalletByCid(req: Request, res: Response): Promise<Respo
 
     // Check Admin Role
     const { role } = decodedToken as { role: string };
-    if (role !== 'consult') {
-      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
     }
 
     const wallet: IWallet | null = await Wallet.findOne({ cid }).exec();
@@ -1785,8 +1785,8 @@ export async function getWalletHistory(req: Request, res: Response): Promise<Res
 
     // Check Admin Role
     const { role } = decodedToken as { role: string };
-    if (role !== 'consult') {
-      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
     }
 
     // Finding wallet history documents by cid
