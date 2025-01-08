@@ -4,7 +4,7 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
     fetchTopNewestUsers, fetchMonthlyTransactionTotals, fetchAllConsultants, createConsultant, closeIssue, fetchConsultantById,
      fetchUserDetails, fetchCompletedUserRequests, getActiveRequestForConsultant, fetchConsultantHistoryByCid, fetchAdminNotifications,
      markNotificationAsRead, suspendConsultant, deleteConsultant, updateConsultant, getAverageRatings, getTopConsultantsByRating,
-    getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted } from '../controllers/adminController';
+    getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithTodayRequests } from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -65,7 +65,7 @@ router.get('/requests/ready', getReadyRequests);
 
 router.patch('/request/status/completed/:orderId', setRequestStatusToCompleted);
 
-
+router.get('/appointments/today-requests', fetchAppointmentsWithTodayRequests);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

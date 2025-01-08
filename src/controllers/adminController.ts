@@ -2181,3 +2181,76 @@ export async function setRequestStatusToCompleted(req: Request, res: Response): 
     return res.status(500).json({ message: 'Failed to update request status' });
   }
 }
+
+export const fetchAppointmentsWithTodayRequests = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    } 
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Get the start and end of the current date in ISO format
+    const startOfDay = moment().startOf('day').toISOString();
+    const endOfDay = moment().endOf('day').toISOString();
+
+    // Fetch all appointments
+    const appointments = await AppointmentModel.find({}, 'orderId');
+
+    // Extract order IDs from appointments
+    const orderIds = appointments.map((appointment) => appointment.orderId);
+
+    if (orderIds.length === 0) {
+      return res.status(404).json({ message: 'No appointments found.', data: [] });
+    }
+
+    // Fetch requests linked to the appointments by orderId where `booktime` matches today's date
+    const requests = await RequestModel.find(
+      {
+        orderId: { $in: orderIds }, // Match the order IDs
+        booktime: { $gte: startOfDay, $lte: endOfDay }, // Filter by today's date
+        type: 'Chat',
+        stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
+      },
+      'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Fields to return
+    ).sort({ booktime: 1 }); // Sort by booktime (ascending)
+
+    // Combine appointments and their requests
+    const combinedResults = requests.map((request) => {
+      const { orderId } = request;
+      const relatedAppointment = appointments.find((appointment) => appointment.orderId === orderId);
+
+      return {
+        appointment: relatedAppointment,
+        request: request.toObject(),
+      };
+    });
+
+    // Respond with combined data
+    return res.status(200).json({ data: combinedResults });
+  } catch (error) {
+    console.error('Error fetching appointments with today\'s requests:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch appointments with today\'s requests',
+      error,
+    });
+  }
+};
