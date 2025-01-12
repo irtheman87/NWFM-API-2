@@ -886,7 +886,7 @@ async function handlePaymentInitialization(req: any, res?: any) {
     path: '/transaction/initialize',
     method: 'POST',
     headers: {
-      Authorization: 'Bearer sk_live_f2385064d91a0c2b35d95c17e362cf9d8ee855fd', // Replace with your actual key
+      Authorization: 'Bearer sk_test_cf904bc1ae8abf9f04e8390c9bbc3359b5b14a56', // Replace with your actual key
       'Content-Type': 'application/json',
     },
   };
