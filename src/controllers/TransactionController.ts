@@ -502,7 +502,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, visualStyle, info, budgetrange, fileName
+    actors, crew, visualStyle, info, budgetrange, fileName, startofphoto, numberofdays, actorslockdate, localockdates
   } = req.body;
 
   try {

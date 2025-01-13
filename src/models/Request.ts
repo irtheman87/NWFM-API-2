@@ -100,7 +100,7 @@ const requestSchema = new Schema<IRequest>(
     endTime: { type: String }, // Corrected here
     cid: {type: String},
     startofphoto: {type: String},
-    numberofdays: { type: [String] }, // Updated to array
+    numberofdays: { type: String }, // Updated to array
     actorslockdate: { type: [String] }, // Updated to array
     localockdates: { type: [String] }, // Updated to array
 
