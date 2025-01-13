@@ -46,6 +46,10 @@ export interface IRequest extends Document {
   booktime?: string; // Changed from `Timestamp` to `Date`
   endTime?: string;
   cid?: string;
+  startofphoto?: string;
+  numberofdays?: string;
+  actorslockdate?: string[]; // Updated to string array
+  localockdates?: string[]; // Updated to string array
 }
 
 const timeSchema = new Schema<Time>({
@@ -95,6 +99,11 @@ const requestSchema = new Schema<IRequest>(
     booktime: { type: String }, // Corrected here
     endTime: { type: String }, // Corrected here
     cid: {type: String},
+    startofphoto: {type: String},
+    numberofdays: { type: [String] }, // Updated to array
+    actorslockdate: { type: [String] }, // Updated to array
+    localockdates: { type: [String] }, // Updated to array
+
   },
   { timestamps: true }
 );
