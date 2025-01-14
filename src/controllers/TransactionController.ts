@@ -553,6 +553,10 @@ export const createAPitch = async (req: Request, res: Response) => {
       expertise: 'Director',
       files: fileUrls,
       filename: fileName,
+      startofphoto,
+      numberofdays,
+      actorslockdate,
+      localockdates
     });
     await newRequest.save();
 
@@ -886,7 +890,7 @@ async function handlePaymentInitialization(req: any, res?: any) {
     path: '/transaction/initialize',
     method: 'POST',
     headers: {
-      Authorization: 'Bearer pk_test_36106bc313bb2aac323c6b68f4cc7620e7e3bbc8', // Replace with your actual key
+      Authorization: 'Bearer pk_test_19f1e6b483aa9808c5127de102e3bdd0fa7eec21', // Replace with your actual key
       'Content-Type': 'application/json',
     },
   };
