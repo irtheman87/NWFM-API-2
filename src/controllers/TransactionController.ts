@@ -502,7 +502,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, visualStyle, info, budgetrange, fileName, startofphoto, numberofdays, actorslockdate, localockdates
+    actors, crew, visualStyle, info, budgetrange, fileName
   } = req.body;
 
   try {
@@ -553,10 +553,6 @@ export const createAPitch = async (req: Request, res: Response) => {
       expertise: 'Director',
       files: fileUrls,
       filename: fileName,
-      startofphoto,
-      numberofdays,
-      actorslockdate,
-      localockdates
     });
     await newRequest.save();
 
@@ -890,7 +886,7 @@ async function handlePaymentInitialization(req: any, res?: any) {
     path: '/transaction/initialize',
     method: 'POST',
     headers: {
-      Authorization: 'Bearer sk_test_ec8fa2a377e0b66e73ec5658068670d0402e2fd5', // Replace with your actual key
+      Authorization: 'Bearer pk_test_36106bc313bb2aac323c6b68f4cc7620e7e3bbc8', // Replace with your actual key
       'Content-Type': 'application/json',
     },
   };
