@@ -7,8 +7,8 @@ const router = express.Router();
  router.post('/company', createCompany);
  router.post("/crewcompany", createCrewCompany);
  router.post("/crewcompany/login", loginCrewCompany);
- router.get("/crew/:email", getCrewById);
- router.get("/company/:email", getCompanyById);
+ router.get("/crew/:id", getCrewById);
+ router.get("/company/:id", getCompanyById);
 
 
 module.exports = router;

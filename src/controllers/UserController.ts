@@ -114,7 +114,7 @@ export const registerUser = async (req: Request, res: Response) => {
       role: 'user',
       expertise,
       verificationToken,
-      profilepics: 'https://nwfm-api.onrender.com/uploads/account.png'
+      profilepics: 'https://api.nollywoodfilmmaker.com/uploads/account.png'
     });
 
     await newUser.save();
