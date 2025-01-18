@@ -248,72 +248,100 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
     }
   }
 
-  async function addWalletHistory(cid: string, amount: number, type: 'deposit' | 'withdrawal', status: 'completed' | 'pending' | 'failed') {
-    try {
-      const history = new WalletHistory({
-        cid,
-        amount,
-        type,
-        status,
-      });
-  
-      await history.save();
-      console.log('Wallet history entry added:', history);
-    } catch (error) {
-      console.error('Error adding wallet history:', error);
-    }
+// Function to add wallet history with the updated model
+async function addWalletHistory(
+  cid: string, 
+  amount: number, 
+  type: 'deposit' | 'withdrawal', 
+  status: 'completed' | 'pending' | 'failed',
+  orderId?: string, 
+  bankName?: string, 
+  accountNumber?: string
+): Promise<void> {
+  try {
+    const history = new WalletHistory({
+      cid,
+      amount,
+      type,
+      status,
+      orderId,
+      bankName,
+      accountNumber,
+    });
+
+    await history.save();
+    console.log('Wallet history entry added:', history);
+  } catch (error) {
+    console.error('Error adding wallet history:', error);
   }
+}
 
-  export async function credit(cid: string, amount: number): Promise<IWallet | null> {
-    try {
-      if (amount <= 0) throw new Error('Amount should be greater than 0');
-  
-      const wallet = await Wallet.findOne({ cid }).exec();
-      if (!wallet) throw new Error('Wallet not found');
-  
-      wallet.balance += amount;
-      wallet.availableBalance += amount;
-      await wallet.save();
+// Function to credit the wallet
+export async function credit(
+  cid: string, 
+  amount: number, 
+  orderId?: string
+): Promise<IWallet | null> {
+  try {
+    if (amount <= 0) throw new Error('Amount should be greater than 0');
 
-      addWalletHistory(cid, amount, 'deposit', 'completed')
-     .then(() => console.log('History added!'))
-     .catch(error => console.error('Failed:', error));
+    const wallet = await Wallet.findOne({ cid }).exec();
+    if (!wallet) throw new Error('Wallet not found');
 
+    wallet.balance += amount;
+    wallet.availableBalance += amount;
+    await wallet.save();
 
-      return wallet;
-    } catch (error) {
-      console.error('Error crediting wallet:', error);
-      throw new Error('Failed to credit wallet');
-    }
-  }
-  
-  // Function to debit the wallet (subtract funds from balance)
-  export async function debit(cid: string, amount: number): Promise<IWallet | null> {
-    try {
-      if (amount <= 0) throw new Error('Amount should be greater than 0');
-  
-      const wallet = await Wallet.findOne({ cid }).exec();
-      if (!wallet) throw new Error('Wallet not found');
-  
-      if (wallet.availableBalance < amount) {
-        throw new Error('Insufficient available balance');
-      }
-  
-      wallet.balance -= amount;
-      wallet.availableBalance -= amount;
-      await wallet.save();
-
-      addWalletHistory(cid, amount, 'withdrawal', 'completed')
+    await addWalletHistory(cid, amount, 'deposit', 'completed', orderId)
       .then(() => console.log('History added!'))
-      .catch(error => console.error('Failed:', error));
- 
-  
-      return wallet;
-    } catch (error) {
-      console.error('Error debiting wallet:', error);
-      throw new Error('Failed to debit wallet');
-    }
+      .catch((error) => console.error('Failed to add history:', error));
+
+    return wallet;
+  } catch (error) {
+    console.error('Error crediting wallet:', error);
+    throw new Error('Failed to credit wallet');
   }
+}
+
+// Function to debit the wallet
+export async function debit(
+  cid: string, 
+  amount: number, 
+  orderId?: string, 
+  bankName?: string, 
+  accountNumber?: string
+): Promise<IWallet | null> {
+  try {
+    if (amount <= 0) throw new Error('Amount should be greater than 0');
+
+    const wallet = await Wallet.findOne({ cid }).exec();
+    if (!wallet) throw new Error('Wallet not found');
+
+    if (wallet.availableBalance < amount) {
+      throw new Error('Insufficient available balance');
+    }
+
+    // Create a wallet history record with status 'pending'
+    await addWalletHistory(
+      cid, 
+      amount, 
+      'withdrawal', 
+      'pending', 
+      orderId, 
+      bankName, 
+      accountNumber
+    )
+      .then(() => console.log('Pending withdrawal recorded in wallet history.'))
+      .catch((error) => console.error('Failed to add pending wallet history:', error));
+
+    return wallet; // No deduction is made at this point
+  } catch (error) {
+    console.error('Error debiting wallet:', error);
+    throw new Error('Failed to debit wallet');
+  }
+}
+
+
 
 // S3 client configuration
 const s3 = new S3Client({

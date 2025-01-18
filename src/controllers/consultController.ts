@@ -22,7 +22,7 @@ import Notification from '../models/Notification';
 import Task from '../models/task'; // Ensure this path points to your Task model file
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
-import { createNotification } from '../utils/UtilityFunctions';
+import { createNotification, debit } from '../utils/UtilityFunctions';
 import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne} from '../utils/UtilityFunctions';
 import { fetchConsultantEmail, fetchUserEmail } from './adminController';
 import { uploads } from '../utils/UtilityFunctions';
@@ -32,6 +32,8 @@ import { userInfo } from 'os';
 import WeeklySchedule from '../models/Availability';
 import Wallet, { IWallet } from '../models/Wallet';
 import WalletHistory from '../models/walletHistoryModel';
+import Company from '../models/Company';
+import Crew from '../models/Crew';
 
 
 const s3 = new S3Client({
@@ -1802,3 +1804,143 @@ export async function getWalletHistory(req: Request, res: Response): Promise<Res
     return res.status(500).json({ message: 'Error fetching wallet history' });
   }
 }
+
+export const fetchDataByType = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
+    const { type, sortBy } = req.query; // `sortBy` for additional sorting
+    const { page = 1, limit = 10 } = req.query;
+
+    // Validate the `type` parameter
+    if (type !== "crew" && type !== "company") {
+      return res.status(400).json({ message: "Invalid type. Use 'crew' or 'company'." });
+    }
+
+    // Calculate pagination parameters
+    const pageNumber = Math.max(1, parseInt(page as string, 10));
+    const pageSize = Math.max(1, parseInt(limit as string, 10));
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Choose the appropriate model dynamically and ensure correct typing
+    const Model = type === "crew" ? Crew : Company;
+
+    // Define additional sorting conditions
+    const additionalSort: Record<string, 1 | -1> = {};
+    if (type === "crew" && sortBy === "department") {
+      additionalSort.department = 1; // Sorting by `department` for crew
+    } else if (type === "company" && sortBy === "type") {
+      additionalSort.type = 1; // Sorting by `type` for company
+    }
+
+    // Fetch the paginated and sorted data
+    const data = await (Model as any).find()
+      .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
+      .skip(skip)
+      .limit(pageSize);
+
+    // Count total records
+    const totalRecords = await (Model as any).countDocuments();
+
+    // Return response
+    return res.status(200).json({
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} data fetched successfully.`,
+      data,
+      pagination: {
+        totalRecords,
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalRecords / pageSize),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    return res.status(500).json({
+      message: "Failed to fetch data",
+      error: error,
+    });
+  }
+};
+
+export const createWithdrawal = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+        }
+    
+        // Extract and verify token
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+        if (!JWT_SECRET) {
+          return res.status(500).json({ message: 'JWT secret key is not configured' });
+        }
+    
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+          return res.status(401).json({ message: 'Invalid token' });
+        }
+    
+        // Check Admin Role
+        const { role } = decodedToken as { role: string };
+        if (role !== 'consultant') {
+          return res.status(403).json({ message: 'Access denied. Admin role required.' });
+        }
+    
+
+    // Extract user details from the decoded token
+    const { id } = decodedToken as { id: string };
+    if (!id) {
+      return res.status(403).json({ message: "Access denied. No CID found in the token." });
+    }
+
+    const { amount, orderId, bankName, accountNumber } = req.body;
+
+    // Validate the input body
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "A valid amount is required and should be greater than 0" });
+    }
+    if (!bankName || !accountNumber) {
+      return res.status(400).json({ message: "Bank name and account number are required for withdrawal" });
+    }
+
+    // Attempt to create a withdrawal
+    const wallet: IWallet | null = await debit(id, amount, orderId, bankName, accountNumber);
+
+    if (!wallet) {
+      return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });
+    }
+
+    return res.status(200).json({
+      message: "Withdrawal created successfully. Pending approval.",
+      wallet,
+    });
+  } catch (error) {
+    console.error("Error creating withdrawal:", error);
+    return res.status(500).json({ message: "Failed to create withdrawal", error });
+  }
+};

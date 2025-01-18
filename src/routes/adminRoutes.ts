@@ -4,7 +4,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
     fetchTopNewestUsers, fetchMonthlyTransactionTotals, fetchAllConsultants, createConsultant, closeIssue, fetchConsultantById,
      fetchUserDetails, fetchCompletedUserRequests, getActiveRequestForConsultant, fetchConsultantHistoryByCid, fetchAdminNotifications,
      markNotificationAsRead, suspendConsultant, deleteConsultant, updateConsultant, getAverageRatings, getTopConsultantsByRating,
-    getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithTodayRequests } from '../controllers/adminController';
+    getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithRequests, fetchWithdrawals, fetchDataByType,
+    completeDebit } from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -65,7 +66,16 @@ router.get('/requests/ready', getReadyRequests);
 
 router.patch('/request/status/completed/:orderId', setRequestStatusToCompleted);
 
-router.get('/appointments/today-requests', fetchAppointmentsWithTodayRequests);
+router.get('/appointments/conversations', fetchAppointmentsWithRequests);
+
+// Route to fetch withdrawals
+router.get('/withdrawals', fetchWithdrawals);
+
+// Route to complete a debit transaction
+router.post('/debit', completeDebit);
+
+// Route to fetch data by type (crew/company)
+router.get('/join/fetchdata', fetchDataByType);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

@@ -7,6 +7,7 @@ import Company from "../models/Company";
 import CrewCompany from "../models/CrewCompany";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
+import mongoose from "mongoose";
 
 // Initialize S3 client
 const s3 = new S3Client({
@@ -333,49 +334,64 @@ export const loginCrewCompany = async (req: Request, res: Response) => {
   }
 };
 
-export const getCrewByEmail = async (req: Request, res: Response): Promise<Response> => {
-  try {
-    const { email } = req.params;
 
-    // Validate email parameter
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Invalid email provided" });
+export const getCrewById = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { id } = req.params;
+
+    // Validate the provided ID
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID provided" });
     }
 
-    // Find the Crew member by email
-    const crewMember = await Crew.findOne({ email });
+    // Fetch the user's email via their ID
+    const user = await CrewCompany.findById(id).exec();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
+    const { email } = user;
+
+    // Fetch the crew member using their email
+    const crewMember = await CrewCompany.findOne({ email }).exec();
     if (!crewMember) {
       return res.status(404).json({ message: "Crew member not found" });
     }
 
     // Return the crew member details
-    return res.status(200).json({ 
+    return res.status(200).json({
       message: "Crew member fetched successfully",
-      crewMember
+      crewMember,
     });
   } catch (error) {
     console.error("Error fetching crew member:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: "Failed to fetch crew member",
-      error 
+      error: error,
     });
   }
 };
 
-export const getCompanyByEmail = async (req: Request, res: Response): Promise<Response> => {
-  try {
-    const { email } = req.params;
 
-    // Check if email is provided
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+export const getCompanyById = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { id } = req.params;
+
+    // Validate the provided ID
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID provided" });
     }
 
-    // Fetch the company details using the email
-    const company = await Company.findOne({ email });
+    // Fetch the company email using its ID
+    const companyRecord = await Company.findById(id).exec();
+    if (!companyRecord) {
+      return res.status(404).json({ message: "Company not found" });
+    }
 
-    // If the company is not found, return a 404 error
+    const { email } = companyRecord;
+
+    // Fetch the company details using the email
+    const company = await Company.findOne({ email }).exec();
     if (!company) {
       return res.status(404).json({ message: "Company not found" });
     }

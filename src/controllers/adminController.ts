@@ -20,6 +20,10 @@ import Feedback from '../models/Feedback';
 import mongoose from 'mongoose';
 import MusingModel from '../models/Musing';
 import AdminNotificationModel from '../models/AdminNotification';
+import WalletHistory from '../models/walletHistoryModel';
+import Wallet, { IWallet } from '../models/Wallet';
+import Crew from '../models/Crew';
+import Company from '../models/Company';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -2182,7 +2186,7 @@ export async function setRequestStatusToCompleted(req: Request, res: Response): 
   }
 }
 
-export const fetchAppointmentsWithTodayRequests = async (req: Request, res: Response): Promise<Response> => {
+export const fetchAppointmentsWithRequests = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -2194,7 +2198,7 @@ export const fetchAppointmentsWithTodayRequests = async (req: Request, res: Resp
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
       return res.status(500).json({ message: 'JWT secret key is not configured' });
-    } 
+    }
 
     let decodedToken;
     try {
@@ -2208,9 +2212,12 @@ export const fetchAppointmentsWithTodayRequests = async (req: Request, res: Resp
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    // Get the start and end of the current date in ISO format
-    const startOfDay = moment().startOf('day').toISOString();
-    const endOfDay = moment().endOf('day').toISOString();
+
+    // Pagination parameters
+    const { page = 1, limit = 10 } = req.query; // Default to page 1, limit 10
+    const pageNumber = Math.max(1, parseInt(page as string, 10)); // Ensure page is >= 1
+    const pageSize = Math.max(1, parseInt(limit as string, 10)); // Ensure limit is >= 1
+    const skip = (pageNumber - 1) * pageSize;
 
     // Fetch all appointments
     const appointments = await AppointmentModel.find({}, 'orderId');
@@ -2222,16 +2229,25 @@ export const fetchAppointmentsWithTodayRequests = async (req: Request, res: Resp
       return res.status(404).json({ message: 'No appointments found.', data: [] });
     }
 
-    // Fetch requests linked to the appointments by orderId where `booktime` matches today's date
+    // Fetch requests linked to appointments by orderId, sorted by `booktime` (ascending) with pagination
     const requests = await RequestModel.find(
       {
         orderId: { $in: orderIds }, // Match the order IDs
-        booktime: { $gte: startOfDay, $lte: endOfDay }, // Filter by today's date
         type: 'Chat',
         stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
       },
       'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Fields to return
-    ).sort({ booktime: 1 }); // Sort by booktime (ascending)
+    )
+      .sort({ booktime: 1 }) // Sort by booktime (earliest first)
+      .skip(skip) // Skip documents for pagination
+      .limit(pageSize); // Limit the number of documents
+
+    // Count total matching requests (for pagination metadata)
+    const totalRequests = await RequestModel.countDocuments({
+      orderId: { $in: orderIds },
+      type: 'Chat',
+      stattusof: { $in: ['ongoing', 'ready', 'completed'] },
+    });
 
     // Combine appointments and their requests
     const combinedResults = requests.map((request) => {
@@ -2244,13 +2260,262 @@ export const fetchAppointmentsWithTodayRequests = async (req: Request, res: Resp
       };
     });
 
-    // Respond with combined data
-    return res.status(200).json({ data: combinedResults });
+    // Respond with combined data and pagination metadata
+    return res.status(200).json({
+      data: combinedResults,
+      pagination: {
+        total: totalRequests,
+        page: pageNumber,
+        limit: pageSize,
+        totalPages: Math.ceil(totalRequests / pageSize),
+      },
+    });
   } catch (error) {
-    console.error('Error fetching appointments with today\'s requests:', error);
+    console.error('Error fetching appointments and requests:', error);
     return res.status(500).json({
-      message: 'Failed to fetch appointments with today\'s requests',
+      message: 'Failed to fetch appointments and requests',
       error,
+    });
+  }
+};
+
+
+export const fetchWithdrawals = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', status } = req.query;
+
+    // Convert page, limit, and sort order to appropriate types
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+
+    // Validate page and limit
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+      return res.status(400).json({ message: 'Invalid page or limit value' });
+    }
+
+    // Validate sorting field
+    if (!['createdAt', 'status'].includes(sortBy as string)) {
+      return res.status(400).json({ message: 'Invalid sortBy field' });
+    }
+
+    // Build the query
+    const query: any = { type: 'withdrawal' };
+    if (status) {
+      query.status = status;
+    }
+
+    // Calculate skip value
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Fetch data with optional sorting and pagination
+    const withdrawals = await WalletHistory.find(query)
+      .sort({ [sortBy as string]: sortDirection }) // Dynamically sort by field and order
+      .skip(skip)
+      .limit(limitNumber);
+
+    // Get total count for the filtered documents
+    const totalWithdrawals = await WalletHistory.countDocuments(query);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalWithdrawals / limitNumber);
+
+    // Respond with paginated results
+    return res.status(200).json({
+      currentPage: pageNumber,
+      totalPages,
+      totalWithdrawals,
+      withdrawals,
+    });
+  } catch (error) {
+    console.error('Error fetching withdrawals:', error);
+    return res.status(500).json({ message: 'Failed to fetch withdrawals', error });
+  }
+};
+
+export const completeDebit = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const { orderId } = req.body;
+
+    // Validate request body
+    if (!orderId) {
+      return res.status(400).json({ message: "Order ID is required" });
+    }
+
+    // Find the pending withdrawal entry in wallet history
+    const walletHistory = await WalletHistory.findOne({
+      orderId,
+      type: "withdrawal",
+      status: "pending",
+    }).exec();
+
+    if (!walletHistory) {
+      return res.status(404).json({ message: "No pending withdrawal found for the specified order ID" });
+    }
+
+    const { cid, amount } = walletHistory;
+
+    // Find the associated wallet
+    const wallet = await Wallet.findOne({ cid }).exec();
+
+    if (!wallet) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
+
+    // Check for sufficient available balance
+    if (wallet.availableBalance < amount) {
+      return res.status(400).json({ message: "Insufficient available balance" });
+    }
+
+    // Deduct from wallet
+    wallet.balance -= amount;
+    wallet.availableBalance -= amount;
+    await wallet.save();
+
+    // Update wallet history status to 'completed'
+    walletHistory.status = "completed";
+    await walletHistory.save();
+
+    console.log("Withdrawal completed and wallet updated:", wallet);
+
+    return res.status(200).json({
+      message: "Debit transaction completed successfully",
+      wallet,
+    });
+  } catch (error) {
+    console.error("Error completing debit transaction:", error);
+    return res.status(500).json({
+      message: "Failed to complete debit transaction",
+      error: error,
+    });
+  }
+};
+
+export const fetchDataByType = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
+    const { type, sortBy } = req.query; // `sortBy` for additional sorting
+    const { page = 1, limit = 10 } = req.query;
+
+    // Validate the `type` parameter
+    if (type !== "crew" && type !== "company") {
+      return res.status(400).json({ message: "Invalid type. Use 'crew' or 'company'." });
+    }
+
+    // Calculate pagination parameters
+    const pageNumber = Math.max(1, parseInt(page as string, 10));
+    const pageSize = Math.max(1, parseInt(limit as string, 10));
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Choose the appropriate model dynamically and ensure correct typing
+    const Model = type === "crew" ? Crew : Company;
+
+    // Define additional sorting conditions
+    const additionalSort: Record<string, 1 | -1> = {};
+    if (type === "crew" && sortBy === "department") {
+      additionalSort.department = 1; // Sorting by `department` for crew
+    } else if (type === "company" && sortBy === "type") {
+      additionalSort.type = 1; // Sorting by `type` for company
+    }
+
+    // Fetch the paginated and sorted data
+    const data = await (Model as any).find()
+      .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
+      .skip(skip)
+      .limit(pageSize);
+
+    // Count total records
+    const totalRecords = await (Model as any).countDocuments();
+
+    // Return response
+    return res.status(200).json({
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} data fetched successfully.`,
+      data,
+      pagination: {
+        totalRecords,
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalRecords / pageSize),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    return res.status(500).json({
+      message: "Failed to fetch data",
+      error: error,
     });
   }
 };

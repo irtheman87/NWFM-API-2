@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewByEmail, getCompanyByEmail } from '../controllers/joinController';
+import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById } from '../controllers/joinController';
 
 const router = express.Router();
 
@@ -7,8 +7,8 @@ const router = express.Router();
  router.post('/company', createCompany);
  router.post("/crewcompany", createCrewCompany);
  router.post("/crewcompany/login", loginCrewCompany);
- router.get("/crew/:email", getCrewByEmail);
- router.get("/company/:email", getCompanyByEmail);
+ router.get("/crew/:email", getCrewById);
+ router.get("/company/:email", getCompanyById);
 
 
 module.exports = router;
