@@ -307,7 +307,6 @@ export async function credit(
 export async function debit(
   cid: string, 
   amount: number, 
-  orderId?: string, 
   bankName?: string, 
   accountNumber?: string
 ): Promise<IWallet | null> {
@@ -327,7 +326,6 @@ export async function debit(
       amount, 
       'withdrawal', 
       'pending', 
-      orderId, 
       bankName, 
       accountNumber
     )

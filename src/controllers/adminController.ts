@@ -2238,7 +2238,7 @@ export const fetchAppointmentsWithRequests = async (req: Request, res: Response)
       },
       'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Fields to return
     )
-      .sort({ booktime: 1 }) // Sort by booktime (earliest first)
+      .sort({ booktime: -1 }) // Sort by booktime (earliest first)
       .skip(skip) // Skip documents for pagination
       .limit(pageSize); // Limit the number of documents
 

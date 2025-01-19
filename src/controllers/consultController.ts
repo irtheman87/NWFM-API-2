@@ -1943,7 +1943,7 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
     }
 
     // Attempt to create a withdrawal
-    const wallet: IWallet | null = await debit(userId, amount, orderId, bankName, accountNumber);
+    const wallet: IWallet | null = await debit(userId, amount, bankName, accountNumber);
 
     if (!wallet) {
       return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });
