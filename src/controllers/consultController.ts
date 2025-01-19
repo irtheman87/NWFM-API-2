@@ -34,6 +34,7 @@ import Wallet, { IWallet } from '../models/Wallet';
 import WalletHistory from '../models/walletHistoryModel';
 import Company from '../models/Company';
 import Crew from '../models/Crew';
+import Bank from '../models/Bank';
 
 
 const s3 = new S3Client({
@@ -2034,5 +2035,261 @@ export const fetchWalletHistoryTotalsByCID = async (cid: string) => {
       message: 'Failed to fetch wallet history totals',
       error: error,
     };
+  }
+};
+
+export const createBank = async (req: Request, res: Response): Promise<Response> => {
+  try {
+     const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+        }
+    
+        // Extract and verify token
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+        if (!JWT_SECRET) {
+          return res.status(500).json({ message: 'JWT secret key is not configured' });
+        }
+    
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+          return res.status(401).json({ message: 'Invalid token' });
+        }
+    
+        // Check Admin Role
+        const { role } = decodedToken as { role: string };
+        if (role !== 'consultant') {
+          return res.status(403).json({ message: 'Access denied. Admin role required.' });
+        }
+        
+    
+        // Extract user details from the decoded token
+        const { userId } = decodedToken as { userId: string };
+        if (!userId) {
+          return res.status(403).json({ message: "Access denied. No CID found in the token." });
+      }
+
+    const { cid, bankname, accountnumber } = req.body;
+
+    // Validate required fields
+    if (!cid || !bankname || !accountnumber) {
+      return res.status(400).json({ message: 'CID, bank name, and account number are required.' });
+    }
+
+    // Check if a bank entry for this CID and account number already exists
+    const existingBank = await Bank.findOne({ cid, accountnumber }).exec();
+    if (existingBank) {
+      return res.status(409).json({ message: 'This bank account is already registered for the given CID.' });
+    }
+
+    // Create a new bank entry
+    const newBank = new Bank({ cid, bankname, accountnumber });
+
+    // Save the entry to the database
+    await newBank.save();
+
+    // Respond with success
+    return res.status(201).json({
+      message: 'Bank details successfully created.',
+      bank: newBank,
+    });
+  } catch (error) {
+    console.error('Error creating bank:', error);
+    return res.status(500).json({
+      message: 'An error occurred while creating the bank details.',
+      error: error,
+    });
+  }
+};
+
+export const fetchBankDetailsByCID = async (req: Request, res: Response): Promise<Response> => {
+  try {
+     const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+        }
+    
+        // Extract and verify token
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+        if (!JWT_SECRET) {
+          return res.status(500).json({ message: 'JWT secret key is not configured' });
+        }
+    
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+          return res.status(401).json({ message: 'Invalid token' });
+        }
+    
+        // Check Admin Role
+        const { role } = decodedToken as { role: string };
+        if (role !== 'consultant') {
+          return res.status(403).json({ message: 'Access denied. Admin role required.' });
+        }
+        
+    
+        // Extract user details from the decoded token
+        const { userId } = decodedToken as { userId: string };
+        if (!userId) {
+          return res.status(403).json({ message: "Access denied. No CID found in the token." });
+        }
+        
+    const { cid } = req.params;
+
+    // Validate CID
+    if (!cid) {
+      return res.status(400).json({ message: 'CID is required to fetch bank details.' });
+    }
+
+    // Fetch bank details from the database
+    const bankDetails = await Bank.find({ cid }).exec();
+
+    // Check if no bank details were found
+    if (!bankDetails.length) {
+      return res.status(404).json({ message: 'No bank details found for the provided CID.' });
+    }
+
+    // Respond with bank details
+    return res.status(200).json({
+      message: 'Bank details fetched successfully.',
+      banks: bankDetails,
+    });
+  } catch (error) {
+    console.error('Error fetching bank details:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching bank details.',
+      error: error,
+    });
+  }
+};
+
+export const fetchWithdrawalsByCID = async (req: Request, res: Response): Promise<Response> => {
+  try {
+
+    const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+        }
+    
+        // Extract and verify token
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+        if (!JWT_SECRET) {
+          return res.status(500).json({ message: 'JWT secret key is not configured' });
+        }
+    
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+          return res.status(401).json({ message: 'Invalid token' });
+        }
+    
+        // Check Admin Role
+        const { role } = decodedToken as { role: string };
+        if (role !== 'consultant') {
+          return res.status(403).json({ message: 'Access denied. Admin role required.' });
+        }
+        
+    
+        // Extract user details from the decoded token
+        const { userId } = decodedToken as { userId: string };
+        if (!userId) {
+          return res.status(403).json({ message: "Access denied. No CID found in the token." });
+        }
+
+    const { cid } = req.params;
+
+    // Validate CID
+    if (!cid) {
+      return res.status(400).json({ message: 'CID is required to fetch withdrawals.' });
+    }
+
+    // Fetch all withdrawals for the given CID
+    const withdrawals = await WalletHistory.find({ cid, type: 'withdrawal' }).exec();
+
+    if (!withdrawals.length) {
+      return res.status(404).json({ message: 'No withdrawals found for the provided CID.' });
+    }
+
+    return res.status(200).json({
+      message: 'Withdrawals fetched successfully.',
+      withdrawals,
+    });
+  } catch (error) {
+    console.error('Error fetching withdrawals:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching withdrawals.',
+      error: error,
+    });
+  }
+};
+
+/**
+ * Fetch all deposits by CID
+ */
+export const fetchDepositsByCID = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+        }
+    
+        // Extract and verify token
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+        if (!JWT_SECRET) {
+          return res.status(500).json({ message: 'JWT secret key is not configured' });
+        }
+    
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+          return res.status(401).json({ message: 'Invalid token' });
+        }
+    
+        // Check Admin Role
+        const { role } = decodedToken as { role: string };
+        if (role !== 'consultant') {
+          return res.status(403).json({ message: 'Access denied. Admin role required.' });
+        }
+        
+    
+        // Extract user details from the decoded token
+        const { userId } = decodedToken as { userId: string };
+        if (!userId) {
+          return res.status(403).json({ message: "Access denied. No CID found in the token." });
+        }
+
+    const { cid } = req.params;
+
+    // Validate CID
+    if (!cid) {
+      return res.status(400).json({ message: 'CID is required to fetch deposits.' });
+    }
+
+    // Fetch all deposits for the given CID
+    const deposits = await WalletHistory.find({ cid, type: 'deposit' }).exec();
+
+    if (!deposits.length) {
+      return res.status(404).json({ message: 'No deposits found for the provided CID.' });
+    }
+
+    return res.status(200).json({
+      message: 'Deposits fetched successfully.',
+      deposits,
+    });
+  } catch (error) {
+    console.error('Error fetching deposits:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching deposits.',
+      error: error,
+    });
   }
 };
