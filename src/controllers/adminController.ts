@@ -2467,7 +2467,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    
+
     const { type, sortBy } = req.query; // `sortBy` for additional sorting
     const { page = 1, limit = 10 } = req.query;
 
@@ -2515,6 +2515,109 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     console.error("Error fetching data:", error);
     return res.status(500).json({
       message: "Failed to fetch data",
+      error: error,
+    });
+  }
+};
+
+export const fetchWalletHistoryTotalsByCID = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    // Extract `cid` from query parameters
+    const { cid } = req.query;
+
+    // Validate `cid`
+    if (!cid || typeof cid !== 'string') {
+      return res.status(400).json({ message: 'CID is required and must be a string.' });
+    }
+
+    const currentYear = new Date().getFullYear();
+
+    // Fetch total amount where type is 'deposit' for the specific CID
+    const totalDeposits = await WalletHistory.aggregate([
+      { $match: { type: 'deposit', cid } },
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]);
+
+    // Fetch total amount where type is 'withdrawal' and status is 'pending' for the specific CID
+    const totalPendingWithdrawals = await WalletHistory.aggregate([
+      { $match: { type: 'withdrawal', status: 'pending', cid } },
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]);
+
+    // Fetch total amount where type is 'withdrawal' and status is 'completed' for the specific CID
+    const totalCompletedWithdrawals = await WalletHistory.aggregate([
+      { $match: { type: 'withdrawal', status: 'completed', cid } },
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]);
+
+    // Fetch total deposits grouped by month for the current year
+    const monthlyDepositTotals = await WalletHistory.aggregate([
+      {
+        $match: {
+          type: 'deposit',
+          cid,
+          createdAt: {
+            $gte: new Date(`${currentYear}-01-01T00:00:00Z`),
+            $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$createdAt' },
+          totalAmount: { $sum: '$amount' },
+        },
+      },
+      { $sort: { '_id': 1 } }, // Sort by month in ascending order
+    ]);
+
+    // Map results to include month names
+    const monthlyDepositsFormatted = monthlyDepositTotals.map((monthData) => ({
+      month: monthData._id,
+      totalAmount: monthData.totalAmount,
+    }));
+
+    // Format the response totals with defaults to avoid undefined results
+    const response = {
+      totalDeposits: totalDeposits[0]?.totalAmount || 0,
+      totalPendingWithdrawals: totalPendingWithdrawals[0]?.totalAmount || 0,
+      totalCompletedWithdrawals: totalCompletedWithdrawals[0]?.totalAmount || 0,
+      monthlyDeposits: monthlyDepositsFormatted,
+    };
+
+    return res.status(200).json({
+      message: 'Wallet history totals fetched successfully',
+      cid,
+      totals: response,
+    });
+  } catch (error) {
+    console.error('Error fetching wallet history totals:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch wallet history totals',
       error: error,
     });
   }

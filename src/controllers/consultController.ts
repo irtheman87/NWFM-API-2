@@ -22,7 +22,7 @@ import Notification from '../models/Notification';
 import Task from '../models/task'; // Ensure this path points to your Task model file
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
-import { createNotification, debit } from '../utils/UtilityFunctions';
+import { createNotification, credit, debit } from '../utils/UtilityFunctions';
 import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne} from '../utils/UtilityFunctions';
 import { fetchConsultantEmail, fetchUserEmail } from './adminController';
 import { uploads } from '../utils/UtilityFunctions';
@@ -1187,6 +1187,7 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
     }
 
     const { role } = decodedToken as { role: string };
+    const { userId } = decodedToken as { userId: string };
     if (role !== 'consultant') {
       return res.status(403).json({ message: 'Access denied. Consultant role required.' });
     }
@@ -1207,6 +1208,19 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
     if (!updatedRequest) {
       return res.status(404).json({ message: `Request with orderId ${orderId} not found` });
     }
+
+    const transaction = await Transaction.findOne({ orderId }).exec();
+    
+    if (!transaction) {
+      return res.status(404).json({ message: `Transaction with orderId ${orderId} not found` });
+    }
+
+    const price = transaction.price;
+
+
+    const actualIncome = parseFloat(price) * 0.5;
+        // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
+    credit(userId, actualIncome); // Example: assuming 'credit' needs `cid` and `price`
 
     return res.status(200).json({
       message: 'Request updated to completed successfully',
@@ -1942,5 +1956,83 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
   } catch (error) {
     console.error("Error creating withdrawal:", error);
     return res.status(500).json({ message: "Failed to create withdrawal", error });
+  }
+};
+
+export const fetchWalletHistoryTotalsByCID = async (cid: string) => {
+  try {
+    // Validate the provided CID
+    if (!cid) {
+      throw new Error('CID is required to fetch wallet history totals.');
+    }
+
+    const currentYear = new Date().getFullYear();
+
+    // Fetch total amount where type is 'deposit' for the specific CID
+    const totalDeposits = await WalletHistory.aggregate([
+      { $match: { type: 'deposit', cid } }, // Match both type and CID
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]);
+
+    // Fetch total amount where type is 'withdrawal' and status is 'pending' for the specific CID
+    const totalPendingWithdrawals = await WalletHistory.aggregate([
+      { $match: { type: 'withdrawal', status: 'pending', cid } },
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]);
+
+    // Fetch total amount where type is 'withdrawal' and status is 'completed' for the specific CID
+    const totalCompletedWithdrawals = await WalletHistory.aggregate([
+      { $match: { type: 'withdrawal', status: 'completed', cid } },
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]);
+
+    // Fetch total deposits grouped by month for the current year
+    const monthlyDepositTotals = await WalletHistory.aggregate([
+      {
+        $match: {
+          type: 'deposit',
+          cid,
+          createdAt: {
+            $gte: new Date(`${currentYear}-01-01T00:00:00Z`),
+            $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$createdAt' },
+          totalAmount: { $sum: '$amount' },
+        },
+      },
+      { $sort: { '_id': 1 } }, // Sort by month in ascending order
+    ]);
+
+    // Map results to include month numbers
+    const monthlyDepositsFormatted = monthlyDepositTotals.map((monthData) => ({
+      month: monthData._id, // Month number
+      totalAmount: monthData.totalAmount,
+    }));
+
+    // Format the response totals with defaults to avoid undefined results
+    const response = {
+      totalDeposits: totalDeposits[0]?.totalAmount || 0,
+      totalPendingWithdrawals: totalPendingWithdrawals[0]?.totalAmount || 0,
+      totalCompletedWithdrawals: totalCompletedWithdrawals[0]?.totalAmount || 0,
+      monthlyDeposits: monthlyDepositsFormatted,
+    };
+
+    return {
+      success: true,
+      message: 'Wallet history totals fetched successfully',
+      cid,
+      totals: response,
+    };
+  } catch (error) {
+    console.error('Error fetching wallet history totals:', error);
+    return {
+      success: false,
+      message: 'Failed to fetch wallet history totals',
+      error: error,
+    };
   }
 };

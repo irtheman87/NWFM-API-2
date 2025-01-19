@@ -5,7 +5,7 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
      fetchUserDetails, fetchCompletedUserRequests, getActiveRequestForConsultant, fetchConsultantHistoryByCid, fetchAdminNotifications,
      markNotificationAsRead, suspendConsultant, deleteConsultant, updateConsultant, getAverageRatings, getTopConsultantsByRating,
     getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithRequests, fetchWithdrawals, fetchDataByType,
-    completeDebit } from '../controllers/adminController';
+    completeDebit, fetchWalletHistoryTotalsByCID } from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -76,6 +76,8 @@ router.post('/debit', completeDebit);
 
 // Route to fetch data by type (crew/company)
 router.get('/join/fetchdata', fetchDataByType);
+
+router.get('/wallet-history-totals', fetchWalletHistoryTotalsByCID);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

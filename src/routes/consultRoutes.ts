@@ -5,9 +5,10 @@ import { registerConsult, loginConsult, refreshConsultantToken, createAvailabili
   updateConsultantPassword, requestPasswordReset, resetPassword, fetchConsultantPref, updateConsultantPreference, 
   fetchHistoryByCid, fetchAssignmentsAndRequests, fetchPendingRequestsByConsultantExpertise, completeRequest, fetchNotifications, 
   getTasksByConsultant, handleChatTransaction, uploadConsultantFiles, fetchResolveFiles, verifyEmailAndSetPassword, getWalletByCid,
-  getWalletHistory, fetchDataByType, createWithdrawal } from '../controllers/consultController';
+  getWalletHistory, fetchDataByType, createWithdrawal, fetchWalletHistoryTotalsByCID } from '../controllers/consultController';
 import { isAdmin, isnotAdmin } from '../middleware/authMiddleware';
 import { verifyConsultantToken } from '../middleware/TokenValidator';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -48,6 +49,65 @@ router.get('/wallet-history/:cid', getWalletHistory);
 router.get("/fetch-data", fetchDataByType);
 router.post("/create-withdrawal", createWithdrawal);
 
+router.get('/wallet-history-totals', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
+
+    // Extract user details from the decoded token
+    const { userId } = decodedToken as { userId: string };
+    if (!userId) {
+      return res.status(403).json({ message: "Access denied. No CID found in the token." });
+    }
+
+    const { cid } = req.query; // CID as a query parameter
+
+    if (!cid || typeof cid !== 'string') {
+      return res.status(400).json({ message: 'CID is required and must be a string.' });
+    }
+
+
+    if(userId !== cid){
+      return res.status(400).json({ message: 'Consultant ID does not match token' });
+    }
+
+    const totals = await fetchWalletHistoryTotalsByCID(cid);
+    return res.status(200).json({
+      message: 'Wallet history totals fetched successfully for CID',
+      cid,
+      totals,
+    });
+  } catch (error) {
+    console.error('Error fetching wallet history totals by CID:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch wallet history totals',
+      error: error,
+    });
+  }
+});
 
 
 router.get('/profile', isnotAdmin, (req, res) => {
