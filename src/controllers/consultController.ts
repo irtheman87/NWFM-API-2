@@ -1221,7 +1221,7 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
 
     const actualIncome = parseFloat(price) * 0.5;
         // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
-    credit(userId, actualIncome); // Example: assuming 'credit' needs `cid` and `price`
+    credit(userId, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
 
     return res.status(200).json({
       message: 'Request updated to completed successfully',

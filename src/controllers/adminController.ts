@@ -2171,7 +2171,7 @@ export async function setRequestStatusToCompleted(req: Request, res: Response): 
     const cid = task.cid;
     const actualIncome = parseFloat(price) * 0.5;
     // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
-    credit(cid, actualIncome); // Example: assuming 'credit' needs `cid` and `price`
+    credit(cid, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
 
     // Return the response with price information
     return res.status(200).json({
