@@ -69,6 +69,7 @@ export const createCrewMember = async (req: Request, res: Response) => {
         firstName,
         lastName,
         email,
+        userId,
         mobile,
         dob,
         bio,
@@ -86,6 +87,7 @@ export const createCrewMember = async (req: Request, res: Response) => {
         !firstName ||
         !lastName ||
         !email ||
+        !userId ||
         !mobile ||
         !dob ||
         !department ||
@@ -104,6 +106,7 @@ export const createCrewMember = async (req: Request, res: Response) => {
         firstName,
         lastName,
         email,
+        userId,
         mobile,
         dob,
         bio,
@@ -163,6 +166,7 @@ export const createCompany = async (req: Request, res: Response) => {
       const {
         name,
         email,
+        userId,
         mobile,
         website,
         bio,
@@ -190,6 +194,7 @@ export const createCompany = async (req: Request, res: Response) => {
       if (
         !name ||
         !email ||
+        !userId ||
         !mobile ||
         !type ||
         useRateCard === undefined ||
@@ -206,6 +211,7 @@ export const createCompany = async (req: Request, res: Response) => {
       const newCompany = new Company({
         name,
         email,
+        userId, 
         mobile,
         website,
         bio,
@@ -405,6 +411,120 @@ export const getCompanyById = async (req: Request, res: Response): Promise<Respo
     console.error("Error fetching company:", error);
     return res.status(500).json({
       message: "Failed to fetch company",
+      error: error,
+    });
+  }
+};
+
+export const updateCompanyDetails = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { userId } = req.body; // Assuming userId is passed in the request body
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required to update company details." });
+    }
+
+    // Fields the user is allowed to update
+    const allowedUpdates = [
+      "mobile",
+      "website",
+      "bio",
+      "clientele",
+      "useRateCard",
+      "rateCard",
+      "fee",
+      "location",
+    ];
+
+    // Extract only the allowed fields from the request body
+    const updates = Object.keys(req.body).reduce((acc, key) => {
+      if (allowedUpdates.includes(key)) {
+        acc[key] = req.body[key];
+      }
+      return acc;
+    }, {} as { [key: string]: any });
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided for update." });
+    }
+
+    // Find the company document by `userId` and update allowed fields
+    const company = await Company.findOneAndUpdate(
+      { userId },
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found or invalid userId." });
+    }
+
+    return res.status(200).json({
+      message: "Company details updated successfully.",
+      company,
+    });
+  } catch (error) {
+    console.error("Error updating company details:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating company details.",
+      error: error,
+    });
+  }
+};
+
+export const updateCrewDetails = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { userId } = req.body; // Assuming `userId` is passed in the request body
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required to update crew details." });
+    }
+
+    // Define fields allowed for updates
+    const allowedUpdates = [
+      "firstName",
+      "lastName",
+      "mobile",
+      "dob",
+      "bio",
+      "propic",
+      "department",
+      "role",
+      "works",
+      "fee",
+      "location",
+    ];
+
+    // Extract allowed fields from request body
+    const updates = Object.keys(req.body).reduce((acc, key) => {
+      if (allowedUpdates.includes(key)) {
+        acc[key] = req.body[key];
+      }
+      return acc;
+    }, {} as { [key: string]: any });
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided for update." });
+    }
+
+    // Find crew member by `userId` and update allowed fields
+    const crew = await Crew.findOneAndUpdate({ userId }, updates, {
+      new: true, // Return the updated document
+      runValidators: true, // Ensure validation rules are applied
+    });
+
+    if (!crew) {
+      return res.status(404).json({ message: "Crew member not found or invalid userId." });
+    }
+
+    return res.status(200).json({
+      message: "Crew details updated successfully.",
+      crew,
+    });
+  } catch (error) {
+    console.error("Error updating crew details:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating crew details.",
       error: error,
     });
   }

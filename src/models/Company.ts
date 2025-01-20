@@ -18,6 +18,7 @@ interface Location {
 type CompanyDocument = Document & {
   name: string;
   email: string;
+  userId: string;
   mobile: string;
   website?: string;
   bio?: string;
@@ -39,6 +40,7 @@ const CompanySchema: Schema = new Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
+    userId: {type: String},
     mobile: { type: String, required: true },
     website: { type: String },
     bio: { type: String },

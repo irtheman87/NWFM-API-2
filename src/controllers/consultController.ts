@@ -2236,36 +2236,32 @@ export const fetchWithdrawalsByCID = async (req: Request, res: Response): Promis
 export const fetchDepositsByCID = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
-        }
-    
-        // Extract and verify token
-        const token = authHeader.split(' ')[1];
-        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
-        if (!JWT_SECRET) {
-          return res.status(500).json({ message: 'JWT secret key is not configured' });
-        }
-    
-        let decodedToken;
-        try {
-          decodedToken = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
-          return res.status(401).json({ message: 'Invalid token' });
-        }
-    
-        // Check Admin Role
-        const { role } = decodedToken as { role: string };
-        if (role !== 'consultant') {
-          return res.status(403).json({ message: 'Access denied. Admin role required.' });
-        }
-        
-    
-        // Extract user details from the decoded token
-        const { userId } = decodedToken as { userId: string };
-        if (!userId) {
-          return res.status(403).json({ message: "Access denied. No CID found in the token." });
-        }
+
+    // Check Authorization Header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Consultant Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
 
     const { cid } = req.params;
 
@@ -2274,21 +2270,157 @@ export const fetchDepositsByCID = async (req: Request, res: Response): Promise<R
       return res.status(400).json({ message: 'CID is required to fetch deposits.' });
     }
 
-    // Fetch all deposits for the given CID
+    // Fetch deposits for the given CID
     const deposits = await WalletHistory.find({ cid, type: 'deposit' }).exec();
 
     if (!deposits.length) {
       return res.status(404).json({ message: 'No deposits found for the provided CID.' });
     }
 
+    // Fetch related request data using orderId
+    const enrichedDeposits = await Promise.all(
+      deposits.map(async (deposit) => {
+        if (deposit.orderId) {
+          const requestData = await RequestModel.findOne({ orderId: deposit.orderId })
+            .select('chat_title type movie_title nameofservice') // Only select needed fields
+            .exec();
+          return {
+            ...deposit.toObject(),
+            movie_title: requestData?.movie_title || null,
+            nameofservice: requestData?.nameofservice || null,
+          };
+        }
+        return {
+          ...deposit.toObject(),
+          movie_title: null,
+          nameofservice: null,
+        };
+      })
+    );
+
     return res.status(200).json({
       message: 'Deposits fetched successfully.',
-      deposits,
+      deposits: enrichedDeposits,
     });
   } catch (error) {
     console.error('Error fetching deposits:', error);
     return res.status(500).json({
       message: 'An error occurred while fetching deposits.',
+      error: error,
+    });
+  }
+};
+
+export const fetchWithdrawalById = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Check Authorization Header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Consultant Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+
+    const { id } = req.params;
+
+    // Validate ID
+    if (!id) {
+      return res.status(400).json({ message: 'ID is required to fetch the withdrawal.' });
+    }
+
+    // Fetch withdrawal by ID
+    const withdrawal = await WalletHistory.findOne({ _id: id, type: 'withdrawal' });
+
+    if (!withdrawal) {
+      return res.status(404).json({ message: 'Withdrawal not found with the given ID.' });
+    }
+
+    return res.status(200).json({
+      message: 'Withdrawal fetched successfully.',
+      withdrawal,
+    });
+  } catch (error) {
+    console.error('Error fetching withdrawal:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching the withdrawal.',
+      error: error,
+    });
+  }
+};
+
+export const fetchDepositById = async (req: Request, res: Response): Promise<Response> => {
+  try {
+
+    const authHeader = req.headers.authorization;
+
+    // Check Authorization Header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Consultant Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+
+    const { id } = req.params;
+
+    // Validate ID
+    if (!id) {
+      return res.status(400).json({ message: 'ID is required to fetch the deposit.' });
+    }
+
+    // Fetch deposit by ID
+    const deposit = await WalletHistory.findOne({ _id: id, type: 'deposit' });
+
+    if (!deposit) {
+      return res.status(404).json({ message: 'Deposit not found with the given ID.' });
+    }
+
+    return res.status(200).json({
+      message: 'Deposit fetched successfully.',
+      deposit,
+    });
+  } catch (error) {
+    console.error('Error fetching deposit:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching the deposit.',
       error: error,
     });
   }

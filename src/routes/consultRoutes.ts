@@ -6,7 +6,7 @@ import { registerConsult, loginConsult, refreshConsultantToken, createAvailabili
   fetchHistoryByCid, fetchAssignmentsAndRequests, fetchPendingRequestsByConsultantExpertise, completeRequest, fetchNotifications, 
   getTasksByConsultant, handleChatTransaction, uploadConsultantFiles, fetchResolveFiles, verifyEmailAndSetPassword, getWalletByCid,
   getWalletHistory, fetchDataByType, createWithdrawal, fetchWalletHistoryTotalsByCID, fetchBankDetailsByCID, createBank,
-fetchWithdrawalsByCID, fetchDepositsByCID } from '../controllers/consultController';
+fetchWithdrawalsByCID, fetchDepositsByCID, fetchDepositById, fetchWithdrawalById } from '../controllers/consultController';
 import { isAdmin, isnotAdmin } from '../middleware/authMiddleware';
 import { verifyConsultantToken } from '../middleware/TokenValidator';
 import jwt from 'jsonwebtoken';
@@ -53,6 +53,9 @@ router.get('/banks/:cid', fetchBankDetailsByCID);
 router.post('/banks', createBank);
 router.get('/wallet/withdrawals/:cid', fetchWithdrawalsByCID);
 router.get('/wallet/revenues/:cid', fetchDepositsByCID);
+router.get('/withdrawal/:id', fetchWithdrawalById);
+router.get('/deposit/:id', fetchDepositById);
+
 
 router.get('/wallet-history-totals', async (req, res) => {
   try {
