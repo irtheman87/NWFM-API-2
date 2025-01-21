@@ -1933,18 +1933,18 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
       return res.status(403).json({ message: "Access denied. No CID found in the token." });
     }
 
-    const { amount, bankName, accountNumber } = req.body;
+    const { amount, bankname, accountnumber } = req.body;
 
     // Validate the input body
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "A valid amount is required and should be greater than 0" });
     }
-    if (!bankName || !accountNumber) {
+    if (!bankname || !accountnumber) {
       return res.status(400).json({ message: "Bank name and account number are required for withdrawal" });
     }
 
     // Attempt to create a withdrawal
-    const wallet: IWallet | null = await debit(userId, amount, bankName, accountNumber);
+    const wallet: IWallet | null = await debit(userId, amount, bankname, accountnumber);
 
     if (!wallet) {
       return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });

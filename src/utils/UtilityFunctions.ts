@@ -307,8 +307,8 @@ export async function credit(
 export async function debit(
   cid: string, 
   amount: number, 
-  bankName?: string, 
-  accountNumber?: string
+  bankname?: string, 
+  accountnumber?: string
 ): Promise<IWallet | null> {
   try {
     if (amount <= 0) throw new Error('Amount should be greater than 0');
@@ -326,8 +326,8 @@ export async function debit(
       amount, 
       'withdrawal', 
       'pending', 
-      bankName, 
-      accountNumber
+      bankname, 
+      accountnumber
     )
       .then(() => console.log('Pending withdrawal recorded in wallet history.'))
       .catch((error) => console.error('Failed to add pending wallet history:', error));
