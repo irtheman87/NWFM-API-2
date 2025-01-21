@@ -255,8 +255,8 @@ async function addWalletHistory(
   type: 'deposit' | 'withdrawal', 
   status: 'completed' | 'pending' | 'failed',
   orderId?: string, 
-  bankName?: string, 
-  accountNumber?: string
+  bankname?: string, 
+  accountnumber?: string
 ): Promise<void> {
   try {
     const history = new WalletHistory({
@@ -265,8 +265,8 @@ async function addWalletHistory(
       type,
       status,
       orderId,
-      bankName,
-      accountNumber,
+      bankname,
+      accountnumber,
     });
 
     await history.save();
@@ -325,7 +325,8 @@ export async function debit(
       cid, 
       amount, 
       'withdrawal', 
-      'pending', 
+      'pending',
+      '',
       bankname, 
       accountnumber
     )
