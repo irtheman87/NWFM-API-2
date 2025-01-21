@@ -1933,7 +1933,7 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
       return res.status(403).json({ message: "Access denied. No CID found in the token." });
     }
 
-    const { amount, orderId, bankName, accountNumber } = req.body;
+    const { amount, bankName, accountNumber } = req.body;
 
     // Validate the input body
     if (!amount || amount <= 0) {
@@ -2421,6 +2421,80 @@ export const fetchDepositById = async (req: Request, res: Response): Promise<Res
     console.error('Error fetching deposit:', error);
     return res.status(500).json({
       message: 'An error occurred while fetching the deposit.',
+      error: error,
+    });
+  }
+};
+
+export const updateBankDetails = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Check Authorization Header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Consultant Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+    
+    const { cid } = req.body;
+
+    if (!cid) {
+      return res.status(400).json({ message: "CID is required to update bank details." });
+    }
+
+    // Fields the user is allowed to update
+    const allowedUpdates = ["bankname", "accountnumber"];
+
+    // Extract only the allowed fields from the request body
+    const updates = Object.keys(req.body).reduce((acc, key) => {
+      if (allowedUpdates.includes(key)) {
+        acc[key] = req.body[key];
+      }
+      return acc;
+    }, {} as { [key: string]: any });
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided for update." });
+    }
+
+    // Find the bank document by `cid` and update the allowed fields
+    const updatedBank = await Bank.findOneAndUpdate({ cid }, updates, {
+      new: true, // Return the updated document
+      runValidators: true, // Apply schema validations to updates
+    });
+
+    if (!updatedBank) {
+      return res.status(404).json({ message: "Bank details not found for the provided CID." });
+    }
+
+    return res.status(200).json({
+      message: "Bank details updated successfully.",
+      bank: updatedBank,
+    });
+  } catch (error) {
+    console.error("Error updating bank details:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating bank details.",
       error: error,
     });
   }
