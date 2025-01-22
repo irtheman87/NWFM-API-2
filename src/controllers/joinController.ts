@@ -359,15 +359,15 @@ export const getCrewById = async (req: Request, res: Response): Promise<Response
     const { email } = user;
 
     // Fetch the crew member using their email
-    const crewMember = await CrewCompany.findOne({ email }).exec();
-    if (!crewMember) {
+    const crew = await Crew.findOne({ email }).exec();
+    if (!crew) {
       return res.status(404).json({ message: "Crew member not found" });
     }
 
     // Return the crew member details
     return res.status(200).json({
       message: "Crew member fetched successfully",
-      crewMember,
+      crew,
     });
   } catch (error) {
     console.error("Error fetching crew member:", error);
