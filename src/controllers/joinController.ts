@@ -389,7 +389,7 @@ export const getCompanyById = async (req: Request, res: Response): Promise<Respo
     }
 
     // Fetch the company email using its ID
-    const companyRecord = await Company.findById(id).exec();
+    const companyRecord = await CrewCompany.findById(id).exec();
     if (!companyRecord) {
       return res.status(404).json({ message: "Company not found" });
     }
