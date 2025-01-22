@@ -23,7 +23,7 @@ interface Crew extends Document {
     dob: Date;
     bio?: string;
     propic?: string;
-    department: string;
+    department: string[];
     role: string[];
     works: Work[];
     fee: string;
@@ -42,7 +42,7 @@ const CrewSchema: Schema = new Schema({
     dob: { type: Date, required: true },
     bio: { type: String },
     propic: { type: String },
-    department: { type: String, required: true },
+    department: { type: [String], required: true },
     role: { type: [String], required: true },
     works: [
         {
