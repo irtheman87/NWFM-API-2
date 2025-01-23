@@ -2802,52 +2802,68 @@ export const fetchTotalTransactions = async (req: Request, res: Response): Promi
 export const fetchWithdrawalById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Authorization token is missing or invalid" });
     }
 
     // Extract and verify token
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT secret key is not configured' });
+      return res.status(500).json({ message: "JWT secret key is not configured" });
     }
 
     let decodedToken;
     try {
       decodedToken = jwt.verify(token, JWT_SECRET);
     } catch (err) {
-      return res.status(401).json({ message: 'Invalid token' });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     // Check Admin Role
     const { role } = decodedToken as { role: string };
-    if (role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admin role required." });
     }
 
     const { id } = req.params;
 
     // Validate ID
     if (!id) {
-      return res.status(400).json({ message: 'ID is required to fetch the withdrawal.' });
+      return res.status(400).json({ message: "ID is required to fetch the withdrawal." });
     }
 
     // Fetch withdrawal by ID
-    const withdrawal = await WalletHistory.findOne({ _id: id, type: 'withdrawal' });
+    const withdrawal = await WalletHistory.findOne({ _id: id, type: "withdrawal" });
 
     if (!withdrawal) {
-      return res.status(404).json({ message: 'Withdrawal not found with the given ID.' });
+      return res.status(404).json({ message: "Withdrawal not found with the given ID." });
+    }
+
+    const { cid } = withdrawal;
+
+    // Fetch consultant details using cid
+    const consultant = await Consultant.findOne({ _id: cid }).select("fname lname email");
+
+    if (!consultant) {
+      return res.status(404).json({
+        message: "Associated consultant not found for the given CID.",
+      });
     }
 
     return res.status(200).json({
-      message: 'Withdrawal fetched successfully.',
+      message: "Withdrawal fetched successfully.",
       withdrawal,
+      consultant: {
+        fname: consultant.fname,
+        lname: consultant.lname,
+        email: consultant.email,
+      },
     });
   } catch (error) {
-    console.error('Error fetching withdrawal:', error);
+    console.error("Error fetching withdrawal:", error);
     return res.status(500).json({
-      message: 'An error occurred while fetching the withdrawal.',
+      message: "An error occurred while fetching the withdrawal.",
       error: error,
     });
   }
