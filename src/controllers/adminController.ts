@@ -2282,50 +2282,25 @@ export const fetchAppointmentsWithRequests = async (req: Request, res: Response)
 
 export const fetchWithdrawals = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
-    }
-
-    // Extract and verify token
-    const token = authHeader.split(' ')[1];
-    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
-    if (!JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT secret key is not configured' });
-    }
-
-    let decodedToken;
-    try {
-      decodedToken = jwt.verify(token, JWT_SECRET);
-    } catch (err) {
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-
-    // Check Admin Role
-    const { role } = decodedToken as { role: string };
-    if (role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin role required.' });
-    }
-    
-    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', status } = req.query;
+    const { page = 1, limit = 10, sortBy = "createdAt", sortOrder = "desc", status } = req.query;
 
     // Convert page, limit, and sort order to appropriate types
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
-    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
 
     // Validate page and limit
     if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
-      return res.status(400).json({ message: 'Invalid page or limit value' });
+      return res.status(400).json({ message: "Invalid page or limit value" });
     }
 
     // Validate sorting field
-    if (!['createdAt', 'status'].includes(sortBy as string)) {
-      return res.status(400).json({ message: 'Invalid sortBy field' });
+    if (!["createdAt", "status"].includes(sortBy as string)) {
+      return res.status(400).json({ message: "Invalid sortBy field" });
     }
 
     // Build the query
-    const query: any = { type: 'withdrawal' };
+    const query: any = { type: "withdrawal" };
     if (status) {
       query.status = status;
     }
@@ -2333,11 +2308,32 @@ export const fetchWithdrawals = async (req: Request, res: Response): Promise<Res
     // Calculate skip value
     const skip = (pageNumber - 1) * limitNumber;
 
-    // Fetch data with optional sorting and pagination
+    // Fetch withdrawals with pagination
     const withdrawals = await WalletHistory.find(query)
-      .sort({ [sortBy as string]: sortDirection }) // Dynamically sort by field and order
+      .sort({ [sortBy as string]: sortDirection })
       .skip(skip)
       .limit(limitNumber);
+
+    if (!withdrawals.length) {
+      return res.status(404).json({ message: "No withdrawals found." });
+    }
+
+    // Fetch consultant data for each withdrawal based on `cid`
+    const withdrawalDetails = await Promise.all(
+      withdrawals.map(async (withdrawal) => {
+        const consultant = await Consultant.findOne({ _id: withdrawal.cid });
+        return {
+          ...withdrawal.toObject(),
+          consultant: consultant
+            ? {
+                fname: consultant.fname,
+                lname: consultant.lname,
+                email: consultant.email,
+              }
+            : null, // Handle cases where no consultant is found
+        };
+      })
+    );
 
     // Get total count for the filtered documents
     const totalWithdrawals = await WalletHistory.countDocuments(query);
@@ -2345,16 +2341,16 @@ export const fetchWithdrawals = async (req: Request, res: Response): Promise<Res
     // Calculate total pages
     const totalPages = Math.ceil(totalWithdrawals / limitNumber);
 
-    // Respond with paginated results
+    // Respond with the results
     return res.status(200).json({
       currentPage: pageNumber,
       totalPages,
       totalWithdrawals,
-      withdrawals,
+      withdrawals: withdrawalDetails,
     });
   } catch (error) {
-    console.error('Error fetching withdrawals:', error);
-    return res.status(500).json({ message: 'Failed to fetch withdrawals', error });
+    console.error("Error fetching withdrawals:", error);
+    return res.status(500).json({ message: "Failed to fetch withdrawals", error });
   }
 };
 
