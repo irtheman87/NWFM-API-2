@@ -2158,6 +2158,9 @@ export async function setRequestStatusToCompleted(req: Request, res: Response): 
     request.stattusof = 'completed';
     await request.save(); // Save the updated request to the database
 
+    task.status = 'completed';
+    await task.save();
+
     // Fetch the price from the Transaction model using orderId
     const transaction = await Transaction.findOne({ orderId }).exec();
     
