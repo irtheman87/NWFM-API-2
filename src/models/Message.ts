@@ -13,7 +13,8 @@ export interface IMessage extends Document {
   replyto?: string;
   replytoId?: string;
   replytousertype?: string;
-  recommendation?: {
+  recommendations?: {
+    type: string;
     name: string;
     propic: string;
     userid: string;
@@ -34,8 +35,9 @@ const messageSchema: Schema = new Schema({
   replyto: { type: String },
   replytoId: { type: String },
   replytousertype: { type: String },
-  recommendation: [
+  recommendations: [
     {
+      type: { type: String, required: true },
       name: { type: String, required: true },
       propic: { type: String, required: true },
       userid: { type: String, required: true },
