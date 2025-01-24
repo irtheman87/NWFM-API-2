@@ -92,7 +92,6 @@ export const createCrewMember = async (req: Request, res: Response) => {
         !dob ||
         !department ||
         !role ||
-        !fee ||
         !verificationDocType ||
         !idNumber
       ) {
