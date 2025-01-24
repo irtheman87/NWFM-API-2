@@ -24,6 +24,7 @@ import WalletHistory from '../models/walletHistoryModel';
 import Wallet, { IWallet } from '../models/Wallet';
 import Crew from '../models/Crew';
 import Company from '../models/Company';
+import CrewCompany from '../models/CrewCompany';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -2980,6 +2981,187 @@ export const setWithdrawalStatusToFailed = async (req: Request, res: Response): 
     return res.status(500).json({
       message: 'An error occurred while updating the withdrawal status.',
       error: error,
+    });
+  }
+};
+
+export const deleteCrewByUserId = async (req: Request, res: Response): Promise<Response> => {
+  try {
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const { userId } = req.params;
+
+    // Validate userId parameter
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required for deletion." });
+    }
+
+    // Delete crew records matching the given userId
+    const result = await Crew.deleteMany({ userId }).exec();
+
+    // Check if any records were deleted
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        message: "No crew records found for the specified User ID.",
+      });
+    }
+
+    // Respond with a success message
+    return res.status(200).json({
+      message: `${result.deletedCount} crew record(s) deleted successfully.`,
+    });
+  } catch (error) {
+    console.error("Error deleting crew records:", error);
+    return res.status(500).json({
+      message: "An error occurred while deleting crew records.",
+      error,
+    });
+  }
+};
+
+export const deleteCompanyByUserId = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const { userId } = req.params;
+
+    // Validate userId parameter
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required for deletion." });
+    }
+
+    // Delete companies matching the given userId
+    const result = await Company.deleteMany({ userId }).exec();
+
+    // Check if any companies were deleted
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        message: "No company records found for the specified User ID.",
+      });
+    }
+
+    // Respond with a success message
+    return res.status(200).json({
+      message: `${result.deletedCount} company record(s) deleted successfully.`,
+    });
+  } catch (error) {
+    console.error("Error deleting company records:", error);
+    return res.status(500).json({
+      message: "An error occurred while deleting company records.",
+      error,
+    });
+  }
+};
+
+export const deleteCrewCompanyById = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
+    const { id } = req.params;
+
+    // Validate the ID
+    if (!id) {
+      return res.status(400).json({ message: "ID is required for deletion." });
+    }
+
+    // Find the CrewCompany document
+    const crewCompany = await CrewCompany.findById(id);
+    if (!crewCompany) {
+      return res.status(404).json({ message: "CrewCompany record not found." });
+    }
+
+    // Check for Crew documents with the same userId and delete
+    const crewDeletionResult = await Crew.deleteMany({ userId: id });
+    console.log(`Deleted ${crewDeletionResult.deletedCount} Crew records with userId: ${id}`);
+
+    // Check for Company documents with the same userId and delete
+    const companyDeletionResult = await Company.deleteMany({ userId: id });
+    console.log(`Deleted ${companyDeletionResult.deletedCount} Company records with userId: ${id}`);
+
+    // Delete the CrewCompany document
+    await crewCompany.deleteOne();
+    console.log(`Deleted CrewCompany record with id: ${id}`);
+
+    return res.status(200).json({
+      message: "CrewCompany and associated records deleted successfully.",
+      deletedCrewCount: crewDeletionResult.deletedCount,
+      deletedCompanyCount: companyDeletionResult.deletedCount,
+    });
+  } catch (error) {
+    console.error("Error deleting CrewCompany and associated records:", error);
+    return res.status(500).json({
+      message: "An error occurred while attempting to delete the records.",
+      error,
     });
   }
 };
