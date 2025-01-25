@@ -2016,9 +2016,9 @@ export const fetchWalletHistoryTotalsByCID = async (cid: string) => {
 
     // Format the response totals with defaults to avoid undefined results
     const response = {
-      totalDeposits: totalDeposits[0]?.totalAmount || 0,
-      totalPendingWithdrawals: totalPendingWithdrawals[0]?.totalAmount || 0,
-      totalCompletedWithdrawals: totalCompletedWithdrawals[0]?.totalAmount || 0,
+      totalDeposits: (totalDeposits[0]?.totalAmount/100) || 0,
+      totalPendingWithdrawals: (totalPendingWithdrawals[0]?.totalAmount/100) || 0,
+      totalCompletedWithdrawals: (totalCompletedWithdrawals[0]?.totalAmount/100) || 0,
       monthlyDeposits: monthlyDepositsFormatted,
     };
 
@@ -2286,6 +2286,7 @@ export const fetchDepositsByCID = async (req: Request, res: Response): Promise<R
             .exec();
           return {
             ...deposit.toObject(),
+            depositInNaira: (deposit.amount/100),
             movie_title: requestData?.movie_title || null,
             nameofservice: requestData?.nameofservice || null,
           };
@@ -2415,6 +2416,7 @@ export const fetchDepositById = async (req: Request, res: Response): Promise<Res
 
     return res.status(200).json({
       message: 'Deposit fetched successfully.',
+      depositInNaira:
       deposit,
     });
   } catch (error) {

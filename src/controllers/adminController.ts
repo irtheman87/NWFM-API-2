@@ -2468,7 +2468,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    const { type, sortBy } = req.query; // `sortBy` for additional sorting
+    const { type, sortBy, roles, location, typeFilter } = req.query; // Include additional filters
     const { page = 1, limit = 10 } = req.query;
 
     // Validate the `type` parameter
@@ -2484,6 +2484,24 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     // Choose the appropriate model dynamically and ensure correct typing
     const Model = type === "crew" ? Crew : Company;
 
+    // Construct query filters
+    const query: any = {};
+
+    if (type === "crew" && roles) {
+      query.role = { $in: (roles as string).split(",") };
+    }
+
+    if (type === "company" && typeFilter) {
+      query.type = { $regex: typeFilter as string, $options: 'i' };
+    }
+
+    if (location) {
+      const locationParts = (location as string).split(',');
+      if (locationParts[0]) query['location.city'] = { $regex: locationParts[0], $options: 'i' };
+      if (locationParts[1]) query['location.state'] = { $regex: locationParts[1], $options: 'i' };
+      if (locationParts[2]) query['location.country'] = { $regex: locationParts[2], $options: 'i' };
+    }
+
     // Define additional sorting conditions
     const additionalSort: Record<string, 1 | -1> = {};
     if (type === "crew" && sortBy === "department") {
@@ -2493,13 +2511,14 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     }
 
     // Fetch the paginated and sorted data
-    const data = await (Model as any).find()
+    // const data = await Model.find(query)
+    const data = await (Model as any).find(query)
       .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
       .skip(skip)
       .limit(pageSize);
 
     // Count total records
-    const totalRecords = await (Model as any).countDocuments();
+    const totalRecords = await Model.countDocuments(query);
 
     // Return response
     return res.status(200).json({
@@ -2519,6 +2538,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
+
 
 export const fetchWalletHistoryTotalsByCID = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -2604,8 +2624,8 @@ export const fetchWalletHistoryTotalsByCID = async (req: Request, res: Response)
     // Format the response totals with defaults to avoid undefined results
     const response = {
       totalDeposits: totalDeposits[0]?.totalAmount || 0,
-      totalPendingWithdrawals: totalPendingWithdrawals[0]?.totalAmount || 0,
-      totalCompletedWithdrawals: totalCompletedWithdrawals[0]?.totalAmount || 0,
+      totalPendingWithdrawals: (totalPendingWithdrawals[0]?.totalAmount/100) || 0,
+      totalCompletedWithdrawals: (totalCompletedWithdrawals[0]?.totalAmount/100) || 0,
       monthlyDeposits: monthlyDepositsFormatted,
     };
 
@@ -2717,6 +2737,7 @@ export const fetchAllDeposits = async (req: Request, res: Response): Promise<Res
             .exec();
           return {
             ...deposit.toObject(),
+            depositInNaira: (deposit.amount/100),
             chat_title: requestData?.chat_title || null,
             type: requestData?.type || null,
             movie_title: requestData?.movie_title || null,
@@ -2784,8 +2805,8 @@ export const fetchTotalTransactions = async (req: Request, res: Response): Promi
       ]),
     ]);
 
-    const totalWithdrawals = withdrawalsResult[0]?.totalAmount || 0;
-    const totalDeposits = depositsResult[0]?.totalAmount || 0;
+    const totalWithdrawals = (withdrawalsResult[0]?.totalAmount/100) || 0;
+    const totalDeposits = (depositsResult[0]?.totalAmount/100) || 0;
 
     return res.status(200).json({
       message: 'Transaction totals fetched successfully.',
@@ -2858,6 +2879,7 @@ export const fetchWithdrawalById = async (req: Request, res: Response): Promise<
     return res.status(200).json({
       message: "Withdrawal fetched successfully.",
       withdrawal,
+      withdrawalInNaira: (withdrawal.amount/100),
       consultant: {
         fname: consultant.fname,
         lname: consultant.lname,
@@ -2916,6 +2938,7 @@ export const fetchDepositById = async (req: Request, res: Response): Promise<Res
 
     return res.status(200).json({
       message: 'Deposit fetched successfully.',
+      depositInNaira: (deposit.amount/100),
       deposit,
     });
   } catch (error) {
@@ -2974,6 +2997,7 @@ export const setWithdrawalStatusToFailed = async (req: Request, res: Response): 
 
     return res.status(200).json({
       message: 'Withdrawal status updated to failed successfully.',
+      withdrawalInNaira: (withdrawal.amount/100),
       withdrawal,
     });
   } catch (error) {
@@ -3126,7 +3150,7 @@ export const deleteCrewCompanyById = async (req: Request, res: Response): Promis
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    
+
     const { id } = req.params;
 
     // Validate the ID
