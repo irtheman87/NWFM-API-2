@@ -38,6 +38,8 @@ const upload = multer({ storage }).fields([
   { name: "rateCard", maxCount: 1 },
 ]);
 
+const multerMiddleware = multer().none();
+
 // Create Crew Member Function
 export const createCrewMember = async (req: Request, res: Response) => {
   try {
@@ -415,59 +417,85 @@ export const getCompanyById = async (req: Request, res: Response): Promise<Respo
   }
 };
 
+
 export const updateCompanyDetails = async (req: Request, res: Response): Promise<Response> => {
-  try {
-    const { userId } = req.body; // Assuming userId is passed in the form-data request body
-
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is required to update company details." });
-    }
-
-    // Allowed fields for update
-    const allowedUpdates = [
-      "mobile",
-      "website",
-      "bio",
-      "clientele",
-      "useRateCard",
-      "rateCard",
-      "fee",
-      "location",
-    ];
-
-    // Extract only the allowed fields from `req.body`
-    const updates = Object.keys(req.body).reduce((acc, key) => {
-      if (allowedUpdates.includes(key)) {
-        acc[key] = req.body[key];
+  // Use the middleware to handle multipart/form-data (file uploads and form fields)
+  return new Promise((resolve) => {
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error uploading files.",
+          error: err.message,
+        });
       }
-      return acc;
-    }, {} as { [key: string]: any });
 
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ message: "No valid fields provided for update." });
-    }
+      try {
+        const { userId } = req.body; // Parse userId from form-data
+        console.log(req.body);
 
-    // Find the company document by `userId` and update the allowed fields
-    const company = await Company.findOneAndUpdate({ userId }, updates, {
-      new: true, // Return the updated document
-      runValidators: true, // Apply validation rules
+        if (!userId) {
+          return res.status(400).json({ message: "User ID is required to update company details." });
+        }
+
+        // Allowed fields for update (excluding rateCard, which is handled separately as a file)
+        const allowedUpdates = [
+          "mobile",
+          "website",
+          "bio",
+          "clientele",
+          "useRateCard",
+          "fee",
+          "location",
+        ];
+
+        // Extract only the allowed fields from req.body
+        const updates = Object.keys(req.body).reduce((acc, key) => {
+          if (allowedUpdates.includes(key)) {
+            acc[key] = req.body[key];
+          }
+          return acc;
+        }, {} as { [key: string]: any });
+
+        // Extract files
+        const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+
+        // Ensure there is a file for the rateCard (if required)
+        if (files && files['rateCard'] && files['rateCard'].length > 0) {
+          const rateCard = files['rateCard'][0]?.location;
+          if (rateCard) {
+            updates['rateCard'] = rateCard; // Assuming S3 and multer for uploading
+          }
+        }
+
+        // Ensure valid fields are provided
+        if (Object.keys(updates).length === 0) {
+          return res.status(400).json({ message: "No valid fields provided for update." });
+        }
+
+        // Update company details by userId
+        const company = await Company.findOneAndUpdate({ userId }, updates, {
+          new: true, // Return the updated document
+          runValidators: true, // Apply validation rules
+        });
+
+        if (!company) {
+          return res.status(404).json({ message: "Company not found or invalid userId." });
+        }
+
+        return res.status(200).json({
+          message: "Company details updated successfully.",
+          company,
+        });
+
+      } catch (error) {
+        console.error("Error updating company details:", error);
+        return res.status(500).json({
+          message: "An error occurred while updating company details.",
+          error: error,
+        });
+      }
     });
-
-    if (!company) {
-      return res.status(404).json({ message: "Company not found or invalid userId." });
-    }
-
-    return res.status(200).json({
-      message: "Company details updated successfully.",
-      company,
-    });
-  } catch (error) {
-    console.error("Error updating company details:", error);
-    return res.status(500).json({
-      message: "An error occurred while updating company details.",
-      error: error,
-    });
-  }
+  });
 };
 
 export const updateCrewDetails = async (req: Request, res: Response): Promise<Response> => {
@@ -527,6 +555,65 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
   }
 };
 
+export const updateCompanyProfilePicture = async (req: Request, res: Response) => {
+  try {
+    // Use Multer-S3 middleware to process the incoming files
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error uploading files to S3.",
+          error: err.message,
+        });
+      }
+
+      // Extract userId from `req.body`
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required to update the profile picture." });
+      }
+
+      // Extract uploaded files from the request
+      const files = req.files as {
+        [fieldname: string]: Express.MulterS3.File[];
+      };
+
+      // Validate profile picture file
+      if (!files?.file || files.file.length === 0) {
+        return res.status(400).json({ message: "Profile picture file is required." });
+      }
+
+      // Get the file location URL from S3
+      const profilePic = files.file[0]?.location;
+
+      if (!profilePic) {
+        return res.status(400).json({ message: "Unable to retrieve uploaded profile picture location." });
+      }
+
+      // Update the crew member's profile picture
+      const company = await Company.findOneAndUpdate(
+        { userId },
+        { propic: profilePic },
+        { new: true, runValidators: true }
+      );
+
+      if (!company) {
+        return res.status(404).json({ message: "Company not found or invalid userId." });
+      }
+
+      return res.status(200).json({
+        message: "Profile picture updated successfully.",
+        company,
+      });
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating the profile picture.",
+      error: error,
+    });
+  }
+};
 
 export const updateProfilePicture = async (req: Request, res: Response) => {
   try {

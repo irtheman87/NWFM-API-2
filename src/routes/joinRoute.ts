@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails, updateProfilePicture } from '../controllers/joinController';
+import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails, updateProfilePicture, updateCompanyProfilePicture } from '../controllers/joinController';
 
 const router = express.Router();
 
@@ -9,8 +9,9 @@ const router = express.Router();
  router.post("/crewcompany/login", loginCrewCompany);
  router.get("/crew/:id", getCrewById);
  router.get("/company/:id", getCompanyById);
- router.put("/company/update", updateCompanyDetails);
+ router.post("/company/update", updateCompanyDetails);
  router.put("/update-crew", updateCrewDetails);
+ router.post('/update-company-picture', updateCompanyProfilePicture);
  router.post('/update-profile-picture', updateProfilePicture);
 
 
