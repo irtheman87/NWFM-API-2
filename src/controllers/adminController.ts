@@ -2482,24 +2482,30 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     const skip = (pageNumber - 1) * pageSize;
 
     // Choose the appropriate model dynamically and ensure correct typing
-    const Model = type === "crew" ? Crew : Company;
+    const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
+
 
     // Construct query filters
     const query: any = {};
 
+    // Add role filter for `crew`
     if (type === "crew" && roles) {
       query.role = { $in: (roles as string).split(",") };
     }
 
+    // Add type filter for `company`
     if (type === "company" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: 'i' };
     }
 
+    // Add location filter for city, state, or country
     if (location) {
-      const locationParts = (location as string).split(',');
-      if (locationParts[0]) query['location.city'] = { $regex: locationParts[0], $options: 'i' };
-      if (locationParts[1]) query['location.state'] = { $regex: locationParts[1], $options: 'i' };
-      if (locationParts[2]) query['location.country'] = { $regex: locationParts[2], $options: 'i' };
+      const regex = new RegExp(location as string, 'i'); // Case-insensitive search
+      query.$or = [
+        { 'location.city': regex },
+        { 'location.state': regex },
+        { 'location.country': regex },
+      ];
     }
 
     // Define additional sorting conditions
@@ -2511,8 +2517,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     }
 
     // Fetch the paginated and sorted data
-    // const data = await Model.find(query)
-    const data = await (Model as any).find(query)
+    const data = await Model.find(query)
       .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
       .skip(skip)
       .limit(pageSize);
@@ -2538,6 +2543,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
+
 
 
 export const fetchWalletHistoryTotalsByCID = async (req: Request, res: Response): Promise<Response> => {
