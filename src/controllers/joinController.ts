@@ -417,13 +417,13 @@ export const getCompanyById = async (req: Request, res: Response): Promise<Respo
 
 export const updateCompanyDetails = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { userId } = req.body; // Assuming userId is passed in the request body
+    const { userId } = req.body; // Assuming userId is passed in the form-data request body
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required to update company details." });
     }
 
-    // Fields the user is allowed to update
+    // Allowed fields for update
     const allowedUpdates = [
       "mobile",
       "website",
@@ -435,7 +435,7 @@ export const updateCompanyDetails = async (req: Request, res: Response): Promise
       "location",
     ];
 
-    // Extract only the allowed fields from the request body
+    // Extract only the allowed fields from `req.body`
     const updates = Object.keys(req.body).reduce((acc, key) => {
       if (allowedUpdates.includes(key)) {
         acc[key] = req.body[key];
@@ -447,12 +447,11 @@ export const updateCompanyDetails = async (req: Request, res: Response): Promise
       return res.status(400).json({ message: "No valid fields provided for update." });
     }
 
-    // Find the company document by `userId` and update allowed fields
-    const company = await Company.findOneAndUpdate(
-      { userId },
-      updates,
-      { new: true, runValidators: true }
-    );
+    // Find the company document by `userId` and update the allowed fields
+    const company = await Company.findOneAndUpdate({ userId }, updates, {
+      new: true, // Return the updated document
+      runValidators: true, // Apply validation rules
+    });
 
     if (!company) {
       return res.status(404).json({ message: "Company not found or invalid userId." });
@@ -473,8 +472,7 @@ export const updateCompanyDetails = async (req: Request, res: Response): Promise
 
 export const updateCrewDetails = async (req: Request, res: Response): Promise<Response> => {
   try {
-
-    const { userId } = req.body; // Assuming `userId` is passed in the request body
+    const { userId } = req.body;
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required to update crew details." });
@@ -494,7 +492,7 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
       "location",
     ];
 
-    // Extract allowed fields from request body
+    // Extract allowed fields from the request body
     const updates = Object.keys(req.body).reduce((acc, key) => {
       if (allowedUpdates.includes(key)) {
         acc[key] = req.body[key];
@@ -506,7 +504,7 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
       return res.status(400).json({ message: "No valid fields provided for update." });
     }
 
-    // Find crew member by `userId` and update allowed fields
+    // Find the crew member and update the allowed fields
     const crew = await Crew.findOneAndUpdate({ userId }, updates, {
       new: true, // Return the updated document
       runValidators: true, // Ensure validation rules are applied
@@ -529,15 +527,10 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
   }
 };
 
+
 export const updateProfilePicture = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is required to update the profile picture." });
-    }
-
-    // Handle file uploads
+    // Use Multer-S3 middleware to process the incoming files
     upload(req, res, async (err) => {
       if (err) {
         return res.status(500).json({
@@ -546,16 +539,24 @@ export const updateProfilePicture = async (req: Request, res: Response) => {
         });
       }
 
-      // Extract uploaded files
+      // Extract userId from `req.body`
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required to update the profile picture." });
+      }
+
+      // Extract uploaded files from the request
       const files = req.files as {
         [fieldname: string]: Express.MulterS3.File[];
       };
 
-      // Validate if the file exists
+      // Validate profile picture file
       if (!files?.file || files.file.length === 0) {
         return res.status(400).json({ message: "Profile picture file is required." });
       }
 
+      // Get the file location URL from S3
       const profilePic = files.file[0]?.location;
 
       if (!profilePic) {
