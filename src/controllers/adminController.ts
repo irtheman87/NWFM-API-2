@@ -2444,31 +2444,31 @@ export const completeDebit = async (req: Request, res: Response): Promise<Respon
 export const fetchDataByType = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Authorization token is missing or invalid" });
     }
 
     // Extract and verify token
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT secret key is not configured' });
+      return res.status(500).json({ message: "JWT secret key is not configured" });
     }
 
     let decodedToken;
     try {
       decodedToken = jwt.verify(token, JWT_SECRET);
     } catch (err) {
-      return res.status(401).json({ message: 'Invalid token' });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     // Check Admin Role
     const { role } = decodedToken as { role: string };
-    if (role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admin role required." });
     }
 
-    const { type, sortBy, roles, location, typeFilter } = req.query; // Include additional filters
+    const { type, sortBy, roles, location, typeFilter, department } = req.query; // Include additional filters
     const { page = 1, limit = 10 } = req.query;
 
     // Validate the `type` parameter
@@ -2484,7 +2484,6 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     // Choose the appropriate model dynamically and ensure correct typing
     const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
 
-
     // Construct query filters
     const query: any = {};
 
@@ -2493,18 +2492,23 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       query.role = { $in: (roles as string).split(",") };
     }
 
+    // Add department filter for `crew`
+    if (type === "crew" && department) {
+      query.department = { $regex: department as string, $options: "i" }; // Case-insensitive search
+    }
+
     // Add type filter for `company`
     if (type === "company" && typeFilter) {
-      query.type = { $regex: typeFilter as string, $options: 'i' };
+      query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
     // Add location filter for city, state, or country
     if (location) {
-      const regex = new RegExp(location as string, 'i'); // Case-insensitive search
+      const regex = new RegExp(location as string, "i"); // Case-insensitive search
       query.$or = [
-        { 'location.city': regex },
-        { 'location.state': regex },
-        { 'location.country': regex },
+        { "location.city": regex },
+        { "location.state": regex },
+        { "location.country": regex },
       ];
     }
 
@@ -2543,6 +2547,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
+
 
 
 
