@@ -473,6 +473,7 @@ export const updateCompanyDetails = async (req: Request, res: Response): Promise
 
 export const updateCrewDetails = async (req: Request, res: Response): Promise<Response> => {
   try {
+
     const { userId } = req.body; // Assuming `userId` is passed in the request body
 
     if (!userId) {
@@ -486,7 +487,6 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
       "mobile",
       "dob",
       "bio",
-      "propic",
       "department",
       "role",
       "works",
@@ -524,6 +524,64 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
     console.error("Error updating crew details:", error);
     return res.status(500).json({
       message: "An error occurred while updating crew details.",
+      error: error,
+    });
+  }
+};
+
+export const updateProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required to update the profile picture." });
+    }
+
+    // Handle file uploads
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error uploading files to S3.",
+          error: err.message,
+        });
+      }
+
+      // Extract uploaded files
+      const files = req.files as {
+        [fieldname: string]: Express.MulterS3.File[];
+      };
+
+      // Validate if the file exists
+      if (!files?.file || files.file.length === 0) {
+        return res.status(400).json({ message: "Profile picture file is required." });
+      }
+
+      const profilePic = files.file[0]?.location;
+
+      if (!profilePic) {
+        return res.status(400).json({ message: "Unable to retrieve uploaded profile picture location." });
+      }
+
+      // Update the crew member's profile picture
+      const crew = await Crew.findOneAndUpdate(
+        { userId },
+        { propic: profilePic },
+        { new: true, runValidators: true }
+      );
+
+      if (!crew) {
+        return res.status(404).json({ message: "Crew member not found or invalid userId." });
+      }
+
+      return res.status(200).json({
+        message: "Profile picture updated successfully.",
+        crew,
+      });
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating the profile picture.",
       error: error,
     });
   }

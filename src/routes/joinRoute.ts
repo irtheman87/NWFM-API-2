@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails } from '../controllers/joinController';
+import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails, updateProfilePicture } from '../controllers/joinController';
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ const router = express.Router();
  router.get("/company/:id", getCompanyById);
  router.put("/company/update", updateCompanyDetails);
  router.put("/update-crew", updateCrewDetails);
+ router.post('/update-profile-picture', updateProfilePicture);
 
 
 module.exports = router;

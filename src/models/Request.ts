@@ -46,6 +46,8 @@ export interface IRequest extends Document {
   booktime?: string; // Changed from `Timestamp` to `Date`
   endTime?: string;
   cid?: string;
+  showtype?: string;
+  episodes?: number;
 }
 
 const timeSchema = new Schema<Time>({
@@ -95,6 +97,8 @@ const requestSchema = new Schema<IRequest>(
     booktime: { type: String }, // Corrected here
     endTime: { type: String }, // Corrected here
     cid: {type: String},
+    showtype: {type: String},
+    episodes: {type: Number},
   },
   { timestamps: true }
 );

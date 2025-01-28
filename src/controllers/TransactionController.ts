@@ -59,7 +59,7 @@ function getDayOfWeek(date: Date | string): string {
 }
 
 export const ReadScriptTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName} = req.body;
+  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
 
   try {
 
@@ -107,6 +107,8 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       expertise: 'Editor',
       files: fileUrls, // Storing file URLs in the Request model
       filename: fileName,
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
@@ -147,7 +149,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
 
 
 export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns } = req.body;
+  const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns, showtype, episodes } = req.body;
 
   try {
     const price = await getServicePriceByName(title);
@@ -188,6 +190,8 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       orderId: newTransaction.orderId,
       userId,
       expertise: 'Director',
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
@@ -227,7 +231,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
   
   
 export const BudgetTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, movie_title, synopsis, genre, platform, budget, concerns, fileName } = req.body;
+  const { title, userId, type, movie_title, synopsis, genre, platform, budget, concerns, fileName, showtype, episodes } = req.body;
 
   // Log request body to verify incoming data
   console.log('Request body:', req.body);
@@ -282,6 +286,8 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
       expertise: 'Editor',
       files: fileUrls,
       filename: fileName,
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
@@ -322,7 +328,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
 export const CreateBudgetTransaction = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, days, info, budgetrange,  fileName
+    actors, crew, days, info, budgetrange,  fileName, showtype, episodes
   } = req.body;
 
   try {
@@ -375,6 +381,8 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
       expertise: 'Editor',
       files: fileUrls,
       filename: fileName,
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
@@ -417,7 +425,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
 export const CreateMarketBudgetTransaction = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    link, social, ooh, budgetrange
+    link, social, ooh, budgetrange, showtype, episodes
   } = req.body;
 
   try {
@@ -462,6 +470,8 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
       orderId: newTransaction.orderId,
       userId,
       expertise: 'Editor',
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
@@ -502,7 +512,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, visualStyle, info, budgetrange, fileName
+    actors, crew, visualStyle, info, budgetrange, fileName, showtype, episodes
   } = req.body;
 
   try {
@@ -553,6 +563,8 @@ export const createAPitch = async (req: Request, res: Response) => {
       expertise: 'Director',
       files: fileUrls,
       filename: fileName,
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
@@ -592,7 +604,7 @@ export const createAPitch = async (req: Request, res: Response) => {
 
 export const createLegal = async (req: Request, res: Response) => {
   const { 
-    title, userId, type, name, movie_title, productionCompany, contacts 
+    title, userId, type, name, movie_title, productionCompany, contacts, showtype, episodes 
   } = req.body;
 
   try {
@@ -634,6 +646,8 @@ export const createLegal = async (req: Request, res: Response) => {
       orderId: newTransaction.orderId,
       userId,
       expertise: 'Editor',
+      showtype: showtype,
+      episodes: episodes,
     });
     await newRequest.save();
 
