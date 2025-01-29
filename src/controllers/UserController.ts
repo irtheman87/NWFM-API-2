@@ -231,6 +231,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
     // Respond with tokens and user information
     res.json({ accessToken: accessToken, refreshToken: refreshToken, user: userinfo, isverified: true });
+    console.log(userinfo);
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Error logging in', error });

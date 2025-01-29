@@ -174,6 +174,7 @@ export const loginConsult = async (req: Request, res: Response) => {
     console.log('Wallet ensured:', wallet);
 
     res.json({ accessToken, refreshToken, user: userInfo });
+    console.log(userInfo);
   } catch (error) {
     res.status(500).json({ message: 'Error logging in', error });
   }
