@@ -34,8 +34,8 @@ const userSchema = new Schema<IUser>(
     expertise: {
       type: [String],
       validate: [
-        (val: string[]) => val.length <= 6,
-        'Expertise array cannot exceed 6 items',
+        (val: string[]) => val.length <= 8,
+        'Expertise array cannot exceed 8 items',
       ],
     },
     isVerified: { type: Boolean, default: false },
