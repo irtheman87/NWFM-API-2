@@ -114,21 +114,43 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
 
     // Prepare for payment initialization
     const currentId = newTransaction.id;
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId,
-      },
-    };
 
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Transaction and request created successfully', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
 
   } catch (error: unknown) {
@@ -197,22 +219,44 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId
-      },
-    };
-
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
+
 
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -292,21 +336,42 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
     await newRequest.save();
 
     const currentId = newTransaction.id;
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId,
-      },
-    };
-
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
 
   } catch (error: unknown) {
@@ -389,22 +454,44 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     // Send a single JSON response with status 201
     const currentId = newTransaction.id;
     // Send a single JSON response
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId
-      },
-    };
-
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
+
 
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -477,22 +564,44 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId
-      },
-    };
-
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
+
 
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -570,22 +679,44 @@ export const createAPitch = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId
-      },
-    };
-
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
+
 
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -653,21 +784,42 @@ export const createLegal = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    const paymentReq = {
-      body: {
-        email: userEmail,
-        amount: price,
-        id: currentId
-      },
-    };
-
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(showtype && episodes > 1){
+      const actualPrice = Number(price) - 5000000;
+      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else{
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: price,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
 
   } catch (error: unknown) {
