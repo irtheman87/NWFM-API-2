@@ -1848,7 +1848,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
     
-    const { type, sortBy } = req.query; // `sortBy` for additional sorting
+    const { type, sortBy, roles, location, typeFilter, department } = req.query; // Include additional filters
     const { page = 1, limit = 10 } = req.query;
 
     // Validate the `type` parameter
@@ -1862,7 +1862,35 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     const skip = (pageNumber - 1) * pageSize;
 
     // Choose the appropriate model dynamically and ensure correct typing
-    const Model = type === "crew" ? Crew : Company;
+    const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
+
+    // Construct query filters
+    const query: any = {};
+
+    // Add role filter for `crew`
+    if (type === "crew" && roles) {
+      query.role = { $in: (roles as string).split(",") };
+    }
+
+    // Add department filter for `crew`
+    if (type === "crew" && department) {
+      query.department = { $regex: department as string, $options: "i" }; // Case-insensitive search
+    }
+
+    // Add type filter for `company`
+    if (type === "company" && typeFilter) {
+      query.type = { $regex: typeFilter as string, $options: "i" };
+    }
+
+    // Add location filter for city, state, or country
+    if (location) {
+      const regex = new RegExp(location as string, "i"); // Case-insensitive search
+      query.$or = [
+        { "location.city": regex },
+        { "location.state": regex },
+        { "location.country": regex },
+      ];
+    }
 
     // Define additional sorting conditions
     const additionalSort: Record<string, 1 | -1> = {};
@@ -1873,13 +1901,13 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     }
 
     // Fetch the paginated and sorted data
-    const data = await (Model as any).find()
+    const data = await Model.find(query)
       .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
       .skip(skip)
       .limit(pageSize);
 
     // Count total records
-    const totalRecords = await (Model as any).countDocuments();
+    const totalRecords = await Model.countDocuments(query);
 
     // Return response
     return res.status(200).json({
@@ -1899,6 +1927,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
+
 
 export const createWithdrawal = async (req: Request, res: Response): Promise<Response> => {
   try {
