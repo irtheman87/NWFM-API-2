@@ -25,6 +25,7 @@ import Wallet, { IWallet } from '../models/Wallet';
 import Crew from '../models/Crew';
 import Company from '../models/Company';
 import CrewCompany from '../models/CrewCompany';
+import Resolve from '../models/Resolve';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -3198,5 +3199,51 @@ export const deleteCrewCompanyById = async (req: Request, res: Response): Promis
       message: "An error occurred while attempting to delete the records.",
       error,
     });
+  }
+};
+
+export const getResolvesByOrderId = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({ message: "Order ID is required" });
+    }
+
+    const resolves = await Resolve.find({ orderId });
+
+    if (!resolves.length) {
+      return res.status(404).json({ message: "No resolves found for this Order ID" });
+    }
+
+    return res.status(200).json({ message: "Resolves fetched successfully", resolves });
+  } catch (error) {
+    console.error("Error fetching resolves:", error);
+    return res.status(500).json({ message: "Failed to fetch resolves", error });
   }
 };
