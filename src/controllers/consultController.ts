@@ -1736,7 +1736,7 @@ export const createWalletIfNotExists = async (cid: string): Promise<IWallet> => 
   }
 };
 
-export async function getWalletByCid(req: Request, res: Response): Promise<Response> {
+export async function getWalletByCid(req: Request, res: Response): Promise<Response> { 
   const { cid } = req.params; // Extracting cid from the URL parameter
 
   try {
@@ -1765,18 +1765,27 @@ export async function getWalletByCid(req: Request, res: Response): Promise<Respo
       return res.status(403).json({ message: 'Access denied. Consultant role required.' });
     }
 
-    const wallet: IWallet | null = await Wallet.findOne({ cid }).exec();
+    // Fetch only the required fields from the Wallet collection
+    const wallet = await Wallet.findOne({ cid }).select('balance cid _id availableBalance dateCreated status').exec();
 
     if (!wallet) {
       return res.status(404).json({ message: 'Wallet not found' });
     }
 
-    return res.status(200).json(wallet);
+    return res.status(200).json({
+      _id: wallet._id,
+      cid: wallet.cid,
+      balance: wallet.balance / 100, // Convert balance to intended value
+      availableBalance: wallet.availableBalance / 100, // Convert available balance to intended value
+      dateCreated: wallet.dateCreated,
+      status: wallet.status
+    });
   } catch (error) {
     console.error('Error fetching wallet by cid:', error);
     return res.status(500).json({ message: 'Error fetching wallet' });
   }
 }
+
 
 export async function getWalletHistory(req: Request, res: Response): Promise<Response> {
   const { cid } = req.params; // Extracting cid from the URL parameter

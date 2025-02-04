@@ -58,8 +58,10 @@ function getDayOfWeek(date: Date | string): string {
   return daysOfWeek[dayIndex];
 }
 
+
+
 export const ReadScriptTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
+  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes, pageCount} = req.body;
 
   try {
 
@@ -83,9 +85,40 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     } catch (error) {
       console.error('Error checking or dropping index:', error);
     }
+
+    if (!Array.isArray(pageCount)) {
+      return res.status(400).json({ message: "pageCount must be an array" });
+    }
+
+    // Define the pricing rules
+    const rateOne = 10000000; // for pages between 20 and 50 (inclusive)
+    const rateTwo = 15000000; // for pages between 51 and 100 (inclusive)
+
+    // Initialize the total price
+    let totalPrice = 0;
+
+    // Loop through each page count in the array
+    for (const count of pageCount) {
+      // Validate that each element is a number
+      if (typeof count !== 'number') {
+        return res.status(400).json({ message: "Each element in pageCount must be a number" });
+      }
+
+      // Check which pricing range the count falls into
+      if (count >= 20 && count <= 50) {
+        totalPrice += rateOne;
+      } else if (count >= 51 && count <= 100) {
+        totalPrice += rateTwo;
+      } else {
+        // If a page count is out of range, return an error or skip as needed.
+        // Here, we choose to return an error.
+        return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
+      }
+    }
     
+    totalPrice += 5000000;
     // Save transaction data
-    const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' });
+    const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
     await newTransaction.save();
 
     // Get file URLs from uploaded files if any
@@ -115,13 +148,10 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     // Prepare for payment initialization
     const currentId = newTransaction.id;
 
-    if(showtype && episodes > 1){
-      const actualPrice = Number(price) - 5000000;
-      const newPrice = (actualPrice * Number(episodes)) + 5000000;
-      const paymentReq = {
+     const paymentReq = {
         body: {
           email: userEmail,
-          amount: newPrice,
+          amount: totalPrice,
           id: currentId,
         },
       };
@@ -134,24 +164,6 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
-    }else{
-      const paymentReq = {
-        body: {
-          email: userEmail,
-          amount: price,
-          id: currentId,
-        },
-      };
-  
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }
 
   } catch (error: unknown) {
     if (error instanceof Error) {
