@@ -68,6 +68,11 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     const price = await getServicePriceByName(title);
     const userEmail = await fetchUserEmailById(userId);
 
+    const pageCountString = pageCount; // Example from FormData
+    const pageCountArray = JSON.parse(pageCountString);
+
+     console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
+
     try {
       // Get the list of indexes for the Transaction collection
       const indexes = await Transaction.collection.indexes();
@@ -86,7 +91,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
-    if (!Array.isArray(pageCount)) {
+    if (!Array.isArray(pageCountArray)) {
       return res.status(400).json({ message: "pageCount must be an array" });
     }
 
@@ -98,7 +103,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     let totalPrice = 0;
 
     // Loop through each page count in the array
-    for (const count of pageCount) {
+    for (const count of pageCountArray) {
       // Validate that each element is a number
       if (typeof count !== 'number') {
         return res.status(400).json({ message: "Each element in pageCount must be a number" });
