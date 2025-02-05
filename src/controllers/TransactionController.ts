@@ -435,11 +435,18 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     } catch (error) {
       console.error('Error checking or dropping index:', error);
     }
+
+    let transprice = 0; // Use `let` instead of `const`
     
+    if (showtype) {
+      transprice = Number(price) + 10000000;
+    } else {
+      transprice = Number(price);
+    }
 
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: transprice, reference: '', status: 'processing' 
     });
     await newTransaction.save();
 
@@ -471,13 +478,13 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     // Send a single JSON response with status 201
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype && episodes > 1){
-      const actualPrice = Number(price) - 5000000;
-      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+    if(showtype){
+      const actualPrice = Number(price) + 10000000;
+      // const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
         body: {
           email: userEmail,
-          amount: newPrice,
+          amount: actualPrice,
           id: currentId,
         },
       };
@@ -553,11 +560,17 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
     } catch (error) {
       console.error('Error checking or dropping index:', error);
     }
-    
 
+    let transprice = 0;
+    
+    if (showtype) {
+      transprice = Number(price) + 10000000;
+    } else {
+      transprice = Number(price);
+    }
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: transprice, reference: '', status: 'processing' 
     });
     await newTransaction.save();
 
@@ -581,13 +594,13 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype && episodes > 1){
-      const actualPrice = Number(price) - 5000000;
-      const newPrice = (actualPrice * Number(episodes)) + 5000000;
+    if(showtype){
+      const actualPrice = Number(price) + 10000000;
+      // const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
         body: {
           email: userEmail,
-          amount: newPrice,
+          amount: actualPrice,
           id: currentId,
         },
       };
@@ -696,26 +709,6 @@ export const createAPitch = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype && episodes > 1){
-      const actualPrice = Number(price) - 5000000;
-      const newPrice = (actualPrice * Number(episodes)) + 5000000;
-      const paymentReq = {
-        body: {
-          email: userEmail,
-          amount: newPrice,
-          id: currentId,
-        },
-      };
-  
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }else{
       const paymentReq = {
         body: {
           email: userEmail,
@@ -732,8 +725,6 @@ export const createAPitch = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
-    }
-
 
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -801,26 +792,7 @@ export const createLegal = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype && episodes > 1){
-      const actualPrice = Number(price) - 5000000;
-      const newPrice = (actualPrice * Number(episodes)) + 5000000;
-      const paymentReq = {
-        body: {
-          email: userEmail,
-          amount: newPrice,
-          id: currentId,
-        },
-      };
-  
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }else{
+   
       const paymentReq = {
         body: {
           email: userEmail,
@@ -837,8 +809,6 @@ export const createLegal = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
-    }
-
   } catch (error: unknown) {
     if (error instanceof Error) {
       res.status(500).json({
