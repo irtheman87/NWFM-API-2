@@ -17,6 +17,7 @@ import { io, users } from '../index';
 import { Time } from '../types';
 import { createAdminNotification } from '../utils/UtilityFunctions';
 import { requestPasswordReset, resetPassword, fetchNotificationsForUser, fetchUserUpcomingRequest, getDailyAvailability, updateRequestAndCreateAppointment, fetchUserSpecificIssues } from '../controllers/UserController';
+import { request } from 'http';
 
  const crypto = require('crypto');
 
@@ -111,7 +112,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         // fetchRequestByOrderId(orderid); 
       }
 
-      if(result?.type){
+      if(result?.type == "Chat" || result?.type == "request"){
         createAdminNotification(result?.type, result?.orderId ,'New Service Order');
       }
       

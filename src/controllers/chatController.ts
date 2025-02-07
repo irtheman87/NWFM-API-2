@@ -15,6 +15,7 @@ import mongoose, { Schema } from 'mongoose';
 import IssuesThread from '../models/IssueThread';
 import Consultant from '../models/consultant';
 import Notification from '../models/Notification';
+import { createAdminNotification, createNotification } from '../utils/UtilityFunctions';
 
 const s3 = new S3Client({
     region: process.env.AWS_REGION,
@@ -425,6 +426,8 @@ export const reportIssue = async (req: Request, res: Response): Promise<Response
       status: 'pending', // Default status is 'pending'
       cid,
     });
+    
+     createAdminNotification('Issue', orderId ,'New Issue Reported');
 
     return res.status(201).json({ message: 'Issue reported successfully', issue: newIssue });
   } catch (error) {
@@ -504,6 +507,18 @@ export const createIssueThread = async (req: Request, res: Response): Promise<Re
   }
 
   try {
+    // Fetch issue once and check if it exists
+    const issue = await Issue.findById(isid).exec();
+    if (!issue) {
+      return res.status(404).json({ message: 'Issue not found' });
+    }
+
+    const userpostId = issue.uid; // User who posted the issue
+
+    if (!userpostId) {
+      return res.status(404).json({ message: 'User associated with this issue not found' });
+    }
+
     // Check if an IssueThread with the specified `isid` and role "admin" already exists
     const existingThread = await IssuesThread.findOne({ isid, role: 'admin' });
 
@@ -515,29 +530,52 @@ export const createIssueThread = async (req: Request, res: Response): Promise<Re
       role,
     });
 
-    if (!existingThread) {
-      if (role === 'admin') {
-        // If no thread exists with role admin and the current role is admin, update issue status
-        const updatedIssue = await Issue.findOneAndUpdate(
-          { _id: isid }, // Assuming the `isid` matches the `_id` field in the `Issues` collection
-          { status: 'opened' },
-          { new: true } // Return the updated issue document
-        );
+    if (!existingThread && role === 'admin') {
+      // If no admin thread exists and role is admin, update issue status
+      const updatedIssue = await Issue.findByIdAndUpdate(
+        isid, // Directly using `_id`
+        { status: 'opened' },
+        { new: true } // Return updated document
+      );
 
-        if (!updatedIssue) {
-          return res.status(404).json({ message: 'Associated issue not found, but thread created' });
-        }
-
-        const savedThread = await newThread.save();
-        return res.status(201).json({
-          message: 'Issue thread created successfully and issue status updated to "opened"',
-          thread: savedThread,
-          issue: updatedIssue,
-        });
+      if (!updatedIssue) {
+        return res.status(404).json({ message: 'Failed to update issue status, but thread created' });
       }
+
+      // Create notification for the original poster
+      createNotification(
+        userpostId.toString(),
+        uid.toString(),
+        role,
+        'Reply',
+        isid.toString(),
+        'Admin Replied',
+        'Admin just responded to your opened issue'
+      );
+
+      // Save thread after notification
+      const savedThread = await newThread.save();
+      return res.status(201).json({
+        message: 'Issue thread created successfully and issue status updated to "opened"',
+        thread: savedThread,
+        issue: updatedIssue,
+      });
     }
 
-    // Save the thread regardless of role if a thread already exists or role isn't admin
+    if (role !== 'admin') {
+      // Create notification for the admin
+      createNotification(
+        uid.toString(),
+        userpostId.toString(),
+        role,
+        'Reply',
+        isid.toString(),
+        'User Replied',
+        'User just responded to your issue'
+      );
+    }
+
+    // Save thread regardless of role if a thread already exists
     const savedThread = await newThread.save();
     return res.status(201).json({
       message: 'Issue thread created successfully',
@@ -548,6 +586,7 @@ export const createIssueThread = async (req: Request, res: Response): Promise<Re
     return res.status(500).json({ message: 'Failed to create issue thread', error });
   }
 };
+
 
 export const markNotificationAsRead = async (req: Request, res: Response): Promise<Response> => {
   const { notificationId } = req.params; // ID of the notification to update

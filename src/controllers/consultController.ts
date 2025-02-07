@@ -22,7 +22,7 @@ import Notification from '../models/Notification';
 import Task from '../models/task'; // Ensure this path points to your Task model file
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
-import { createNotification, credit, debit } from '../utils/UtilityFunctions';
+import { createAdminNotification, createNotification, credit, debit } from '../utils/UtilityFunctions';
 import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne} from '../utils/UtilityFunctions';
 import { fetchConsultantEmail, fetchUserEmail } from './adminController';
 import { uploads } from '../utils/UtilityFunctions';
@@ -1480,7 +1480,7 @@ async function chatTransaction(
     // Consultant Notification Created
     createNotification(cid.toString(), userId.toString(), 'consultant', 'Chat', newTransaction.orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(userId.toString(), cid.toString(), 'user', 'Chat', newTransaction.orderId.toString(), 'Chat Assigned', 'Your Chat Request Has Been Assigned to a Consultant');
+    createNotification(userId.toString(), cid.toString(), 'user', 'Chat', newTransaction.orderId.toString(), 'Set Your Chat Date', 'An Email Has Been Sent to you with Link to Set or Accept New Chat Date');
 
     const email = await fetchConsultantEmail(cid);
     const useremail = await fetchUserEmail(userId);
@@ -1511,7 +1511,7 @@ async function chatTransaction(
       try {
         await sendEmail({
           to: useremail,
-          subject: 'New Order',
+          subject: 'New Caht Assigned',
           text: `Select your desired date and time to book a Chat here https://nollywood-filmaker-deploy.vercel.app/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}`,
         });
         console.log('Email sent successfully.');
@@ -1625,6 +1625,17 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
       { stattusof: 'ready' }, // Update the stattusof field to "ready"
       { new: true } // Return the updated document
     );
+
+    const tasks = await Task.find({ orderId: orderId }).exec();
+
+    if (!tasks || tasks.length === 0) {
+      return res.status(404).json({ message: "No task found for the given orderId" });
+    }
+
+// Assuming you expect only one task per orderId, take the first task
+    const task = tasks[0];
+
+    createNotification(task.uid.toString(), task.cid.toString(), 'user', 'Files', orderId.toString(), 'New Files', 'You Recieved New Files for Your Request Service');
 
     return res.status(200).json({
       message: 'Files uploaded and records created successfully',
@@ -1988,6 +1999,8 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
     if (!wallet) {
       return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });
     }
+
+    createAdminNotification('Withdrawal', userId ,'New Withdrawal Request');
 
     return res.status(200).json({
       message: "Withdrawal created successfully. Pending approval.",

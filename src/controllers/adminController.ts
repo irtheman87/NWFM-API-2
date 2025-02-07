@@ -2427,6 +2427,8 @@ export const completeDebit = async (req: Request, res: Response): Promise<Respon
     walletHistory.status = "completed";
     await walletHistory.save();
 
+    createNotification(cid.toString(), '001', 'consultant', 'Withdrawal', orderId.toString(), 'Withdrawal Approved', 'Your Withdrawal has been approved');
+
     console.log("Withdrawal completed and wallet updated:", wallet);
 
     return res.status(200).json({
