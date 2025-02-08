@@ -61,17 +61,17 @@ function getDayOfWeek(date: Date | string): string {
 
 
 export const ReadScriptTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes, pageCount} = req.body;
+  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
 
   try {
 
     const price = await getServicePriceByName(title);
     const userEmail = await fetchUserEmailById(userId);
 
-    const pageCountString = pageCount; // Example from FormData
-    const pageCountArray = JSON.parse(pageCountString);
+    // const pageCountString = pageCount; // Example from FormData
+    // const pageCountArray = JSON.parse(pageCountString);
 
-     console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
+    //  console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
 
     try {
       // Get the list of indexes for the Transaction collection
@@ -91,37 +91,42 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
-    if (!Array.isArray(pageCountArray)) {
-      return res.status(400).json({ message: "pageCount must be an array" });
-    }
+    // if (!Array.isArray(pageCountArray)) {
+    //   return res.status(400).json({ message: "pageCount must be an array" });
+    // }
 
     // Define the pricing rules
-    const rateOne = 10000000; // for pages between 20 and 50 (inclusive)
-    const rateTwo = 15000000; // for pages between 51 and 100 (inclusive)
+    // const rateOne = 5000000; // for pages between 20 and 50 (inclusive)
+    // const rateTwo = 10000000; // for pages between 51 and 100 (inclusive)
 
     // Initialize the total price
     let totalPrice = 0;
 
-    // Loop through each page count in the array
-    for (const count of pageCountArray) {
-      // Validate that each element is a number
-      if (typeof count !== 'number') {
-        return res.status(400).json({ message: "Each element in pageCount must be a number" });
-      }
+    // // Loop through each page count in the array
+    // for (const count of pageCountArray) {
+    //   // Validate that each element is a number
+    //   if (typeof count !== 'number') {
+    //     return res.status(400).json({ message: "Each element in pageCount must be a number" });
+    //   }
 
-      // Check which pricing range the count falls into
-      if (count >= 20 && count <= 50) {
-        totalPrice += rateOne;
-      } else if (count >= 51 && count <= 100) {
-        totalPrice += rateTwo;
-      } else {
-        // If a page count is out of range, return an error or skip as needed.
-        // Here, we choose to return an error.
-        return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
-      }
+    //   // Check which pricing range the count falls into
+    //   if (count >= 1 && count <= 50) {
+    //     totalPrice += rateOne;
+    //   } else if (count >= 51 && count <= 100) {
+    //     totalPrice += rateTwo;
+    //   } else {
+    //     // If a page count is out of range, return an error or skip as needed.
+    //     // Here, we choose to return an error.
+    //     return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
+    //   }
+    // }
+
+    if(!showtype){
+      totalPrice = Number(price);
+    }else{
+      totalPrice = (5000000 * Number(episodes)) + 5000000;
     }
-    
-    totalPrice += 5000000;
+  
     // Save transaction data
     const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
     await newTransaction.save();
@@ -651,12 +656,17 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, visualStyle, info, budgetrange, fileName, showtype, episodes
+    actors, crew, visualStyle, info, budgetrange, fileName, showtype, episodes, pageCount
   } = req.body;
 
   try {
     const price = await getServicePriceByName(title);
     const userEmail = await fetchUserEmailById(userId);
+
+    const pageCountString = pageCount; // Example from FormData
+    const pageCountArray = JSON.parse(pageCountString);
+
+     console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
 
     try {
       // Get the list of indexes for the Transaction collection
@@ -675,11 +685,43 @@ export const createAPitch = async (req: Request, res: Response) => {
     } catch (error) {
       console.error('Error checking or dropping index:', error);
     }
+
+    if (!Array.isArray(pageCountArray)) {
+      return res.status(400).json({ message: "pageCount must be an array" });
+    }
+
+    // Define the pricing rules
+    const rateOne = 5000000; // for pages between 20 and 50 (inclusive)
+    const rateTwo = 10000000; // for pages between 51 and 100 (inclusive)
+
+    // Initialize the total price
+    let totalPrice = 0;
+
+    // Loop through each page count in the array
+    for (const count of pageCountArray) {
+      // Validate that each element is a number
+      if (typeof count !== 'number') {
+        return res.status(400).json({ message: "Each element in pageCount must be a number" });
+      }
+
+      // Check which pricing range the count falls into
+      if (count >= 1 && count <= 50) {
+        totalPrice += rateOne;
+      } else if (count >= 51 && count <= 100) {
+        totalPrice += rateTwo;
+      } else {
+        // If a page count is out of range, return an error or skip as needed.
+        // Here, we choose to return an error.
+        return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
+      }
+    }
+    
+    totalPrice += 5000000;
     
 
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' 
     });
     await newTransaction.save();
 
@@ -706,13 +748,14 @@ export const createAPitch = async (req: Request, res: Response) => {
       episodes: episodes,
     });
     await newRequest.save();
+    
 
     const currentId = newTransaction.id;
     // Send a single JSON response
       const paymentReq = {
         body: {
           email: userEmail,
-          amount: price,
+          amount: totalPrice,
           id: currentId,
         },
       };
