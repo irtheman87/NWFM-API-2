@@ -54,7 +54,14 @@ export const validateUserRequest = async (req: Request, res: Response): Promise<
     // Extract orderIds from the completed transactions
     const completedOrderIds = completedTransactions.map(transaction => transaction.orderId);
 
-    // Find requests where the orderId is in the completed transactions
+    // Get the **total count** of matching documents
+    const totalRequests = await RequestModel.countDocuments({
+      userId: decoded.userId,
+      orderId: { $in: completedOrderIds },
+      stattusof: { $ne: 'completed' }, // Exclude completed requests
+    });
+
+    // Find requests with pagination
     const requests = await RequestModel.find({
       userId: decoded.userId,
       orderId: { $in: completedOrderIds },
@@ -62,7 +69,7 @@ export const validateUserRequest = async (req: Request, res: Response): Promise<
     })
       .sort({ createdAt: sort === 'asc' ? 1 : -1 }) // Sort based on the sort parameter
       .skip((pageNumber - 1) * limitNumber) // Apply pagination
-      .limit(limitNumber); // Limit the number of results
+      .limit(limitNumber); // Limit the number of results per page
 
     // Check if any requests were found
     if (!requests.length) {
@@ -74,7 +81,8 @@ export const validateUserRequest = async (req: Request, res: Response): Promise<
       message: 'Completed requests fetched successfully',
       page: pageNumber,
       limit: limitNumber,
-      total: requests.length,
+      total: totalRequests, // Total number of matching documents
+      totalPages: Math.ceil(totalRequests / limitNumber), // Calculate total pages
       requests,
     });
   } catch (error) {
@@ -82,6 +90,7 @@ export const validateUserRequest = async (req: Request, res: Response): Promise<
     return res.status(403).json({ message: 'Invalid or expired token.' });
   }
 };
+
 
 export const validateUserRequestForAdmin = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params; // User ID from route parameters
