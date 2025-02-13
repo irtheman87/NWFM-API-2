@@ -7,7 +7,8 @@ const sendEmail = async ({ to, subject, text }: { to: string; subject: string; t
   // Create the transporter using Brevo SMTP settings
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_SERVER, // SMTP server (e.g., smtp-relay.sendinblue.com)
-    port: parseInt(process.env.SMTP_PORT || '587'), // SMTP port (587 for TLS)
+    port: 465, // Using Port 465 for Implicit SSL/TLS encryption
+    secure: true, // True for 465 (Implicit SSL), false for 587 (Explicit TLS)
     auth: {
       user: process.env.SMTP_USER, // Your Brevo email
       pass: process.env.SMTP_PASS, // Your Brevo SMTP password
