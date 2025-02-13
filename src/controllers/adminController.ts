@@ -431,8 +431,13 @@ if (existingAppointmentsCount >= 3) {
           await sendEmail({
             to: email,
             subject: 'New Order',
-            text: `You Have A New Order`,
-          });
+            text: `You Have A New Order. Please check your dashboard for details.`,
+            html: `
+              <h1>New Order Received</h1>
+              <p>You have a new order. Please check your dashboard for details.</p>
+              <p><a href="https://nollywoodfilmmaker.com/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
+            `,
+          });          
           console.log('Email sent successfully.');
         } catch (error) {
           console.error('Failed to send email:', error);
@@ -602,8 +607,13 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
           await sendEmail({
             to: email,
             subject: 'New Order',
-            text: `You Have A New Order`,
-          });
+            text: `You Have A New Order. Please check your dashboard for details.`,
+            html: `
+              <h1>New Order Received</h1>
+              <p>You have a new order. Please check your dashboard for details.</p>
+              <p><a href="https://nollywoodfilmmaker.com/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
+            `,
+          });          
           console.log('Email sent successfully.');
         } catch (error) {
           console.error('Failed to send email:', error);
@@ -961,7 +971,7 @@ export const createConsultant = async (req: Request, res: Response): Promise<Res
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    // Check if the user is an admin
+
     // Validate input
     if (!fname || !lname || !email || !phone || !state || !country) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -990,40 +1000,41 @@ export const createConsultant = async (req: Request, res: Response): Promise<Res
 
     await newConsultant.save();
 
-    // Send verification email
-    // const transporter = nodemailer.createTransport({
-    //   service: 'gmail',
-    //   auth: {
-    //     user: process.env.EMAIL_USER,
-    //     pass: process.env.EMAIL_PASSWORD,
-    //   },
-    // });
+    // Generate verification link
+    const verificationLink = `https://nollywoodfilmmaker.com/consultants/auth/set-password?token=${verificationToken}`;
 
-    const verificationLink = `https://nollywood-filmaker-deploy.vercel.app/consultants/auth/set-password?token=${verificationToken}`;
-    // const mailOptions = {
-    //   to: email,
-    //   subject: 'Verify Your Email',
-    //   html: `
-    //     <h1>Welcome to Our Platform, ${fname}!</h1>
-    //     <p>Please click the link below to verify your email and set your password:</p>
-    //     <a href="${verificationLink}">${verificationLink}</a>
-    //   `,
-    // };
+    // Send verification email with HTML content
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Account Created (Verify Your Email)',
+        text: `Welcome to Nollywood Filmmaker, ${fname}!
+        
+        Your consultant account has been created successfully.
+      
+        Please verify your email and set your password by clicking the link below:
+        
+        ${verificationLink}
+        
+        If you cannot click the link, copy and paste it into your browser.
+        
+        Thank you for joining us!`,
+        html: `
+          <h1>Welcome to Nollywood Filmmaker, ${fname}!</h1>
+          <p>Your consultant account has been created successfully.</p>
+          <p>Please verify your email and set your password by clicking the link below:</p>
+          <a href="${verificationLink}" style="display:inline-block; padding:10px 20px; color:#fff; background:#007BFF; text-decoration:none; border-radius:5px;">Verify Email</a>
+          <p>If the button above does not work, you can use the following link:</p>
+          <p><a href="${verificationLink}">${verificationLink}</a></p>
+          <p>Thank you for joining us!</p>
+        `,
+      });
+      
 
-    // await transporter.sendMail(mailOptions);
-
-    (async () => {
-      try {
-        await sendEmail({
-          to: email,
-          subject: 'Account Created (Verify Your Email)',
-          text: `You Consultant Account Has Been Created ${verificationLink}`,
-        });
-        console.log('Email sent successfully.');
-      } catch (error) {
-        console.error('Failed to send email:', error);
-      }
-    })();
+      console.log('Verification email sent successfully.');
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+    }
 
     return res.status(201).json({ message: 'Consultant created and verification email sent' });
   } catch (error) {
@@ -1031,6 +1042,7 @@ export const createConsultant = async (req: Request, res: Response): Promise<Res
     return res.status(500).json({ message: 'Failed to create consultant', error });
   }
 };
+
 
 export const fetchIssuesWithUserDetails = async (req: Request, res: Response): Promise<Response> => {
   try {
