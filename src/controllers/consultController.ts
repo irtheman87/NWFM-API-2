@@ -871,8 +871,10 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
       to: consultant.email,
       subject: 'Password Reset Request',
       text: `You requested a password reset. Click the following link to reset your password: ${resetUrl}. If you did not request this, please ignore this email.`,
-    });
-
+      html: `<p>You requested a password reset.</p>
+             <p>Click the following link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p>
+             <p>If you did not request this, please ignore this email.</p>`,
+    });    
     res.status(200).json({ message: 'Password reset link has been sent to your email.' });
   } catch (error) {
     console.error('Error requesting password reset:', error);
@@ -1497,8 +1499,10 @@ async function chatTransaction(
         await sendEmail({
           to: email,
           subject: 'New Order',
-          text: `You Have A New Order`,
-        });
+          text: 'You have a new order.',
+          html: `<p><strong>You have a new order.</strong></p>
+                 <p>Please check your dashboard for more details.</p>`,
+        });        
         console.log('Email sent successfully.');
       } catch (error) {
         console.error('Failed to send email:', error);
@@ -1511,9 +1515,12 @@ async function chatTransaction(
       try {
         await sendEmail({
           to: useremail,
-          subject: 'New Caht Assigned',
-          text: `Select your desired date and time to book a Chat here https://nollywood-filmaker-deploy.vercel.app/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}`,
-        });
+          subject: 'New Chat Assigned',
+          text: `Select your desired date and time to book a chat here: https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}`,
+          html: `<p><strong>New Chat Assigned</strong></p>
+                 <p>Select your desired date and time to book a chat:</p>
+                 <p><a href="https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}" target="_blank">Click here to book your chat</a></p>`,
+        });        
         console.log('Email sent successfully.');
       } catch (error) {
         console.error('Failed to send email:', error);

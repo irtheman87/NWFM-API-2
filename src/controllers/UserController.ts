@@ -143,7 +143,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
     // Send a verification email
     
-    const verificationLink = `http://nollywood-filmaker-deploy.vercel.app/auth/verify?vtoken=${verificationToken}`;
+    const verificationLink = `https://nollywoodfilmmaker.com/auth/verify?vtoken=${verificationToken}`;
     // const verificationLink = `${process.env.BASE_URL}/api/users/verify/${verificationToken}`;
     // await sendEmail(email, `Verify your email`, `Click here to verify your email: ${verificationLink}`);
 
@@ -152,8 +152,9 @@ export const registerUser = async (req: Request, res: Response) => {
         await sendEmail({
           to: email,
           subject: 'Verify your Account',
-          text: `Click here to verify your email: ${verificationLink}`,
-        });
+          text: `Click here to verify your email: ${verificationLink}`, // Plain text fallback
+          html: `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`, // HTML version
+        });        
         console.log('Email sent successfully.');
       } catch (error) {
         console.error('Failed to send email:', error);
@@ -182,7 +183,7 @@ export const loginUser = async (req: Request, res: Response) => {
     // Ensure the user is verified
     if (!user.isVerified) {
 
-      const verificationLink = `http://nollywood-filmaker-deploy.vercel.app/auth/verify?vtoken=${user.verificationToken}`;
+      const verificationLink = `https://nollywoodfilmmaker.com/auth/verify?vtoken=${user.verificationToken}`;
       // await sendEmail(email, `Verify your email`, `Click here to verify your email: ${verificationLink}`);
   
       (async () => {
@@ -190,8 +191,9 @@ export const loginUser = async (req: Request, res: Response) => {
           await sendEmail({
             to: email,
             subject: 'Verify your Account',
-            text: `Click here to verify your email: ${verificationLink}`,
-          });
+            text: `Click here to verify your email: ${verificationLink}`, // Plain text fallback
+            html: `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`, // HTML version
+          });          
           console.log('Email sent successfully.');
         } catch (error) {
           console.error('Failed to send email:', error);
@@ -797,14 +799,15 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 
     // Generate the password reset URL
     // const resetUrl = `${req.protocol}://${req.get('host')}/api/users/resetpassword/${resetToken}`;
-    const resetUrl = `https://nollywood-filmaker-deploy.vercel.app/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `https://nollywoodfilmmaker.com/auth/reset-password?token=${resetToken}`;
     console.log(resetUrl);
     
     await sendEmail({
       to: user.email,
       subject: 'Password Reset Request',
       text: `You requested a password reset. Click the following link to reset your password: ${resetUrl}. If you did not request this, please ignore this email.`,
-    });
+      html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p><p>If you did not request this, please ignore this email.</p>`,
+    });    
 
     res.status(200).json({ message: 'Password reset link has been sent to your email.' });
   } catch (error) {
@@ -1375,8 +1378,9 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
         await sendEmail({
           to: email,
           subject: 'New Order',
-          text: `You Have A New Order`,
-        });
+          text: `You Have A New Order.`,
+          html: `<p>You have a new order.</p>`,
+        });        
         console.log('Email sent successfully.');
       } catch (error) {
         console.error('Failed to send email:', error);
