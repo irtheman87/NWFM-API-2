@@ -1188,10 +1188,24 @@ export const fetchConsultantById = async (req: Request, res: Response): Promise<
     }
 
     // Add dummy data
+    const totalWithdrawals = await WalletHistory.aggregate([
+      { $match: { cid: id, type: 'withdrawal', status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    // Get wallet balance
+    const wallet = await Wallet.findOne({ cid: id });
+
+    if (!wallet) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+
+    const subtotal = totalWithdrawals && totalWithdrawals.length > 0 ? totalWithdrawals[0].total : 0;
+
     const stats = {
-      alltimerev: Math.floor(Math.random() * 10000) + 1000, // Random number between 1000 and 10999
-      alltimependingrev: Math.floor(Math.random() * 5000) + 500, // Random number between 500 and 5499
-      alltimeclaimedrev: Math.floor(Math.random() * 3000) + 200, // Random number between 200 and 3199
+      alltimerev: (subtotal + wallet.balance)/100, // Random number between 1000 and 10999
+      alltimependingrev: wallet.balance/100, // Random number between 500 and 5499
+      alltimeclaimedrev: subtotal/100, // Random number between 200 and 3199
     };
 
     return res.status(200).json({

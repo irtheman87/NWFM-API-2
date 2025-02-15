@@ -6,7 +6,7 @@ import { registerConsult, loginConsult, refreshConsultantToken, createAvailabili
   fetchHistoryByCid, fetchAssignmentsAndRequests, fetchPendingRequestsByConsultantExpertise, completeRequest, fetchNotifications, 
   getTasksByConsultant, handleChatTransaction, uploadConsultantFiles, fetchResolveFiles, verifyEmailAndSetPassword, getWalletByCid,
   getWalletHistory, fetchDataByType, createWithdrawal, fetchWalletHistoryTotalsByCID, fetchBankDetailsByCID, createBank,
-fetchWithdrawalsByCID, fetchDepositsByCID, fetchDepositById, fetchWithdrawalById, 
+fetchWithdrawalsByCID, fetchDepositsByCID, fetchDepositById, fetchWithdrawalById, getCompletedCounts,
 updateBankDetails} from '../controllers/consultController';
 import { isAdmin, isnotAdmin } from '../middleware/authMiddleware';
 import { verifyConsultantToken } from '../middleware/TokenValidator';
@@ -57,6 +57,7 @@ router.get('/wallet/revenues/:cid', fetchDepositsByCID);
 router.get('/withdrawal/:id', fetchWithdrawalById);
 router.get('/deposit/:id', fetchDepositById);
 router.put('/update-bank', updateBankDetails);
+router.get('/completed-counts/:cid', getCompletedCounts);
 
 
 router.get('/wallet-history-totals', async (req, res) => {

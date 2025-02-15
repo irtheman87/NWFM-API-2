@@ -35,6 +35,7 @@ import WalletHistory from '../models/walletHistoryModel';
 import Company from '../models/Company';
 import Crew from '../models/Crew';
 import Bank from '../models/Bank';
+import task from '../models/task';
 
 
 const s3 = new S3Client({
@@ -2558,5 +2559,71 @@ export const updateBankDetails = async (req: Request, res: Response): Promise<Re
       message: "An error occurred while updating bank details.",
       error: error,
     });
+  }
+};
+
+
+export const getCompletedCounts = async (req: Request, res: Response) => {
+  const { cid } = req.params; // Get `cid` from request parameters
+
+  if (!cid) {
+    return res.status(400).json({ message: 'Consultant ID (cid) is required' });
+  }
+
+  try {
+
+    const authHeader = req.headers.authorization;
+
+    // Check Authorization Header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Consultant Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+    // Count completed Tasks directly by `cid`
+
+
+    // Find completed Requests (where `stattusof` is 'completed') and extract `orderId`s
+    const completedOrderIds = await RequestModel.find({ stattusof: 'completed' }).distinct('orderId');
+
+    const taskCount = await Task.countDocuments({ cid, status: 'completed' });
+
+    const assignedOrderIds = await RequestModel.find({ stattusof: { $in: ['completed', 'ongoing'] } }).distinct('orderId');
+
+    // Count Appointments where `orderId` is in the list of completed Requests
+    const appointmentCount = await AppointmentModel.countDocuments({ cid, orderId: { $in: completedOrderIds } });
+
+    const assignedCount =  await AppointmentModel.countDocuments({ cid, orderId: { $in: assignedOrderIds } });
+
+    // Combined count
+    const totalCompleted = appointmentCount + taskCount;
+
+    return res.status(200).json({
+      completed: totalCompleted,
+      conversations: appointmentCount,
+      assigned : assignedCount,
+    });
+  } catch (error) {
+    console.error('Error fetching completed counts:', error);
+    return res.status(500).json({ message: 'Internal server error', error });
   }
 };
