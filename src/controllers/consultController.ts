@@ -1223,7 +1223,7 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
     const price = transaction.price;
 
 
-    const actualIncome = parseFloat(price) * 0.5;
+    const actualIncome = parseFloat(price) * 0.6;
         // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
     credit(userId, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
 

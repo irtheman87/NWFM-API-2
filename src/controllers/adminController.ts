@@ -2248,10 +2248,19 @@ export async function setRequestStatusToCompleted(req: Request, res: Response): 
     }
 
     const price = transaction.price;
+    let actualIncome = 0;
 
     // Fetch the `cid` from the Task model
     const cid = task.cid;
-    const actualIncome = parseFloat(price) * 0.5;
+    if(transaction.title == "Read my Script and advice" || transaction.title == "Watch the Final cut of my film and advice" || transaction.title == "Look at my Budget and advice" ){
+      const working_cost = parseFloat(price)  - 5000000;
+      const newCost = working_cost - 1000000;
+      actualIncome = newCost * 0.5;
+    }else{
+      const newCost = parseFloat(price) - 1000000;
+      actualIncome = newCost * 0.5;
+    }
+
     // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
     credit(cid, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
 
