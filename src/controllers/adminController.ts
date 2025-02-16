@@ -943,6 +943,57 @@ export const fetchAllConsultants = async (req: Request, res: Response): Promise<
   }
 };
 
+export const getAllConsultantsList = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Verify Authorization Header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Extract search query
+    const search = req.query.search as string;
+
+    // Define query
+    const query: any = { role: 'consultant', status: 'active' };
+
+    if (search) {
+      query.$or = [
+        { fname: { $regex: search, $options: 'i' } }, // Case-insensitive search on fname
+        { lname: { $regex: search, $options: 'i' } }, // Case-insensitive search on lname
+      ];
+    }
+
+    // Fetch consultants based on search criteria
+    const consultants = await Consultant.find(query, 'fname lname email phone expertise profilepics location createdAt');
+
+    return res.status(200).json({ consultants });
+  } catch (error) {
+    console.error('Error fetching consultants:', error);
+    return res.status(500).json({ message: 'Failed to fetch consultants', error });
+  }
+};
+
 export const createConsultant = async (req: Request, res: Response): Promise<Response> => {
   const { fname, lname, email, phone, state, country, expertise } = req.body;
 
