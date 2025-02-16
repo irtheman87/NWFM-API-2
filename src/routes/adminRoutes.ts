@@ -6,7 +6,7 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
      markNotificationAsRead, suspendConsultant, deleteConsultant, updateConsultant, getAverageRatings, getTopConsultantsByRating,
     getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithRequests, fetchWithdrawals, fetchDataByType,
     completeDebit, fetchWalletHistoryTotalsByCID, fetchAllWithdrawals, fetchAllDeposits, fetchTotalTransactions, fetchWithdrawalById,
-  fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId} from '../controllers/adminController';
+  fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, fetchAllConsultantsList} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -31,7 +31,7 @@ router.get('/stats/user-consultants', fetchUserAndConsultantStats);
 
 router.get('/stats/newest-users', fetchTopNewestUsers);
 
-router.get('/fetch/consultants', fetchAllConsultants);
+router.get('/fetch/consultants', fetchAllConsultantsList);
 
 router.post('/create/consultants', createConsultant);
 

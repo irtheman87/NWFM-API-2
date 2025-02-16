@@ -913,23 +913,30 @@ export const fetchAllConsultants = async (req: Request, res: Response): Promise<
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    // Extract search query
-    const search = req.query.search as string;
+    // Extract pagination query parameters
+    const page = parseInt(req.query.page as string, 10) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit as string, 10) || 10; // Default to 10 per page
+    const skip = (page - 1) * limit;
 
-    // Define query
-    const query: any = { role: 'consultant', status: 'active' };
+    // Fetch consultants with pagination
+    const consultants = await Consultant.find(
+      { role: 'consultant', status: 'active' },
+      'fname lname email phone expertise profilepics location createdAt' // Select specific fields
+    )
+      .skip(skip)
+      .limit(limit);
 
-    if (search) {
-      query.$or = [
-        { fname: { $regex: search, $options: 'i' } }, // Case-insensitive search on fname
-        { lname: { $regex: search, $options: 'i' } }, // Case-insensitive search on lname
-      ];
-    }
+    const totalConsultants = await Consultant.countDocuments({ role: 'consultant' });
 
-    // Fetch consultants based on search criteria
-    const consultants = await Consultant.find(query, 'fname lname email phone expertise profilepics location createdAt');
-
-    return res.status(200).json({ consultants });
+    return res.status(200).json({
+      consultants,
+      pagination: {
+        totalItems: totalConsultants,
+        totalPages: Math.ceil(totalConsultants / limit),
+        currentPage: page,
+        pageSize: limit,
+      },
+    });
   } catch (error) {
     console.error('Error fetching consultants:', error);
     return res.status(500).json({ message: 'Failed to fetch consultants', error });
