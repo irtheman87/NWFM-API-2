@@ -26,6 +26,7 @@ import Crew from '../models/Crew';
 import Company from '../models/Company';
 import CrewCompany from '../models/CrewCompany';
 import Resolve from '../models/Resolve';
+import UserModel from '../models/UserModel';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -2263,6 +2264,37 @@ export async function setRequestStatusToCompleted(req: Request, res: Response): 
 
     // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
     credit(cid, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
+
+//     const myrequest = await RequestModel.findOne({ orderId: result.orderId });
+
+// if (!request) {
+//   throw new Error("Request not found");
+// }
+
+const user = await User.findById(request.userId);
+
+if (!user) {
+  throw new Error("User not found");
+}
+
+await sendEmail({
+  to: user.email,
+  subject: "Request Completed",
+  text: `Thanks ${user.fname} ${user.lname} for using our request service.
+
+Here are some of our other services:
+- Service 1: https://example.com/service1
+- Service 2: https://example.com/service2
+- Service 3: https://example.com/service3
+`,
+  html: `<p>Thanks <strong>${user.fname} ${user.lname} </strong> for using our request service.</p>
+         <p>Here are some of our other services:</p>
+         <ul>
+           <li><a href="https://example.com/service1">Service 1</a></li>
+           <li><a href="https://example.com/service2">Service 2</a></li>
+           <li><a href="https://example.com/service3">Service 3</a></li>
+         </ul>`,
+});
 
     // Return the response with price information
     return res.status(200).json({

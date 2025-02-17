@@ -6,7 +6,7 @@ import { registerUser, loginUser, refreshToken, updateUserById, updateUserPasswo
 import { isnotAdmin } from '../middleware/authMiddleware';
 import { fetchServicesByType } from '../controllers/ServicesController';
 import Transaction from '../models/SetTransaction';
-import { IUser } from '../models/User';
+import User, { IUser } from '../models/User';
 import { ReadScriptTransaction, WatchFinalCutTransaction, BudgetTransaction, CreateBudgetTransaction, CreateMarketBudgetTransaction, createAPitch, createLegal, chatTransaction,
   getParameterHandler, uploadFiles, ExtendMyTime
  } from '../controllers/TransactionController';
@@ -18,6 +18,9 @@ import { Time } from '../types';
 import { createAdminNotification } from '../utils/UtilityFunctions';
 import { requestPasswordReset, resetPassword, fetchNotificationsForUser, fetchUserUpcomingRequest, getDailyAvailability, updateRequestAndCreateAppointment, fetchUserSpecificIssues } from '../controllers/UserController';
 import { request } from 'http';
+import sendEmail from '../utils/sendEmail';
+import RequestModel from '../models/Request';
+import UserModel from '../models/UserModel';
 
  const crypto = require('crypto');
 
@@ -109,7 +112,87 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
       if(result?.type == "Chat"){
         console.log(result?.type);
         const orderid =  result?.orderId as string;
-        // fetchRequestByOrderId(orderid); 
+        //fetchRequestByOrderId(orderid); 
+
+        const request = await RequestModel.findOne({ orderId: result.orderId });
+
+          if (!request) {
+            throw new Error("Request not found"); // Handle case where request is not found
+          }
+
+          const user = await User.findById(request.userId);
+
+          if (!user) {
+            throw new Error("User not found"); // Handle case where user is not found
+          }
+
+          await sendEmail({
+            to: user.email,
+            subject: 'Order Confirmed',
+            text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
+
+          Service Booked: ${request.nameofservice}
+          Price: ${result.price}
+          Date Booked: ${request.createdAt}
+          Time for Chat: ${request.booktime}
+
+          Here are some of our other services:
+          - Service 1: https://example.com/service1
+          - Service 2: https://example.com/service2
+          - Service 3: https://example.com/service3
+          `,
+            html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
+                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
+                  <p><strong>Price:</strong> ${result.price}</p>
+                  <p><strong>Date Booked:</strong> ${request.createdAt}</p>
+                  <p><strong>Time for Chat:</strong> ${request.booktime}</p>
+                  <p>Here are some of our other services:</p>
+                  <ul>
+                    <li><a href="https://example.com/service1">Service 1</a></li>
+                    <li><a href="https://example.com/service2">Service 2</a></li>
+                    <li><a href="https://example.com/service3">Service 3</a></li>
+                  </ul>`,
+          });
+ 
+      }else if(result?.type == "request"){
+        const request = await RequestModel.findOne({ orderId: result.orderId });
+
+          if (!request) {
+            throw new Error("Request not found"); // Handle case where request is not found
+          }
+
+          const user = await User.findById(request.userId);
+
+          if (!user) {
+            throw new Error("User not found"); // Handle case where user is not found
+          }
+
+          await sendEmail({
+            to: user.email,
+            subject: 'Order Confirmed',
+            text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
+
+          Service Booked: ${request.nameofservice}
+          Price: ${result.price}
+          Date Booked: ${request.createdAt}
+
+          Here are some of our other services:
+          - Service 1: https://example.com/service1
+          - Service 2: https://example.com/service2
+          - Service 3: https://example.com/service3
+          `,
+            html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
+                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
+                  <p><strong>Price:</strong> ${result.price}</p>
+                  <p><strong>Date Booked:</strong> ${request.createdAt}</p>
+                  <p>Here are some of our other services:</p>
+                  <ul>
+                    <li><a href="https://example.com/service1">Service 1</a></li>
+                    <li><a href="https://example.com/service2">Service 2</a></li>
+                    <li><a href="https://example.com/service3">Service 3</a></li>
+                  </ul>`,
+          });
+ 
       }
 
       if(result?.type == "Chat" || result?.type == "request"){

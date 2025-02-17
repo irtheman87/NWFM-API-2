@@ -8,6 +8,7 @@ import CrewCompany from "../models/CrewCompany";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import mongoose from "mongoose";
+import sendEmail from "../utils/sendEmail";
 
 // Initialize S3 client
 const s3 = new S3Client({
@@ -273,6 +274,14 @@ export const createCrewCompany = async (req: Request, res: Response) => {
 
     // Save to the database
     const savedCrewCompany = await newCrewCompany.save();
+
+    await sendEmail({
+      to: email,
+      subject: "You Joined Our Database",
+      text: `Thanks ${username} for joining our database.`,
+      html: `<p>Thanks <strong>${username}</strong> for joining our database.</p>`,
+    });
+    
 
     // Respond with success
     return res.status(201).json({
