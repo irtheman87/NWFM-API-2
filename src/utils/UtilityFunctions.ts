@@ -259,6 +259,16 @@ async function addWalletHistory(
   accountnumber?: string
 ): Promise<void> {
   try {
+    // Check if deposit with the same orderId already exists
+    if (orderId) {
+      const existingHistory = await WalletHistory.findOne({ orderId, type: 'deposit' }).exec();
+      if (existingHistory) {
+        console.log(`Deposit with orderId ${orderId} already exists. Skipping...`);
+        return; // Prevent duplicate entry
+      }
+    }
+
+    // Create new wallet history entry
     const history = new WalletHistory({
       cid,
       amount,
@@ -288,10 +298,21 @@ export async function credit(
     const wallet = await Wallet.findOne({ cid }).exec();
     if (!wallet) throw new Error('Wallet not found');
 
+    // Check if deposit with this orderId already exists in history
+    if (orderId) {
+      const existingHistory = await WalletHistory.findOne({ orderId, type: 'deposit' }).exec();
+      if (existingHistory) {
+        console.log(`Deposit with orderId ${orderId} already recorded. Skipping wallet credit.`);
+        return wallet; // Prevent duplicate deposit
+      }
+    }
+
+    // Credit the wallet
     wallet.balance += amount;
     wallet.availableBalance += amount;
     await wallet.save();
 
+    // Add wallet history
     await addWalletHistory(cid, amount, 'deposit', 'completed', orderId)
       .then(() => console.log('History added!'))
       .catch((error) => console.error('Failed to add history:', error));
@@ -302,6 +323,7 @@ export async function credit(
     throw new Error('Failed to credit wallet');
   }
 }
+
 
 // Function to debit the wallet
 export async function debit(
