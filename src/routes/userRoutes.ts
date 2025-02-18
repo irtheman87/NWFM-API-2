@@ -135,7 +135,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         }
         
         // Parse the chat start time (now safe to assume it's defined)
-        const chatStart = new Date(request.booktime);
+        const chatStart = new Date(request.booktime + 60 * 60 * 1000);
         // Set the event duration to 1 hour (adjust as needed)
         const chatEnd = new Date(chatStart.getTime() + 60 * 60 * 1000);
         
@@ -143,7 +143,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
           request.nameofservice!
         )}&dates=${formatDateForGoogleCalendar(chatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
-          `Price: ${result.price}\nDate Booked: ${request.createdAt}`
+          `Date Booked: ${request.createdAt}`
         )}`;
         
         
