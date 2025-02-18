@@ -135,17 +135,19 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         }
         
         // Parse the chat start time (now safe to assume it's defined)
-        const chatStart = new Date(request.booktime + 60 * 60 * 1000);
+        const chatStart = new Date(request.booktime);
+        // Adjust the time if it's always coming in 1hr behind your expected time:
+        const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
+        
         // Set the event duration to 1 hour (adjust as needed)
-        const chatEnd = new Date(chatStart.getTime() + 60 * 60 * 1000);
+        const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
         
         // Generate the Google Calendar URL with pre-filled event details.
         const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
           request.nameofservice!
-        )}&dates=${formatDateForGoogleCalendar(chatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+        )}&dates=${formatDateForGoogleCalendar(adjustedChatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
           `Date Booked: ${request.createdAt}`
         )}`;
-        
         
         await sendEmail({
           to: user.email,
@@ -180,7 +182,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
                    <li><a href="https://example.com/service2">Service 2</a></li>
                    <li><a href="https://example.com/service3">Service 3</a></li>
                  </ul>`,
-        });        
+        });              
  
       }else if(result?.type == "request"){
         const request = await RequestModel.findOne({ orderId: result.orderId });
