@@ -115,44 +115,72 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         //fetchRequestByOrderId(orderid); 
 
         const request = await RequestModel.findOne({ orderId: result.orderId });
-
-          if (!request) {
-            throw new Error("Request not found"); // Handle case where request is not found
-          }
-
-          const user = await User.findById(request.userId);
-
-          if (!user) {
-            throw new Error("User not found"); // Handle case where user is not found
-          }
-
-          await sendEmail({
-            to: user.email,
-            subject: 'Order Confirmed',
-            text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
-
-          Service Booked: ${request.nameofservice}
-          Price: ${result.price}
-          Date Booked: ${request.createdAt}
-          Time for Chat: ${request.booktime}
-
-          Here are some of our other services:
-          - Service 1: https://example.com/service1
-          - Service 2: https://example.com/service2
-          - Service 3: https://example.com/service3
-          `,
-            html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
-                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
-                  <p><strong>Price:</strong> ${result.price}</p>
-                  <p><strong>Date Booked:</strong> ${request.createdAt}</p>
-                  <p><strong>Time for Chat:</strong> ${request.booktime}</p>
-                  <p>Here are some of our other services:</p>
-                  <ul>
-                    <li><a href="https://example.com/service1">Service 1</a></li>
-                    <li><a href="https://example.com/service2">Service 2</a></li>
-                    <li><a href="https://example.com/service3">Service 3</a></li>
-                  </ul>`,
-          });
+        if (!request) {
+          throw new Error("Request not found"); // Handle case where request is not found
+        }
+        
+        const user = await User.findById(request.userId);
+        if (!user) {
+          throw new Error("User not found"); // Handle case where user is not found
+        }
+        
+        // Ensure booktime is defined
+        if (!request.booktime) {
+          throw new Error("Book time is missing from the request");
+        }
+        
+        // Helper function to format a Date for Google Calendar (YYYYMMDDTHHmmssZ)
+        function formatDateForGoogleCalendar(date: Date): string {
+          return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        }
+        
+        // Parse the chat start time (now safe to assume it's defined)
+        const chatStart = new Date(request.booktime);
+        // Set the event duration to 1 hour (adjust as needed)
+        const chatEnd = new Date(chatStart.getTime() + 60 * 60 * 1000);
+        
+        // Generate the Google Calendar URL with pre-filled event details.
+        const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+          request.nameofservice!
+        )}&dates=${formatDateForGoogleCalendar(chatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+          `Price: ${result.price}\nDate Booked: ${request.createdAt}`
+        )}`;
+        
+        
+        await sendEmail({
+          to: user.email,
+          subject: 'Order Confirmed',
+          text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
+        
+        Service Booked: ${request.nameofservice}
+        Price: ${result.price}
+        Date Booked: ${request.createdAt}
+        Time for Chat: ${request.booktime}
+        
+        Add to Google Calendar: ${googleCalendarUrl}
+        
+        Here are some of our other services:
+        - Service 1: https://example.com/service1
+        - Service 2: https://example.com/service2
+        - Service 3: https://example.com/service3
+        `,
+          html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
+                 <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
+                 <p><strong>Price:</strong> ${result.price}</p>
+                 <p><strong>Date Booked:</strong> ${request.createdAt}</p>
+                 <p><strong>Time for Chat:</strong> ${request.booktime}</p>
+                 <p>
+                   <a href="${googleCalendarUrl}" target="_blank" style="color: #1a73e8; text-decoration: none;">
+                     Add to Google Calendar
+                   </a>
+                 </p>
+                 <p>Here are some of our other services:</p>
+                 <ul>
+                   <li><a href="https://example.com/service1">Service 1</a></li>
+                   <li><a href="https://example.com/service2">Service 2</a></li>
+                   <li><a href="https://example.com/service3">Service 3</a></li>
+                 </ul>`,
+        });        
  
       }else if(result?.type == "request"){
         const request = await RequestModel.findOne({ orderId: result.orderId });
