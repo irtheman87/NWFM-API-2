@@ -985,6 +985,7 @@ export const updateConsultantPreference = async (req: Request, res: Response): P
 
 export const fetchAssignmentsAndRequests = async (req: Request, res: Response): Promise<Response> => {
   const { cid } = req.params;
+  const { search } = req.query; // Capture search query
 
   try {
     // Validate consultant ID (cid)
@@ -1002,15 +1003,23 @@ export const fetchAssignmentsAndRequests = async (req: Request, res: Response): 
       return res.status(404).json({ requests: [] }); // No assignments found
     }
 
-    // Fetch and sort requests by `booktime` in ascending order (earliest first)
+    // Build request filter
+    const requestFilter: any = {
+      orderId: { $in: orderIds }, // Match order IDs
+      type: 'Chat',
+      stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
+    };
+
+    // Apply search filter if `search` is provided
+    if (search) {
+      requestFilter.chat_title = { $regex: new RegExp(search as string, 'i') }; // Case-insensitive search
+    }
+
+    // Fetch and sort requests by `booktime` (newest first)
     const requests = await RequestModel.find(
-      {
-        orderId: { $in: orderIds }, // Match order IDs
-        type: 'Chat',
-        stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
-      },
+      requestFilter,
       'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Fields to return
-    ).sort({ booktime: -1 }); // Sort by `booktime` (ascending)
+    ).sort({ booktime: -1 });
 
     // Process and format each request to include `startTime`
     const processedRequests = requests.map((request) => {
@@ -1039,6 +1048,7 @@ export const fetchAssignmentsAndRequests = async (req: Request, res: Response): 
     });
   }
 };
+
 
 
 export const fetchHistoryByCid = async (req: Request, res: Response): Promise<Response> => {

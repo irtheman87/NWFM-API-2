@@ -851,6 +851,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
 export const fetchUserRequests = async (req: Request, res: Response): Promise<Response> => {
   const { userId } = req.params;
+  const { search } = req.query; // Capture search query
 
   try {
     // Validate the userId
@@ -858,18 +859,23 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    // Query requests with matching userId and statuses
-    const filter = {
+    // Build query filter
+    const filter: any = {
       userId, // Match userId
       type: 'Chat', // Specific type
       stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Match statuses
     };
 
-    // Fetch all matching requests sorted by `booktime` in ascending order
+    // Apply search filter if `search` is provided
+    if (search) {
+      filter.chat_title = { $regex: new RegExp(search as string, 'i') }; // Case-insensitive search
+    }
+
+    // Fetch matching requests sorted by `booktime` (newest first)
     const requests = await RequestModel.find(
       filter,
       'chat_title stattusof time orderId nameofservice date createdAt booktime endTime'
-    ).sort({ booktime: -1 }); // Sort by `booktime` in ascending order
+    ).sort({ booktime: -1 });
 
     // Map and validate each request
     const processedRequests = await Promise.all(
@@ -884,24 +890,19 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
           return null; // Skip requests without a valid completed transaction
         }
 
-        // Handle `booktime` formatting and calculate `endTime`
+        // Handle `booktime` formatting and calculate `startTime`
         const { booktime } = request.toObject();
+        let startTime: string | null = null;
+
         if (booktime) {
           const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
-          const startTime = moment(booktime).utcOffset('+01:00').format(gmtPlusOneFormat);
-
-          // const endTime = moment(booktime)
-          //   .utcOffset('+01:00')
-          //   .add(1, 'hour')
-          //   .format(gmtPlusOneFormat);
-
-          return {
-            ...request.toObject(),
-            startTime,
-          };
+          startTime = moment(booktime).utcOffset('+01:00').format(gmtPlusOneFormat);
         }
 
-        return null; // Skip requests with invalid or missing `booktime`
+        return {
+          ...request.toObject(),
+          startTime,
+        };
       })
     );
 
@@ -917,6 +918,7 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
     return res.status(500).json({ message: 'Failed to fetch user requests', error });
   }
 };
+
 
 
 

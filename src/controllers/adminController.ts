@@ -436,7 +436,7 @@ if (existingAppointmentsCount >= 3) {
             html: `
               <h1>New Order Received</h1>
               <p>You have a new order. Please check your dashboard for details.</p>
-              <p><a href="https://nollywoodfilmmaker.com/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
+              <p><a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
             `,
           });          
           console.log('Email sent successfully.');
@@ -2337,9 +2337,9 @@ export const fetchAppointmentsWithRequests = async (req: Request, res: Response)
     }
 
     // Pagination parameters
-    const { page = 1, limit = 10 } = req.query; // Default to page 1, limit 10
-    const pageNumber = Math.max(1, parseInt(page as string, 10)); // Ensure page is >= 1
-    const pageSize = Math.max(1, parseInt(limit as string, 10)); // Ensure limit is >= 1
+    const { page = 1, limit = 10, search } = req.query; // Added `search` query parameter
+    const pageNumber = Math.max(1, parseInt(page as string, 10));
+    const pageSize = Math.max(1, parseInt(limit as string, 10));
     const skip = (pageNumber - 1) * pageSize;
 
     // Fetch all appointments
@@ -2352,25 +2352,29 @@ export const fetchAppointmentsWithRequests = async (req: Request, res: Response)
       return res.status(404).json({ message: 'No appointments found.', data: [] });
     }
 
-    // Fetch requests linked to appointments by orderId, sorted by `booktime` (ascending) with pagination
+    // Build request filter
+    const requestFilter: any = {
+      orderId: { $in: orderIds }, // Match order IDs
+      type: 'Chat',
+      stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
+    };
+
+    // Apply search filter if provided
+    if (search) {
+      requestFilter.chat_title = { $regex: new RegExp(search as string, 'i') }; // Case-insensitive search
+    }
+
+    // Fetch requests linked to appointments by orderId with filtering & pagination
     const requests = await RequestModel.find(
-      {
-        orderId: { $in: orderIds }, // Match the order IDs
-        type: 'Chat',
-        stattusof: { $in: ['ongoing', 'ready', 'completed'] }, // Valid statuses
-      },
+      requestFilter,
       'chat_title stattusof time orderId nameofservice date createdAt booktime endTime' // Fields to return
     )
-      .sort({ booktime: -1 }) // Sort by booktime (earliest first)
+      .sort({ booktime: -1 }) // Sort by booktime (newest first)
       .skip(skip) // Skip documents for pagination
       .limit(pageSize); // Limit the number of documents
 
-    // Count total matching requests (for pagination metadata)
-    const totalRequests = await RequestModel.countDocuments({
-      orderId: { $in: orderIds },
-      type: 'Chat',
-      stattusof: { $in: ['ongoing', 'ready', 'completed'] },
-    });
+    // Count total matching requests for pagination metadata
+    const totalRequests = await RequestModel.countDocuments(requestFilter);
 
     // Combine appointments and their requests
     const combinedResults = requests.map((request) => {
@@ -2401,6 +2405,7 @@ export const fetchAppointmentsWithRequests = async (req: Request, res: Response)
     });
   }
 };
+
 
 
 export const fetchWithdrawals = async (req: Request, res: Response): Promise<Response> => {
