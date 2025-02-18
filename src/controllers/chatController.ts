@@ -16,6 +16,7 @@ import IssuesThread from '../models/IssueThread';
 import Consultant from '../models/consultant';
 import Notification from '../models/Notification';
 import { createAdminNotification, createNotification } from '../utils/UtilityFunctions';
+import RequestModel from '../models/Request';
 
 const s3 = new S3Client({
     region: process.env.AWS_REGION,
@@ -214,107 +215,132 @@ export const fetchMessagesByRoom = async (req: Request, res: Response) => {
 
 
   export const fetchMessagesAndExportPDF = async (req: Request, res: Response): Promise<Response> => {
-    const { room } = req.params; // Room from request parameters
+  const { room } = req.params; // Room from request parameters
 
-    try {
-        // Fetch messages for the given room
-        const messages = await Message.find({ room });
-
-        if (!messages || messages.length === 0) {
-            return res.status(404).json({ message: 'No messages found for this room' });
-        }
-
-        // Filter messages by type and transform messages
-        const transformedMessages = messages
-            .filter((message) => message.type === 'text') // Omit non-text messages
-            .map((message) => ({
-                ...message.toObject(),
-                name: (message.role as string) === 'consultant' ? 'Consultant' : message.name,
-            }));
-
-        if (!transformedMessages || transformedMessages.length === 0) {
-            return res.status(404).json({ message: 'No text messages found for this room' });
-        }
-
-        // Create a new PDF document
-        const doc = new PDFDocument({ margin: 30, size: 'A4' });
-
-        // Define the file path for the PDF
-        const filePath = path.join(__dirname, 'messages.pdf');
-
-        // Create a write stream to the file
-        const pdfStream = doc.pipe(fs.createWriteStream(filePath));
-
-        // Title and spacing
-        doc
-            .font('Helvetica-Bold')
-            .fontSize(18)
-            .text(`Chat Messages for Room: ${room}`, { align: 'center' })
-            .moveDown(2); // Add spacing between the header and the table
-
-        // Add table headers
-        const tableHeaderHeight = 100; // Start table headers lower
-        const tableRowHeight = 25;
-        const columnPositions = {
-            index: 40,
-            userId: 100,
-            role: 250,
-            name: 350,
-            message: 450,
-        };
-
-        doc
-            .font('Helvetica-Bold')
-            .fontSize(12)
-            .text('#', columnPositions.index, tableHeaderHeight)
-            .text('User ID', columnPositions.userId, tableHeaderHeight)
-            .text('Role', columnPositions.role, tableHeaderHeight)
-            .text('Name', columnPositions.name, tableHeaderHeight)
-            .text('Message', columnPositions.message, tableHeaderHeight);
-
-        // Draw line under headers
-        doc.moveTo(30, tableHeaderHeight + 15).lineTo(570, tableHeaderHeight + 15).stroke();
-
-        // Add messages as rows
-        transformedMessages.forEach((message, index) => {
-            const yPosition = tableHeaderHeight + 20 + index * tableRowHeight;
-
-            // Ensure new page if space runs out
-            if (yPosition > 750) {
-                doc.addPage();
-            }
-
-            doc
-                .font('Helvetica')
-                .fontSize(10)
-                .text(String(index + 1), columnPositions.index, yPosition)
-                .text(message.uid, columnPositions.userId, yPosition, { width: 140, ellipsis: true })
-                .text(message.role, columnPositions.role, yPosition)
-                .text(message.name, columnPositions.name, yPosition)
-                .text(message.message, columnPositions.message, yPosition, { width: 100, ellipsis: true });
-        });
-
-        // Finalize the PDF
-        doc.end();
-
-        // Handle the download response after PDF generation
-        pdfStream.on('finish', () => {
-            res.download(filePath, 'messages.pdf', (err) => {
-                if (err) {
-                    console.error('Error downloading the file:', err);
-                    res.status(500).json({ message: 'Error downloading the file' });
-                }
-
-                // Optionally remove the file after download
-                fs.unlinkSync(filePath);
-            });
-        });
-
-        return res; // Return response here for TypeScript compatibility
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-        return res.status(500).json({ message: 'Failed to fetch messages and generate PDF', error });
+  try {
+    // Fetch messages for the given room
+    const messages = await Message.find({ room });
+    if (!messages || messages.length === 0) {
+      return res.status(404).json({ message: 'No messages found for this room' });
     }
+
+    // Filter messages by type and transform messages
+    const transformedMessages = messages
+      .filter((message) => message.type === 'text') // Omit non-text messages
+      .map((message) => ({
+        ...message.toObject(),
+        name: (message.role as string) === 'consultant' ? 'Consultant' : message.name,
+      }));
+
+    if (!transformedMessages || transformedMessages.length === 0) {
+      return res.status(404).json({ message: 'No text messages found for this room' });
+    }
+
+    // Create a new PDF document
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const filePath = path.join(__dirname, 'messages.pdf');
+    const pdfStream = doc.pipe(fs.createWriteStream(filePath));
+
+    const request =  await RequestModel.findOne({orderId: room});
+
+    // Add a title
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(18)
+      .text(`Chat Messages for Room: ${request?.chat_title}`, { align: 'center' })
+      .moveDown(2);
+
+    // Define column positions and widths
+    const columns = {
+      index: { x: 40, width: 30 },
+      userId: { x: 80, width: 100 },
+      role: { x: 180, width: 70 },
+      name: { x: 260, width: 100 },
+      message: { x: 360, width: 175 },
+    };
+
+    // Draw table header
+    const tableHeaderY = 100;
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(12)
+      .text('#', columns.index.x, tableHeaderY, { width: columns.index.width })
+      .text('User ID', columns.userId.x, tableHeaderY, { width: columns.userId.width })
+      .text('Role', columns.role.x, tableHeaderY, { width: columns.role.width })
+      .text('Name', columns.name.x, tableHeaderY, { width: columns.name.width })
+      .text('Message', columns.message.x, tableHeaderY, { width: columns.message.width });
+    doc.moveTo(30, tableHeaderY + 15).lineTo(570, tableHeaderY + 15).stroke();
+
+    // Start Y position for rows (after header)
+    let currentY = tableHeaderY + 20;
+
+    // Loop through each message and add as a row
+    transformedMessages.forEach((message, index) => {
+      // Prepare text for each column
+      const indexText = String(index + 1);
+      const userIdText = message.uid;
+      const roleText = message.role;
+      const nameText = message.name;
+      const messageText = message.message;
+
+      // Compute the height required for each cell
+      const indexHeight = doc.heightOfString(indexText, { width: columns.index.width, align: 'left' });
+      const userIdHeight = doc.heightOfString(userIdText, { width: columns.userId.width, align: 'left' });
+      const roleHeight = doc.heightOfString(roleText, { width: columns.role.width, align: 'left' });
+      const nameHeight = doc.heightOfString(nameText, { width: columns.name.width, align: 'left' });
+      const messageHeight = doc.heightOfString(messageText, { width: columns.message.width, align: 'left' });
+
+      // Use the maximum height from the cells, plus some padding
+      const rowHeight = Math.max(indexHeight, userIdHeight, roleHeight, nameHeight, messageHeight) + 10;
+
+      // If adding this row exceeds the page height, add a new page with header
+      if (currentY + rowHeight > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+        currentY = tableHeaderY;
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(12)
+          .text('#', columns.index.x, currentY, { width: columns.index.width })
+          .text('User ID', columns.userId.x, currentY, { width: columns.userId.width })
+          .text('Role', columns.role.x, currentY, { width: columns.role.width })
+          .text('Name', columns.name.x, currentY, { width: columns.name.width })
+          .text('Message', columns.message.x, currentY, { width: columns.message.width });
+        doc.moveTo(30, currentY + 15).lineTo(570, currentY + 15).stroke();
+        currentY += 20;
+      }
+
+      // Add row data with text wrapping (no ellipsis)
+      doc.font('Helvetica').fontSize(10);
+      doc.text(indexText, columns.index.x, currentY, { width: columns.index.width });
+      doc.text(userIdText, columns.userId.x, currentY, { width: columns.userId.width });
+      doc.text(roleText, columns.role.x, currentY, { width: columns.role.width });
+      doc.text(nameText, columns.name.x, currentY, { width: columns.name.width });
+      doc.text(messageText, columns.message.x, currentY, { width: columns.message.width });
+
+      // Move current Y down by the row height
+      currentY += rowHeight;
+    });
+
+    // Finalize the PDF
+    doc.end();
+
+    // Once the PDF is fully written, send it to the client
+    pdfStream.on('finish', () => {
+      res.download(filePath, 'messages.pdf', (err) => {
+        if (err) {
+          console.error('Error downloading the file:', err);
+          return res.status(500).json({ message: 'Error downloading the file' });
+        }
+        // Optionally remove the file after download
+        fs.unlinkSync(filePath);
+      });
+    });
+
+    return res;
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return res.status(500).json({ message: 'Failed to fetch messages and generate PDF', error });
+  }
 };
 
 export const registerFeedback = async (req: Request, res: Response): Promise<Response> => {
