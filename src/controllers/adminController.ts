@@ -420,6 +420,41 @@ if (existingAppointmentsCount >= 3) {
     // Save the appointment to the database
     const savedAppointment = await newAppointment.save();
 
+       const request = await RequestModel.findOne({ orderId: orderId });
+        if (!request) {
+          throw new Error("Request not found"); // Handle case where request is not found
+        }
+        
+        const consultant = await Consultant.findById(cid);
+        if (!consultant) {
+          throw new Error("User not found"); // Handle case where user is not found
+        }
+        
+        // Ensure booktime is defined
+        if (!request.booktime) {
+          throw new Error("Book time is missing from the request");
+        }
+        
+        // Helper function to format a Date for Google Calendar (YYYYMMDDTHHmmssZ)
+        function formatDateForGoogleCalendar(date: Date): string {
+          return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        }
+        
+        // Parse the chat start time (now safe to assume it's defined)
+        const chatStart = new Date(request.booktime);
+        // Adjust the time if it's always coming in 1hr behind your expected time:
+        const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
+        
+        // Set the event duration to 1 hour (adjust as needed)
+        const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
+        
+        // Generate the Google Calendar URL with pre-filled event details.
+        const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+          request.nameofservice!
+        )}&dates=${formatDateForGoogleCalendar(adjustedChatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+          `Date Booked: ${request.createdAt}`
+        )}`;
+
     // Consultant Notification Created
     createNotification(cid.toString(), uid.toString(), 'consultant', 'Chat', orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
@@ -432,13 +467,34 @@ if (existingAppointmentsCount >= 3) {
           await sendEmail({
             to: email,
             subject: 'New Order',
-            text: `You Have A New Order. Please check your dashboard for details.`,
+            text: `Hello ${consultant.fname} ${consultant.lname},
+          
+          You have a new order. Details below:
+          
+          Service Booked: ${request.nameofservice}
+          Date Booked: ${request.createdAt}
+          Time for Chat: ${request.booktime}
+          Add to Google Calendar: ${googleCalendarUrl}
+          
+          View Order: https://nollywoodfilmmaker.com/consultants/dashboard
+          `,
             html: `
-              <h1>New Order Received</h1>
-              <p>You have a new order. Please check your dashboard for details.</p>
-              <p><a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
+              <h1>Hello ${consultant.fname} ${consultant.lname},</h1>
+              <p>You have a new order. Details below:</p>
+              <ul>
+                <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
+                <li><strong>Date Booked:</strong> ${request.createdAt}</li>
+                <li><strong>Time for Chat:</strong> ${request.booktime}</li>
+                <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
+              </ul>
+              <p>
+                <a href="https://nollywoodfilmmaker.com/consultants/dashboard" 
+                   style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">
+                  View Order
+                </a>
+              </p>
             `,
-          });          
+          });              
           console.log('Email sent successfully.');
         } catch (error) {
           console.error('Failed to send email:', error);
