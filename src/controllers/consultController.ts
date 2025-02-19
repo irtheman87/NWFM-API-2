@@ -36,6 +36,7 @@ import Company from '../models/Company';
 import Crew from '../models/Crew';
 import Bank from '../models/Bank';
 import task from '../models/task';
+import ChatSettingsModel from '../models/chatSettingsModel';
 
 
 const s3 = new S3Client({
@@ -865,7 +866,8 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
     await consultant.save();
 
     // Generate the password reset URL
-    const resetUrl = `${req.protocol}://${req.get('host')}/api/consultants/resetpassword/${resetToken}`;
+    // https://nollywoodfilmmaker.com/consultants/auth/reset-password?token=6d95fb377a0c14d1891052e383ae78f1c3e4e5c7784a7e37bd7f4f96fee28411
+    const resetUrl = `https://nollywoodfilmmaker.com/consultants/auth/reset-password?token=${resetToken}`;
     console.log(resetUrl);
     
     await sendEmail({
@@ -2042,10 +2044,8 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
       return res.status(400).json({ message: "Bank name and account number are required for withdrawal" });
     }
 
-    const newAmount = amount/100;
-
     // Attempt to create a withdrawal
-    const wallet: IWallet | null = await debit(userId, newAmount, bankname, accountnumber);
+    const wallet: IWallet | null = await debit(userId, amount, bankname, accountnumber);
 
     if (!wallet) {
       return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });
@@ -2668,5 +2668,139 @@ export const getCompletedCounts = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching completed counts:', error);
     return res.status(500).json({ message: 'Internal server error', error });
+  }
+};
+
+export const fetchChatSettings = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params; // Get cid from request params
+
+  try {
+    // Validate if cid is provided
+    if (!cid) {
+      return res.status(400).json({ message: 'Consultant ID (cid) is required' });
+    }
+
+    // Find chat settings for the given cid
+    const chatSettings = await ChatSettingsModel.findOne({ cid });
+
+    // If no settings found, return a 404 response
+    if (!chatSettings) {
+      return res.status(404).json({ message: 'Chat settings not found' });
+    }
+
+    // Return the found chat settings
+    return res.status(200).json(chatSettings);
+  } catch (error) {
+    console.error('Error fetching chat settings:', error);
+    return res.status(500).json({ message: 'Failed to fetch chat settings', error });
+  }
+};
+
+export const updateChatSettingsStatus = async (req: Request, res: Response): Promise<Response> => {
+  const { cid } = req.params; // Extract cid from request params
+  const { status } = req.body; // Extract status from request body
+
+  try {
+    // Validate input
+    if (!cid) {
+      return res.status(400).json({ message: 'Consultant ID (cid) is required' });
+    }
+    if (!['on', 'off'].includes(status)) {
+      return res.status(400).json({ message: 'Status must be either "on" or "off"' });
+    }
+
+    // Find and update chat settings
+    const updatedChatSettings = await ChatSettingsModel.findOneAndUpdate(
+      { cid },
+      { status },
+      { new: true, runValidators: true } // Return updated doc & validate input
+    );
+
+    // If no settings found, return 404
+    if (!updatedChatSettings) {
+      return res.status(404).json({ message: 'Chat settings not found' });
+    }
+
+    // Return updated settings
+    return res.status(200).json({
+      message: `Chat settings updated successfully`,
+      chatSettings: updatedChatSettings,
+    });
+  } catch (error) {
+    console.error('Error updating chat settings:', error);
+    return res.status(500).json({ message: 'Failed to update chat settings', error });
+  }
+};
+
+export const createChatSettings = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { cid, soundurl, status } = req.body;
+
+    // Validate required fields
+    if (!cid || !soundurl || !status) {
+      return res.status(400).json({ message: 'cid, soundurl, and status are required' });
+    }
+    if (!['on', 'off'].includes(status)) {
+      return res.status(400).json({ message: 'Status must be either "on" or "off"' });
+    }
+
+    // Check if a chat settings entry already exists for the cid
+    const existingSettings = await ChatSettingsModel.findOne({ cid });
+    if (existingSettings) {
+      return res.status(400).json({ message: 'Chat settings already exist for this cid' });
+    }
+
+    // Create a new chat settings entry
+    const newChatSettings = new ChatSettingsModel({
+      cid,
+      soundurl,
+      status,
+    });
+
+    // Save to database
+    await newChatSettings.save();
+
+    return res.status(201).json({
+      message: 'Chat settings created successfully',
+      chatSettings: newChatSettings,
+    });
+  } catch (error) {
+    console.error('Error creating chat settings:', error);
+    return res.status(500).json({ message: 'Failed to create chat settings', error });
+  }
+};
+
+export const updateChatSoundUrl = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { cid } = req.params; // Extract `cid` from request params
+    const { soundurl } = req.body; // Extract new `soundurl` from request body
+
+    if (!cid) {
+      return res.status(400).json({ message: "CID is required" });
+    }
+
+    if (!soundurl) {
+      return res.status(400).json({ message: "Sound URL is required" });
+    }
+
+    // Find and update ChatSettings by CID
+    const updatedChatSettings = await ChatSettingsModel.findOneAndUpdate(
+      { cid }, 
+      { soundurl }, 
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedChatSettings) {
+      return res.status(404).json({ message: "Chat settings not found" });
+    }
+
+    return res.status(200).json({
+      message: "Chat sound URL updated successfully",
+      chatSettings: updatedChatSettings
+    });
+
+  } catch (error) {
+    console.error("Error updating chat sound URL:", error);
+    return res.status(500).json({ message: "Internal server error", error });
   }
 };

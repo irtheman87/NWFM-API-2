@@ -44,8 +44,9 @@ export const upload = multer({ storage }).single('file');
 
 // Function to save a new message
 export const saveMessage = async (req: Request, res: Response) => {
+
   try {
-    const { mid, uid, role, name, room, message, type, replyto, replytoId, replytousertype, recommendations } = req.body;
+    const { mid, uid, role, name, room, message, type, replyto, replytoId, replytousertype, recommendations, replytochattype } = req.body;
 
     // Create the message object with conditional inclusion for replyto and replytoId
     const newMessageData: any = {
@@ -62,6 +63,7 @@ export const saveMessage = async (req: Request, res: Response) => {
     if(recommendations) newMessageData.recommendations = recommendations;
     if (replyto) newMessageData.replyto = replyto;
     if (replytoId) newMessageData.replytoId = replytoId;
+    if (replytochattype) newMessageData.replytochattype = replytochattype;
     if (replytousertype) newMessageData.replytousertype = replytousertype;
     
 

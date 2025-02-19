@@ -13,6 +13,7 @@ export interface IMessage extends Document {
   replyto?: string;
   replytoId?: string;
   replytousertype?: string;
+  replytochattype?: string;
   recommendations?: {
     type: string;
     name: string;
@@ -35,6 +36,7 @@ const messageSchema: Schema = new Schema({
   replyto: { type: String },
   replytoId: { type: String },
   replytousertype: { type: String },
+  replytochattype: { type: String },
   recommendations: [
     {
       type: { type: String, required: true },
