@@ -2043,8 +2043,10 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
       return res.status(400).json({ message: "Bank name and account number are required for withdrawal" });
     }
 
+    const newAmount = amount/100;
+
     // Attempt to create a withdrawal
-    const wallet: IWallet | null = await debit(userId, amount, bankname, accountnumber);
+    const wallet: IWallet | null = await debit(userId, newAmount, bankname, accountnumber);
 
     if (!wallet) {
       return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });
