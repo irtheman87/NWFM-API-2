@@ -1230,24 +1230,23 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
       return res.status(404).json({ message: `Transaction with orderId ${orderId} not found` });
     }
 
-    const price = transaction.price;
+      const price = transaction.price;
 
+      const actualIncome = parseFloat(price) * 0.6;
+          // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
+      credit(userId, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
 
-    const actualIncome = parseFloat(price) * 0.6;
-        // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
-    credit(userId, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
+      const request = await RequestModel.findOne({ orderId: orderId });
 
-        const request = await RequestModel.findOne({ orderId: orderId });
+      if (!request) {
+        throw new Error("Request not found");
+      }
 
-        if (!request) {
-          throw new Error("Request not found");
-        }
+      const user = await User.findById(request.userId);
 
-        const user = await User.findById(request.userId);
-
-        if (!user) {
-          throw new Error("User not found");
-        }
+      if (!user) {
+        throw new Error("User not found");
+      }
 
         await sendEmail({
           to: user.email,
