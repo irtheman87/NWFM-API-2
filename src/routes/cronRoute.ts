@@ -6,4 +6,4 @@ const router = express.Router();
 // Route to update expired requests
 router.patch('/requests/update-expired', updateExpiredRequests);
 
-export default router;
+module.exports = router;
