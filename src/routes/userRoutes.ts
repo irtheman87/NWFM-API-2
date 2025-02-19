@@ -83,7 +83,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
 
     // Validate event signature
     const hash = crypto
-      .createHmac('sha512', secret)
+      .createHmac('sha512', "pk_test_36106bc313bb2aac323c6b68f4cc7620e7e3bbc8")
       .update(JSON.stringify(req.body))
       .digest('hex');
 
