@@ -17,6 +17,8 @@ import Consultant from '../models/consultant';
 import Notification from '../models/Notification';
 import { createAdminNotification, createNotification } from '../utils/UtilityFunctions';
 import RequestModel from '../models/Request';
+import Attendance from '../models/attendanceModel';
+import jwt from 'jsonwebtoken';
 
 const s3 = new S3Client({
     region: process.env.AWS_REGION,
@@ -641,5 +643,95 @@ export const markNotificationAsRead = async (req: Request, res: Response): Promi
       message: 'Failed to mark notification as read',
       error,
     });
+  }
+};
+
+//Create or Update Attendance Record
+export const createOrUpdateAttendance = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { roomId, uid, cid } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ message: "roomId is required" });
+    }
+
+    // Find existing attendance record
+    let attendance = await Attendance.findOne({ roomId });
+
+    if (attendance) {
+      // Update existing record
+      if (uid) {
+        attendance.uid = uid;
+        attendance.uidJoined = new Date();
+      }
+      if (cid) {
+        attendance.cid = cid;
+        attendance.cidJoined = new Date();
+      }
+      await attendance.save();
+      return res.status(200).json({ message: "Attendance updated successfully", attendance });
+    } else {
+      // Create new attendance record
+      attendance = new Attendance({
+        roomId,
+        uid: uid || null,
+        cid: cid || null,
+        uidJoined: uid ? new Date() : null,
+        cidJoined: cid ? new Date() : null,
+      });
+
+      await attendance.save();
+      return res.status(201).json({ message: "Attendance created successfully", attendance });
+    }
+  } catch (error) {
+    console.error("Error managing attendance:", error);
+    return res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export const fetchAttendanceByRoom = async (req: Request, res: Response): Promise<Response> => {
+  try {
+     const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({ message: "Authorization token is missing or invalid" });
+        }
+    
+        // Extract and verify token
+        const token = authHeader.split(" ")[1];
+        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+        if (!JWT_SECRET) {
+          return res.status(500).json({ message: "JWT secret key is not configured" });
+        }
+    
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+          return res.status(401).json({ message: "Invalid token" });
+        }
+    
+        // Check Admin Role
+        const { role } = decodedToken as { role: string };
+        if (role !== "admin") {
+          return res.status(403).json({ message: "Access denied. Admin role required." });
+        }
+
+    const { roomId } = req.params;
+
+    if (!roomId) {
+      return res.status(400).json({ message: "roomId is required" });
+    }
+
+    // Fetch attendance records matching the roomId
+    const attendanceRecords = await Attendance.find({ roomId: roomId });
+
+    if (!attendanceRecords.length) {
+      return res.status(404).json({ message: "No attendance records found for this room" });
+    }
+
+    return res.status(200).json({ attendance: attendanceRecords });
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    return res.status(500).json({ message: "Failed to fetch attendance", error });
   }
 };

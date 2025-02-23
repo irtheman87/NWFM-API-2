@@ -1,7 +1,9 @@
 import express, { Request, Response } from 'express';
 import { saveMessage, fetchMessagesByRoom, uploadChatFile, getFilesByRoom, fetchMessagesAndExportCSV, fetchMessagesAndExportPDF, 
     registerFeedback, reportIssue, fetchIssuesWithUsers, fetchSingleIssueWithUser, fetchFeedbacksWithUsers, 
-    fetchSingleFeedbackWithUser, createIssueThread, markNotificationAsRead} from '../controllers/chatController';
+    fetchSingleFeedbackWithUser, createIssueThread, markNotificationAsRead,
+    createOrUpdateAttendance,
+    fetchAttendanceByRoom} from '../controllers/chatController';
 
 const router = express.Router();
 
@@ -19,6 +21,9 @@ router.get('/fetch/issues', fetchIssuesWithUsers);
 router.get('/fetch/issue', fetchSingleIssueWithUser);
 router.post('/post/thread', createIssueThread);
 router.patch('/notifications/:notificationId/read', markNotificationAsRead);
+router.post("/attendance", createOrUpdateAttendance); // Create or update attendance
+router.get("/attendance/:roomId", fetchAttendanceByRoom);
+
 
 
 module.exports = router;
