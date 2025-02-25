@@ -10,6 +10,8 @@ import jwt from 'jsonwebtoken';
 import mongoose from "mongoose";
 import sendEmail from "../utils/sendEmail";
 
+import EmailList from "../models/EmailList";
+
 // Initialize S3 client
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -681,5 +683,29 @@ export const updateProfilePicture = async (req: Request, res: Response) => {
       message: "An error occurred while updating the profile picture.",
       error: error,
     });
+  }
+};
+
+
+export const addEmailToList = async (req: Request, res: Response) => {
+  const { name, email } = req.body;
+
+  try {
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email are required." });
+    }
+
+    const newEntry = new EmailList({ name, email });
+    await newEntry.save();
+
+    res.status(201).json({ message: "Email successfully added to the list.", data: newEntry });
+  } catch (error) {
+    console.error("Error adding email:", error);
+
+    if ((error as any).code === 11000) {
+      return res.status(400).json({ message: "Email already exists in the list." });
+    }
+
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

@@ -6,7 +6,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
      markNotificationAsRead, suspendConsultant, deleteConsultant, updateConsultant, getAverageRatings, getTopConsultantsByRating,
     getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithRequests, fetchWithdrawals, fetchDataByType,
     completeDebit, fetchWalletHistoryTotalsByCID, fetchAllWithdrawals, fetchAllDeposits, fetchTotalTransactions, fetchWithdrawalById,
-  fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, getAllConsultantsList} from '../controllers/adminController';
+  fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, getAllConsultantsList,
+  getEmailList} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -97,6 +98,9 @@ router.delete("/company/:userId", deleteCompanyByUserId);
 router.delete("/crew-company/:id", deleteCrewCompanyById);
 
 router.get('/resolves/:orderId', getResolvesByOrderId);
+
+router.get("/email-list", getEmailList);
+
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

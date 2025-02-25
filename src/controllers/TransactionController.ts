@@ -866,6 +866,91 @@ export const createLegal = async (req: Request, res: Response) => {
   }
 };
 
+export const createPitchDeckRequest = async (req: Request, res: Response) => {
+  const {
+    title,
+    userId,
+    type,
+    movie_title,
+    platform,
+    loglines,
+    genre,
+    info,
+    estimatedBudget,
+    keycharacters,
+    keycrew,
+    teamMenber,
+    putinfestivals,
+    revprojection,
+  } = req.body;
+
+  try {
+    // Fetch user email
+    const userEmail = await fetchUserEmailById(userId);
+    
+    // Generate a new order ID
+    const orderId = generateOrderId();
+
+    const price = await getServicePriceByName(title);
+
+    const newTransaction = new Transaction({ 
+      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+    });
+    await newTransaction.save();
+
+    // Handle file uploads (key art, script, etc.)
+    const files = req.files as Express.MulterS3.File[] | undefined;
+    const fileUrls = files ? files.map((file) => file.location) : [];
+
+    // Create a new request entry
+    const newRequest = new RequesModel({
+      movie_title,
+      stattusof: "pending",
+      type,
+      nameofservice: title,
+      platform,
+      loglines,
+      genre,
+      info,
+      estimatedBudget,
+      keycharacters: keycharacters ? JSON.parse(keycharacters) : [],
+      keycrew: keycrew ? JSON.parse(keycrew) : [],
+      teamMenber: teamMenber ? JSON.parse(teamMenber) : [],
+      orderId,
+      userId,
+      putinfestivals,
+      revprojection,
+      files: fileUrls,
+    });
+
+    await newRequest.save();
+
+    // Initialize payment (if applicable)
+    const paymentReq = {
+      body: {
+        email: userEmail,
+        amount: price || 0,
+        id: newTransaction.id,
+      },
+    };
+
+    try {
+      const result = await handlePaymentInitialization(paymentReq);
+      console.log("Payment initialized successfully:", result);
+      res.status(201).json({ message: "Pitch deck request created successfully", result });
+    } catch (error) {
+      console.error("Error during payment initialization:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Error creating pitch deck request",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+
 function getTimeFromDate(date: Date) {
   // Ensure the date is a Date object
   const targetDate = new Date(date);

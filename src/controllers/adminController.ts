@@ -27,6 +27,7 @@ import Company from '../models/Company';
 import CrewCompany from '../models/CrewCompany';
 import Resolve from '../models/Resolve';
 import UserModel from '../models/UserModel';
+import EmailList from '../models/EmailList';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -3426,5 +3427,40 @@ export const getResolvesByOrderId = async (req: Request, res: Response): Promise
   } catch (error) {
     console.error("Error fetching resolves:", error);
     return res.status(500).json({ message: "Failed to fetch resolves", error });
+  }
+};
+
+export const getEmailList = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
+    const emails = await EmailList.find(); // Fetch all email entries
+    res.status(200).json({ message: "Email list retrieved successfully.", data: emails });
+  } catch (error) {
+    console.error("Error fetching email list:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

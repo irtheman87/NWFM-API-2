@@ -8,7 +8,7 @@ import { fetchServicesByType } from '../controllers/ServicesController';
 import Transaction from '../models/SetTransaction';
 import User, { IUser } from '../models/User';
 import { ReadScriptTransaction, WatchFinalCutTransaction, BudgetTransaction, CreateBudgetTransaction, CreateMarketBudgetTransaction, createAPitch, createLegal, chatTransaction,
-  getParameterHandler, uploadFiles, ExtendMyTime
+  getParameterHandler, uploadFiles, ExtendMyTime, createPitchDeckRequest
  } from '../controllers/TransactionController';
 import { validateUserRequest, verifyUserToken } from '../middleware/TokenValidator';
 import { verifyUserEmail } from '../controllers/utilityroute';
@@ -36,6 +36,7 @@ router.post('/transaction/createbudget', verifyUserToken, uploadFiles, CreateBud
 router.post('/transaction/marketbudget', verifyUserToken, uploadFiles, CreateMarketBudgetTransaction);
 router.post('/transaction/pitch', verifyUserToken, uploadFiles, createAPitch);
 router.post('/transaction/legal', verifyUserToken, uploadFiles, createLegal);
+router.post('/transaction/deck', verifyUserToken, uploadFiles, createPitchDeckRequest);
 router.post('/transaction/chat', verifyUserToken, uploadFiles, chatTransaction);
 router.post('/updateuser/:userId',verifyUserToken, updateUserById);
 router.post('/updatepassword/:userId',verifyUserToken, updateUserPassword);

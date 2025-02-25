@@ -1,9 +1,26 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 
 type Time = {
   hours: number;
   minutes: number;
   seconds: number;
+};
+
+// Define keycharacter type
+type KeyCharacter = {
+  character: string;
+  actor: string;
+};
+
+// Define keycrew type
+type KeyCrew = {
+  crew: string;
+  role: string;
+};
+
+type teamMenber = {
+  name: string;  
+  bio: string;
 };
 
 export interface IRequest extends Document {
@@ -43,17 +60,43 @@ export interface IRequest extends Document {
   budgetrange?: string;
   day?: string;
   filename?: string;
-  booktime?: string; // Changed from `Timestamp` to `Date`
+  booktime?: string;
   endTime?: string;
   cid?: string;
   showtype?: string;
   episodes?: number;
+  loginline?: string;
+  keycharacters?: KeyCharacter[];
+  keycrew?: KeyCrew[];
+  teamMenber?: teamMenber[];
+  estimatedBudget?: number;
+  putinfestivals?: string;
+  fundingtype?: string;
+  revprojection?: string;
 }
 
 const timeSchema = new Schema<Time>({
   hours: { type: Number },
   minutes: { type: Number },
   seconds: { type: Number },
+});
+
+// Schema for keycharacters
+const keyCharacterSchema = new Schema<KeyCharacter>({
+  character: { type: String, required: true },
+  actor: { type: String, required: true },
+});
+
+// Schema for keycrew
+const keyCrewSchema = new Schema<KeyCrew>({
+  crew: { type: String, required: true },
+  role: { type: String, required: true },
+});
+
+
+const teamMenberSchema = new Schema<teamMenber>({
+  name : { type: String, required: true },
+  bio: { type: String, required: true },
 });
 
 const requestSchema = new Schema<IRequest>(
@@ -94,14 +137,22 @@ const requestSchema = new Schema<IRequest>(
     budgetrange: { type: String },
     day: { type: String },
     filename: { type: String },
-    booktime: { type: String }, // Corrected here
-    endTime: { type: String }, // Corrected here
-    cid: {type: String},
-    showtype: {type: String},
-    episodes: {type: Number},
+    booktime: { type: String },
+    endTime: { type: String },
+    cid: { type: String },
+    showtype: { type: String },
+    episodes: { type: Number },
+    loginline: { type: String },
+    keycharacters: { type: [keyCharacterSchema], default: [] },
+    keycrew: { type: [keyCrewSchema], default: [] },
+    teamMenber: { type: [teamMenberSchema], default: [] },
+    estimatedBudget: { type: Number },
+    putinfestivals: { type: String },
+    fundingtype: { type: String },
+    revprojection: { type: String },
   },
   { timestamps: true }
 );
 
-const RequestModel = mongoose.model<IRequest>('Request', requestSchema);
+const RequestModel = mongoose.model<IRequest>("Request", requestSchema);
 export default RequestModel;
