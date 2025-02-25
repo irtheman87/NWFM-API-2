@@ -258,19 +258,31 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
 
         const user = await User.findById(request.userId, 'fname lname email profilepics'); // Fetch specific user details
         const type = request.type;
-        let cid = null;
-        if(type === 'request'){
-          cid = await Task.findOne({ orderId: request.orderId}, 'cid');
-        }else{ 
-          cid = await AppointmentModel.findOne({ orderId: request.orderId}, 'cid');
-        }
+let cid = null;
 
-        const consultabtname = await Consultant.findById(cid, 'fname  lname');  
+if (type === "request") {
+  cid = await Task.findOne({ orderId: request.orderId }, "cid");
+} else {
+  cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
+}
+
+console.log("CID fetched:", cid);
+
+if (!cid) {
+  console.warn("CID is null or undefined for orderId:", request.orderId);
+}
+
+const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
+
+if (!consultant) {
+  console.warn("Consultant not found for CID:", cid);
+}
+
 
         return {
           ...request.toObject(),
           user,
-          assignedConsultant: consultabtname,
+          assignedConsultant: consultant,
           transaction, // Include transaction details
         };
       })
