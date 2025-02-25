@@ -28,6 +28,7 @@ import CrewCompany from '../models/CrewCompany';
 import Resolve from '../models/Resolve';
 import UserModel from '../models/UserModel';
 import EmailList from '../models/EmailList';
+import Attendance from '../models/attendanceModel';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -256,10 +257,20 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
         if (!transaction) return null; // Exclude requests with no "completed" transactions
 
         const user = await User.findById(request.userId, 'fname lname email profilepics'); // Fetch specific user details
+        const type = request.type;
+        let cid = null;
+        if(type === 'request'){
+          cid = await Task.findOne({ orderId: request.orderId}, 'cid');
+        }else{ 
+          cid = await AppointmentModel.findOne({ orderId: request.orderId}, 'cid');
+        }
+
+        const consultabtname = await Consultant.findById(cid, 'fname  lname');  
 
         return {
           ...request.toObject(),
           user,
+          assignedConsultant: consultabtname,
           transaction, // Include transaction details
         };
       })
@@ -3456,11 +3467,33 @@ export const getEmailList = async (req: Request, res: Response) => {
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    
+
     const emails = await EmailList.find(); // Fetch all email entries
     res.status(200).json({ message: "Email list retrieved successfully.", data: emails });
   } catch (error) {
     console.error("Error fetching email list:", error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const fetchAttendanceByRoom = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { roomId } = req.params;
+
+    if (!roomId) {
+      return res.status(400).json({ message: "roomId is required" });
+    }
+
+    // Fetch attendance records matching the roomId
+    const attendanceRecords = await Attendance.find({ roomId: roomId });
+
+    if (!attendanceRecords.length) {
+      return res.status(404).json({ message: "No attendance records found for this room" });
+    }
+
+    return res.status(200).json({ attendance: attendanceRecords });
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    return res.status(500).json({ message: "Failed to fetch attendance", error });
   }
 };
