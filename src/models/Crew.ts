@@ -31,6 +31,8 @@ interface Crew extends Document {
     verificationDocType: string;
     document?: string;
     idNumber: string;
+    apiVetting?: boolean;
+    verified?: boolean;
 }
 
 const CrewSchema: Schema = new Schema({
@@ -62,6 +64,8 @@ const CrewSchema: Schema = new Schema({
     verificationDocType: { type: String, required: true },
     document: { type: String },
     idNumber: { type: String, required: true },
+    apiVetting: { type: Boolean },
+    verified: { type: Boolean },
 });
 
 export default mongoose.model<Crew>("Crew", CrewSchema);

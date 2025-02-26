@@ -61,14 +61,14 @@ export const createCrewMember = async (req: Request, res: Response) => {
       };
 
       // Validate required files
-      if (!files?.file || !files?.doc) {
+      if (!files?.file?.[0] || !files?.doc?.[0]) {
         return res.status(400).json({
           message: "Both profile picture and document are required.",
         });
       }
 
-      const profilePic = files.file[0]?.location;
-      const document = files.doc[0]?.location;
+      const profilePic = files.file[0].location;
+      const document = files.doc[0].location;
 
       const {
         firstName,
@@ -123,20 +123,118 @@ export const createCrewMember = async (req: Request, res: Response) => {
         verificationDocType,
         document,
         idNumber,
+        apiVetting: false,
+        verified: false,
       });
 
       // Save Crew to the database
       const savedCrew = await newCrew.save();
 
-      return res
-        .status(201)
-        .json({ message: "Crew member created successfully.", data: savedCrew });
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+          text: `Dear ${firstName} ${lastName},
+                 Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+                 We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+                 As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+                 We look forward to having you as part of this growing community!
+                 Best,
+                 Nollywood Filmmaker Database
+          `,
+          html: `
+          <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Nollywood Filmmaker Database</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    .header img {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <a href="https://nollywoodfilmmaker.com">
+        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+             alt="Nollywood Filmmaker Database">
+      </a>
+    </div>
+
+    <h1>Hello ${firstName} ${lastName},</h1>
+
+    <p>Dear ${firstName},</p>
+
+    <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+    <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+    <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+    <p>We look forward to having you as part of this growing community!</p>
+
+    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+  </div>
+
+</body>
+</html>
+
+          `,
+        });
+
+        console.log('Email sent successfully.');
+
+        return res
+          .status(201)
+          .json({ message: "Crew member created successfully.", data: savedCrew });
+
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+        return res
+          .status(500)
+          .json({ message: "Crew member created, but email notification failed.", data: savedCrew });
+      }
     });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "An error occurred.", error: error });
+    return res.status(500).json({ message: "An error occurred.", error: error });
   }
 };
+
 
 
 // Create Company Function
@@ -201,21 +299,18 @@ export const createCompany = async (req: Request, res: Response) => {
         !userId ||
         !mobile ||
         !type ||
-        useRateCard === undefined ||
         !verificationDocType ||
         !idNumber ||
         !cacNumber
       ) {
-        return res
-          .status(400)
-          .json({ message: "All required fields must be provided." });
+        return res.status(400).json({ message: "All required fields must be provided." });
       }
 
       // Create a new Company instance
       const newCompany = new Company({
         name,
         email,
-        userId, 
+        userId,
         mobile,
         website,
         bio,
@@ -230,20 +325,120 @@ export const createCompany = async (req: Request, res: Response) => {
         document,
         idNumber,
         cacNumber,
+        apiVetting: false,
+        verified: false,
       });
 
       // Save Company to the database
       const savedCompany = await newCompany.save();
 
-      return res
-        .status(201)
-        .json({ message: "Company created successfully.", data: savedCompany });
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+          text: `Dear ${name},
+
+                 Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+                 We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+                 As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+                 We look forward to having you as part of this growing community!
+                 Best,
+                 Nollywood Filmmaker Database
+          `,
+          html: `
+          <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Nollywood Filmmaker Database</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    .header img {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <a href="https://nollywoodfilmmaker.com">
+        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+             alt="Nollywood Filmmaker Database">
+      </a>
+    </div>
+
+    <h1>Hello ${name},</h1>
+
+    <p>Dear ${name},</p>
+
+    <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+    <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+    <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+    <p>We look forward to having you as part of this growing community!</p>
+
+    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+  </div>
+
+</body>
+</html>
+          `,
+        });
+
+        console.log("Email sent successfully.");
+
+        return res.status(201).json({ 
+          message: "Company created successfully.", 
+          data: savedCompany 
+        });
+
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+        return res.status(500).json({ 
+          message: "Company created, but email notification failed.", 
+          data: savedCompany 
+        });
+      }
     });
+
   } catch (error) {
     console.error("Error in createCompany:", error);
     return res.status(500).json({ message: "An error occurred.", error });
   }
 };
+
 
 export const createCrewCompany = async (req: Request, res: Response) => {
   try {

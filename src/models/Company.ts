@@ -33,6 +33,8 @@ type CompanyDocument = Document & {
   document: string;
   idNumber: string;
   cacNumber: string;
+  apiVetting?: boolean;
+  verified?: boolean;
 };
 
 // Define the schema for the Company model
@@ -66,6 +68,8 @@ const CompanySchema: Schema = new Schema(
     document: { type: String, required: true },
     idNumber: { type: String, required: true },
     cacNumber: { type: String, required: true },
+    apiVetting: { type: Boolean },
+    verified: { type: Boolean },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps
