@@ -2674,7 +2674,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: "Access denied. Admin role required." });
     }
 
-    const { type, sortBy, roles, location, typeFilter, department } = req.query; // Include additional filters
+    const { type, verified, roles, location, typeFilter, department } = req.query;
     const { page = 1, limit = 10 } = req.query;
 
     // Validate the `type` parameter
@@ -2682,35 +2682,48 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(400).json({ message: "Invalid type. Use 'crew' or 'company'." });
     }
 
-    // Calculate pagination parameters
+    // Convert `verified` query param to a boolean
+    let verifiedFilter: boolean | undefined;
+    if (verified === "true") {
+      verifiedFilter = true;
+    } else if (verified === "false") {
+      verifiedFilter = false;
+    }
+
+    // Pagination parameters
     const pageNumber = Math.max(1, parseInt(page as string, 10));
     const pageSize = Math.max(1, parseInt(limit as string, 10));
     const skip = (pageNumber - 1) * pageSize;
 
-    // Choose the appropriate model dynamically and ensure correct typing
+    // Choose the correct model dynamically
     const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
 
     // Construct query filters
     const query: any = {};
 
-    // Add role filter for `crew`
+    // Apply `verified` filter if provided
+    if (verifiedFilter !== undefined) {
+      query.verified = verifiedFilter;
+    }
+
+    // Role filter for `crew`
     if (type === "crew" && roles) {
       query.role = { $in: (roles as string).split(",") };
     }
 
-    // Add department filter for `crew`
+    // Department filter for `crew`
     if (type === "crew" && department) {
-      query.department = { $regex: department as string, $options: "i" }; // Case-insensitive search
+      query.department = { $regex: department as string, $options: "i" };
     }
 
-    // Add type filter for `company`
+    // Type filter for `company`
     if (type === "company" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
-    // Add location filter for city, state, or country
+    // Location filter
     if (location) {
-      const regex = new RegExp(location as string, "i"); // Case-insensitive search
+      const regex = new RegExp(location as string, "i");
       query.$or = [
         { "location.city": regex },
         { "location.state": regex },
@@ -2718,17 +2731,9 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       ];
     }
 
-    // Define additional sorting conditions
-    const additionalSort: Record<string, 1 | -1> = {};
-    if (type === "crew" && sortBy === "department") {
-      additionalSort.department = 1; // Sorting by `department` for crew
-    } else if (type === "company" && sortBy === "type") {
-      additionalSort.type = 1; // Sorting by `type` for company
-    }
-
     // Fetch the paginated and sorted data
     const data = await Model.find(query)
-      .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
+      .sort({ createdAt: -1 }) // Default sorting by `createdAt`
       .skip(skip)
       .limit(pageSize);
 
@@ -2753,7 +2758,6 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
-
 
 
 
@@ -3507,5 +3511,371 @@ export const fetchAttendanceByRoom = async (req: Request, res: Response): Promis
   } catch (error) {
     console.error("Error fetching attendance:", error);
     return res.status(500).json({ message: "Failed to fetch attendance", error });
+  }
+};
+
+export const setApiVettingTrue = async (req: Request, res: Response) => {
+  const { userId } = req.params; // Get userId from request parameters
+  const { apiVetting } = req.body; // Get type from query parameters
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+
+    const crew = await Crew.findOne({ userId });
+
+    if (!crew) {
+      return res.status(404).json({ message: "Crew member not found" });
+    }
+
+    // Set apiVetting to true
+    crew.apiVetting = apiVetting;
+
+    await crew.save();
+
+    return res.status(200).json({ message: "apiVetting set to true", crew });
+  } catch (error) {
+    console.error("Error updating apiVetting:", error);
+    return res.status(500).json({ message: "Error updating apiVetting", error });
+  }
+};
+
+export const updateCrewVerificationStatus = async (req: Request, res: Response) => {
+  const { userId } = req.params; // Get userId from request parameters
+  const { verified } = req.body; // Get verified status from request body
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+
+    const crew = await Crew.findOne({ userId });
+
+    if (!crew) {
+      return res.status(404).json({ message: "Crew member not found" });
+    }
+
+    // If `apiVetting` is true, set `verified` to true; otherwise, set it to false
+    if(crew.apiVetting) {
+      crew.verified = verified;
+    }
+    else {    
+      return res.status(200).json({ message: "Can Not Perform Step 2 Verification Until step 1 is true" });
+    }
+
+    await crew.save();
+
+    await sendEmail({
+      to: crew.email,
+      subject: 'Your Nollywood Filmmaker Profile is Now Verified!',
+      text: `Dear ${crew.firstName} ${crew.lastName},
+
+            Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
+            You can view your verified profile here: [Insert Profile Link]
+            Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
+            
+            Best
+            Nollywood Filmmaker Database
+      `,
+      html: `
+      <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+.container {
+  max-width: 600px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+.header img {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 8px;
+}
+h1 {
+  color: #333;
+}
+p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.footer {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #777;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="header">
+  <a href="https://nollywoodfilmmaker.com">
+    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+         alt="Nollywood Filmmaker Database">
+  </a>
+</div>
+
+<h1>Dear ${crew.firstName} ${crew.lastName},</h1>
+
+<p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
+<p>You can view your verified profile here: [Insert Profile Link]</p>
+<p>Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.</p>
+
+<p>Best</p>
+<p>Nollywood Filmmaker Database</p>
+<p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+</div>
+
+</body>
+</html>
+      `,
+    });
+
+    return res.status(200).json({ message: "Verification status updated", crew });
+  } catch (error) {
+    console.error("Error updating verification status:", error);
+    return res.status(500).json({ message: "Error updating verification status", error });
+  }
+};
+
+export const setCompanyApiVettingTrue = async (req: Request, res: Response) => {
+  const { userId } = req.params; // Get userId from request parameters
+  const { apiVetting } = req.body; // Get type from query parameters
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const company = await Company.findOne({ userId });
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    // Set apiVetting to true
+    company.apiVetting = apiVetting;
+
+    await company.save();
+
+    return res.status(200).json({ message: "apiVetting set to true", company });
+  } catch (error) {
+    console.error("Error updating apiVetting:", error);
+    return res.status(500).json({ message: "Error updating apiVetting", error });
+  }
+};
+
+
+export const updateVerificationStatus = async (req: Request, res: Response) => {
+  const { userId } = req.params; // Get userId from request parameters
+  const { verified } = req.body; // Get verified status from request body
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+
+    const company = await Company.findOne({ userId });
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    // If `apiVetting` is true, set `verified` to true; otherwise, set it to false
+    if(company.apiVetting) {
+      company.verified = verified;
+    }
+    else {
+      return res.status(200).json({ message: "Can Not Perform Step 2 Verification Until step 1 is true" });
+    }
+
+    await company.save();
+
+      await sendEmail({
+        to: company.email,
+        subject: 'Your Nollywood Filmmaker Profile is Now Verified!',
+        text: `Dear ${company.name},
+
+              Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
+              You can view your verified profile here: [Insert Profile Link]
+              Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
+              
+              Best
+              Nollywood Filmmaker Database
+        `,
+        html: `
+        <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+
+  <h1>Dear ${company.name},</h1>
+
+  <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
+  <p>You can view your verified profile here: [Insert Profile Link]</p>
+  <p>Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.</p>
+
+  <p>Best</p>
+  <p>Nollywood Filmmaker Database</p>
+  <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+</div>
+
+</body>
+</html>
+        `,
+      });
+
+    return res.status(200).json({ message: "Verification status updated", company });
+  } catch (error) {
+    console.error("Error updating verification status:", error);
+    return res.status(500).json({ message: "Error updating verification status", error });
   }
 };

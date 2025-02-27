@@ -7,7 +7,7 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
     getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithRequests, fetchWithdrawals, fetchDataByType,
     completeDebit, fetchWalletHistoryTotalsByCID, fetchAllWithdrawals, fetchAllDeposits, fetchTotalTransactions, fetchWithdrawalById,
   fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, getAllConsultantsList,
-  getEmailList, fetchAttendanceByRoom} from '../controllers/adminController';
+  getEmailList, fetchAttendanceByRoom, updateVerificationStatus, updateCrewVerificationStatus, setApiVettingTrue, setCompanyApiVettingTrue} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -103,6 +103,13 @@ router.get("/email-list", getEmailList);
 
 router.get("/attendance/:roomId", fetchAttendanceByRoom);
 
+router.patch("/crew/apiVetting/:userId", setApiVettingTrue); // Set apiVetting to true
+
+router.patch("/crew/verify/:userId", updateCrewVerificationStatus); // Update verification status
+
+router.patch("/company/apiVetting/:userId", setCompanyApiVettingTrue); // Set apiVetting to true
+
+router.patch("/company/verify/:userId", updateVerificationStatus); // Update verification status
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware
