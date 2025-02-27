@@ -531,7 +531,14 @@ export const loginCrewCompany = async (req: Request, res: Response) => {
       { expiresIn: "1h" } // Token expires in 1 hour
     );
 
-    // Respond with the token
+    // Check if the user exists in Crew or Company collections and get their verified status
+    const crew = await Crew.findOne({ userId: crewCompany._id });
+    const company = await Company.findOne({ userId: crewCompany._id });
+
+    // Ensure verified is always a boolean
+    const verified = crew?.verified ?? company?.verified ?? false;
+
+    // Respond with the token and verification status
     return res.status(200).json({
       message: "Login successful.",
       token,
@@ -539,6 +546,7 @@ export const loginCrewCompany = async (req: Request, res: Response) => {
         id: crewCompany._id,
         username: crewCompany.username,
         email: crewCompany.email,
+        verified, // Always returns a boolean
       },
     });
   } catch (error) {
