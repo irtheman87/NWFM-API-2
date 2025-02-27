@@ -2674,20 +2674,12 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: "Access denied. Admin role required." });
     }
 
-    const { type, verified, roles, location, typeFilter, department } = req.query;
+    const { type, sortBy, roles, location, typeFilter, department, verified } = req.query;
     const { page = 1, limit = 10 } = req.query;
 
-    // Validate the `type` parameter
+    // Validate `type` parameter
     if (type !== "crew" && type !== "company") {
       return res.status(400).json({ message: "Invalid type. Use 'crew' or 'company'." });
-    }
-
-    // Convert `verified` query param to a boolean
-    let verifiedFilter: boolean | undefined;
-    if (verified === "true") {
-      verifiedFilter = true;
-    } else if (verified === "false") {
-      verifiedFilter = false;
     }
 
     // Pagination parameters
@@ -2695,33 +2687,29 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     const pageSize = Math.max(1, parseInt(limit as string, 10));
     const skip = (pageNumber - 1) * pageSize;
 
-    // Choose the correct model dynamically
+    // Choose the appropriate model
     const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
+
 
     // Construct query filters
     const query: any = {};
 
-    // Apply `verified` filter if provided
-    if (verifiedFilter !== undefined) {
-      query.verified = verifiedFilter;
-    }
-
-    // Role filter for `crew`
+    // Apply role filter for `crew`
     if (type === "crew" && roles) {
       query.role = { $in: (roles as string).split(",") };
     }
 
-    // Department filter for `crew`
+    // Apply department filter for `crew`
     if (type === "crew" && department) {
       query.department = { $regex: department as string, $options: "i" };
     }
 
-    // Type filter for `company`
+    // Apply type filter for `company`
     if (type === "company" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
-    // Location filter
+    // Apply location filter (city, state, country)
     if (location) {
       const regex = new RegExp(location as string, "i");
       query.$or = [
@@ -2731,11 +2719,24 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       ];
     }
 
-    // Fetch the paginated and sorted data
-    const data = await Model.find(query)
-      .sort({ createdAt: -1 }) // Default sorting by `createdAt`
-      .skip(skip)
-      .limit(pageSize);
+    // Filter by `verified` status
+    if (verified !== undefined) {
+      query.verified = verified === "true"; // Convert string to boolean
+    }
+
+    // Define sorting conditions
+    const sortOptions: Record<string, 1 | -1> = { createdAt: -1 }; // Default sorting by `createdAt`
+
+    if (sortBy === "department" && type === "crew") {
+      sortOptions.department = 1;
+    } else if (sortBy === "type" && type === "company") {
+      sortOptions.type = 1;
+    } else if (sortBy === "verified") {
+      sortOptions.verified = -1; // Verified first
+    }
+
+    // Fetch paginated and sorted data
+    const data = await Model.find(query).sort(sortOptions).skip(skip).limit(pageSize);
 
     // Count total records
     const totalRecords = await Model.countDocuments(query);
