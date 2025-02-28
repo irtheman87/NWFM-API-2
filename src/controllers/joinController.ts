@@ -39,6 +39,7 @@ const upload = multer({ storage }).fields([
   { name: "file", maxCount: 1},
   { name: "doc", maxCount: 1 },
   { name: "rateCard", maxCount: 1 },
+  { name: "cacdoc", maxCount: 1 },
 ]);
 
 const multerMiddleware = multer().none();
