@@ -255,15 +255,15 @@ export const createCompany = async (req: Request, res: Response) => {
       };
 
       // Validate required files
-      if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location) {
+      if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
         return res.status(400).json({
-          message: "Both profile picture and document are required.",
+          message: "Profile picture, document, and CAC document are required.",
         });
       }
 
       const profilePic = files.file[0].location;
       const document = files.doc[0].location;
-      const cacdoc = files.doc[0].location;
+      const cacdoc = files.cacdoc[0].location;
 
       let rateCard = "";
       const {
