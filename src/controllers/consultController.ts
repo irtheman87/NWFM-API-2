@@ -1913,18 +1913,18 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check Admin Role
+    // Check Consultant Role
     const { role } = decodedToken as { role: string };
     if (role !== 'consultant') {
-      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
     }
     
-    const { type, sortBy, roles, location, typeFilter, department } = req.query; // Include additional filters
+    const { type, sortBy, roles, location, typeFilter, department, fee } = req.query;
     const { page = 1, limit = 10 } = req.query;
 
     // Validate the `type` parameter
-    if (type !== "crew" && type !== "company") {
-      return res.status(400).json({ message: "Invalid type. Use 'crew' or 'company'." });
+    if (type !== "crew" && type !== "consultant") {
+      return res.status(400).json({ message: "Invalid type. Use 'crew' or 'consultant'." });
     }
 
     // Calculate pagination parameters
@@ -1932,11 +1932,11 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     const pageSize = Math.max(1, parseInt(limit as string, 10));
     const skip = (pageNumber - 1) * pageSize;
 
-    // Choose the appropriate model dynamically and ensure correct typing
-    const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
+    // Choose the appropriate model dynamically
+    const Model = (type === "crew" ? Crew : Consultant) as mongoose.Model<any>;
 
     // Construct query filters
-    const query: any = {};
+    const query: any = { verified: true }; // Ensure verified is true
 
     // Add role filter for `crew`
     if (type === "crew" && roles) {
@@ -1948,8 +1948,8 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       query.department = { $regex: department as string, $options: "i" }; // Case-insensitive search
     }
 
-    // Add type filter for `company`
-    if (type === "company" && typeFilter) {
+    // Add type filter for `consultant`
+    if (type === "consultant" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
@@ -1963,12 +1963,17 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       ];
     }
 
+    // **Filter by exact `fee` string match**
+    if (fee) {
+      query.fee = fee as string;
+    }
+
     // Define additional sorting conditions
     const additionalSort: Record<string, 1 | -1> = {};
     if (type === "crew" && sortBy === "department") {
       additionalSort.department = 1; // Sorting by `department` for crew
-    } else if (type === "company" && sortBy === "type") {
-      additionalSort.type = 1; // Sorting by `type` for company
+    } else if (type === "consultant" && sortBy === "type") {
+      additionalSort.type = 1; // Sorting by `type` for consultant
     }
 
     // Fetch the paginated and sorted data

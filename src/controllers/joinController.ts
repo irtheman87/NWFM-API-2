@@ -263,6 +263,7 @@ export const createCompany = async (req: Request, res: Response) => {
 
       const profilePic = files.file[0].location;
       const document = files.doc[0].location;
+      const cacdoc = files.doc[0].location;
 
       let rateCard = "";
       const {
@@ -325,6 +326,7 @@ export const createCompany = async (req: Request, res: Response) => {
         document,
         idNumber,
         cacNumber,
+        cacdoc,
         apiVetting: false,
         verified: false,
       });

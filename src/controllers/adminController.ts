@@ -2674,7 +2674,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: "Access denied. Admin role required." });
     }
 
-    const { type, sortBy, roles, location, typeFilter, department, verified } = req.query;
+    const { type, sortBy, fee, roles, location, typeFilter, department, verified } = req.query;
     const { page = 1, limit = 10 } = req.query;
 
     // Validate `type` parameter
@@ -2722,6 +2722,10 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     // Filter by `verified` status
     if (verified !== undefined) {
       query.verified = verified === "true"; // Convert string to boolean
+    }
+
+    if (fee) {
+      query.fee = fee as string;
     }
 
     // Define sorting conditions

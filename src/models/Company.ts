@@ -33,6 +33,7 @@ type CompanyDocument = Document & {
   document: string;
   idNumber: string;
   cacNumber: string;
+  cacdoc: string;
   apiVetting?: boolean;
   verified?: boolean;
 };
@@ -68,6 +69,7 @@ const CompanySchema: Schema = new Schema(
     document: { type: String, required: true },
     idNumber: { type: String, required: true },
     cacNumber: { type: String, required: true },
+    cacdoc: { type: String, required: true },
     apiVetting: { type: Boolean },
     verified: { type: Boolean },
   },
