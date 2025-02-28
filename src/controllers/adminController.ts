@@ -2690,7 +2690,6 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     // Choose the appropriate model
     const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
 
-
     // Construct query filters
     const query: any = {};
 
@@ -2709,14 +2708,17 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
-    // Apply location filter (city, state, country)
+    // Apply location filter (expects "country,state")
     if (location) {
-      const regex = new RegExp(location as string, "i");
-      query.$or = [
-        { "location.city": regex },
-        { "location.state": regex },
-        { "location.country": regex },
-      ];
+      const locationParts = (location as string).split(",");
+      const country = locationParts[0]?.trim();
+      const state = locationParts[1]?.trim();
+
+      query["location.country"] = { $regex: country, $options: "i" };
+
+      if (state) {
+        query["location.state"] = { $regex: state, $options: "i" };
+      }
     }
 
     // Filter by `verified` status
@@ -2763,6 +2765,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
+
 
 
 

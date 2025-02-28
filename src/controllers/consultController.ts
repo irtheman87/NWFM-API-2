@@ -1895,39 +1895,39 @@ export async function getWalletHistory(req: Request, res: Response): Promise<Res
 export const fetchDataByType = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Authorization token is missing or invalid" });
     }
 
     // Extract and verify token
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT secret key is not configured' });
+      return res.status(500).json({ message: "JWT secret key is not configured" });
     }
 
     let decodedToken;
     try {
       decodedToken = jwt.verify(token, JWT_SECRET);
     } catch (err) {
-      return res.status(401).json({ message: 'Invalid token' });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     // Check Consultant Role
     const { role } = decodedToken as { role: string };
-    if (role !== 'consultant') {
-      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    if (role !== "consultant") {
+      return res.status(403).json({ message: "Access denied. Consultant role required." });
     }
-    
+
     const { type, sortBy, roles, location, typeFilter, department, fee } = req.query;
     const { page = 1, limit = 10 } = req.query;
 
-    // Validate the `type` parameter
+    // Validate `type` parameter
     if (type !== "crew" && type !== "consultant") {
       return res.status(400).json({ message: "Invalid type. Use 'crew' or 'consultant'." });
     }
 
-    // Calculate pagination parameters
+    // Pagination parameters
     const pageNumber = Math.max(1, parseInt(page as string, 10));
     const pageSize = Math.max(1, parseInt(limit as string, 10));
     const skip = (pageNumber - 1) * pageSize;
@@ -1938,29 +1938,32 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     // Construct query filters
     const query: any = { verified: true }; // Ensure verified is true
 
-    // Add role filter for `crew`
+    // Apply role filter for `crew`
     if (type === "crew" && roles) {
       query.role = { $in: (roles as string).split(",") };
     }
 
-    // Add department filter for `crew`
+    // Apply department filter for `crew`
     if (type === "crew" && department) {
-      query.department = { $regex: department as string, $options: "i" }; // Case-insensitive search
+      query.department = { $regex: department as string, $options: "i" };
     }
 
-    // Add type filter for `consultant`
+    // Apply type filter for `consultant`
     if (type === "consultant" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
-    // Add location filter for city, state, or country
+    // Apply location filter (expects "country,state")
     if (location) {
-      const regex = new RegExp(location as string, "i"); // Case-insensitive search
-      query.$or = [
-        { "location.city": regex },
-        { "location.state": regex },
-        { "location.country": regex },
-      ];
+      const locationParts = (location as string).split(",");
+      const country = locationParts[0]?.trim();
+      const state = locationParts[1]?.trim();
+
+      query["location.country"] = { $regex: country, $options: "i" };
+
+      if (state) {
+        query["location.state"] = { $regex: state, $options: "i" };
+      }
     }
 
     // **Filter by exact `fee` string match**
@@ -1968,19 +1971,17 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       query.fee = fee as string;
     }
 
-    // Define additional sorting conditions
-    const additionalSort: Record<string, 1 | -1> = {};
-    if (type === "crew" && sortBy === "department") {
-      additionalSort.department = 1; // Sorting by `department` for crew
-    } else if (type === "consultant" && sortBy === "type") {
-      additionalSort.type = 1; // Sorting by `type` for consultant
+    // Define sorting conditions
+    const sortOptions: Record<string, 1 | -1> = { createdAt: -1 }; // Default sorting by `createdAt`
+
+    if (sortBy === "department" && type === "crew") {
+      sortOptions.department = 1;
+    } else if (sortBy === "type" && type === "consultant") {
+      sortOptions.type = 1;
     }
 
-    // Fetch the paginated and sorted data
-    const data = await Model.find(query)
-      .sort({ ...additionalSort, createdAt: -1 }) // Primary sort by `createdAt`
-      .skip(skip)
-      .limit(pageSize);
+    // Fetch paginated and sorted data
+    const data = await Model.find(query).sort(sortOptions).skip(skip).limit(pageSize);
 
     // Count total records
     const totalRecords = await Model.countDocuments(query);
@@ -2003,6 +2004,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     });
   }
 };
+
 
 
 export const createWithdrawal = async (req: Request, res: Response): Promise<Response> => {
