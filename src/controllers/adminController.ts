@@ -3624,7 +3624,7 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
       text: `Dear ${crew.firstName} ${crew.lastName},
 
             Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
-            You can view your verified profile here: [Insert Profile Link]
+            You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}
             Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
             
             Best
@@ -3685,7 +3685,7 @@ p {
 <h1>Dear ${crew.firstName} ${crew.lastName},</h1>
 
 <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
-<p>You can view your verified profile here: [Insert Profile Link]</p>
+<p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}</p>
 <p>Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.</p>
 
 <p>Best</p>
@@ -3807,7 +3807,7 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
         text: `Dear ${company.name},
 
               Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
-              You can view your verified profile here: [Insert Profile Link]
+              You can view your verified profile here: You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} 
               Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
               
               Best
@@ -3868,7 +3868,7 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
   <h1>Dear ${company.name},</h1>
 
   <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
-  <p>You can view your verified profile here: [Insert Profile Link]</p>
+  <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} </p>
   <p>Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.</p>
 
   <p>Best</p>

@@ -475,12 +475,12 @@ export const createCrewCompany = async (req: Request, res: Response) => {
     // Save to the database
     const savedCrewCompany = await newCrewCompany.save();
 
-    await sendEmail({
-      to: email,
-      subject: "You Joined Our Database",
-      text: `Thanks ${username} for joining our database.`,
-      html: `<p>Thanks <strong>${username}</strong> for joining our database.</p>`,
-    });
+    // await sendEmail({
+    //   to: email,
+    //   subject: "You Joined Our Database",
+    //   text: `Thanks ${username} for joining our database.`,
+    //   html: `<p>Thanks <strong>${username}</strong> for joining our database.</p>`,
+    // });
     
 
     // Respond with success
