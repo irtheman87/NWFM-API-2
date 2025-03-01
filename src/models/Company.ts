@@ -68,7 +68,7 @@ const CompanySchema: Schema = new Schema(
     verificationDocType: { type: String, required: true },
     document: { type: String, required: true },
     idNumber: { type: String, required: true },
-    cacNumber: { type: String, required: true },
+    cacNumber: { type: String, required: false },
     cacdoc: { type: String, required: true },
     apiVetting: { type: Boolean },
     verified: { type: Boolean },

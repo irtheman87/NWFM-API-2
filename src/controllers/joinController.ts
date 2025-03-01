@@ -285,7 +285,6 @@ export const createCompany = async (req: Request, res: Response) => {
         location,
         verificationDocType,
         idNumber,
-        cacNumber,
       } = req.body;
 
       // Validate useRateCard and check for the rate card file if required
