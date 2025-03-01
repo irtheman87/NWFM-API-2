@@ -302,8 +302,7 @@ export const createCompany = async (req: Request, res: Response) => {
         !mobile ||
         !type ||
         !verificationDocType ||
-        !idNumber ||
-        !cacNumber
+        !idNumber
       ) {
         return res.status(400).json({ message: "All required fields must be provided." });
       }
@@ -326,7 +325,6 @@ export const createCompany = async (req: Request, res: Response) => {
         verificationDocType,
         document,
         idNumber,
-        cacNumber,
         cacdoc,
         apiVetting: false,
         verified: false,
