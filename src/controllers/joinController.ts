@@ -52,222 +52,398 @@ const multerMiddleware = multer().none();
 // Create Crew Member Function
 export const createCrewMember = async (req: Request, res: Response) => {
   try {
-    // ✅ Validate Required Fields Before Uploading Files
-    const {
-      firstName, lastName, email, userId, mobile, dob, bio, department, role,
-      works, fee, location, verificationDocType, idNumber
-    } = req.body;
-
-    const missingFields: string[] = [];
-
-    if (!firstName?.trim()) missingFields.push("firstName");
-    if (!lastName?.trim()) missingFields.push("lastName");
-    if (!email?.trim()) missingFields.push("email");
-    if (!userId?.trim()) missingFields.push("userId");
-    if (!mobile?.trim()) missingFields.push("mobile");
-    if (!dob?.trim()) missingFields.push("dob");
-    if (!department?.trim()) missingFields.push("department");
-    if (!role?.trim()) missingFields.push("role");
-    if (!verificationDocType?.trim()) missingFields.push("verificationDocType");
-    if (!idNumber?.trim()) missingFields.push("idNumber");
-    
-    if (missingFields.length > 0) {
-      console.error(`❌ Missing required fields: ${missingFields.join(", ")}`);
-      return res.status(400).json({
-        message: "All required fields must be provided.",
-        missingFields, // Include missing fields in the response
-      });
-    }
-    
-    // ✅ Handle File Uploads
-    upload(req, res, async (err) => {
+    // Use Multer to handle file uploads
+    upload(req, res, async function (err) {
       if (err) {
-        console.error("File upload error:", err);
-        return res.status(500).json({ message: "Error uploading files to S3", error: err.message });
+        return res.status(500).json({
+          message: "Error uploading files to S3",
+          error: err.message,
+        });
       }
 
-      const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+      // Extract files from request
+      const files = req.files as {
+        [fieldname: string]: Express.MulterS3.File[];
+      };
 
-      // ✅ Validate Uploaded Files
-      if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location) {
-        return res.status(400).json({ message: "Both profile picture and document are required." });
+      // Validate required files
+      if (!files?.file?.[0] || !files?.doc?.[0]) {
+        return res.status(400).json({
+          message: "Both profile picture and document are required.",
+        });
       }
 
-      // ✅ Extract File Locations
       const profilePic = files.file[0].location;
       const document = files.doc[0].location;
 
-      // ✅ Create and Save Crew Member in Database
+      const {
+        firstName,
+        lastName,
+        email,
+        userId,
+        mobile,
+        dob,
+        bio,
+        department,
+        role,
+        works,
+        fee,
+        location,
+        verificationDocType,
+        idNumber,
+      } = req.body;
+
+      // Validate required fields
+      if (
+        !firstName ||
+        !lastName ||
+        !email ||
+        !userId ||
+        !mobile ||
+        !dob ||
+        !department ||
+        !role ||
+        !verificationDocType ||
+        !idNumber
+      ) {
+        return res
+          .status(400)
+          .json({ message: "All required fields must be provided." });
+      }
+
+      // Create a new Crew instance
       const newCrew = new Crew({
-        firstName, lastName, email, userId, mobile, dob, bio, propic: profilePic,
-        department, role, works, fee, location, verificationDocType, document,
-        idNumber, apiVetting: false, verified: false,
+        firstName,
+        lastName,
+        email,
+        userId,
+        mobile,
+        dob,
+        bio,
+        propic: profilePic,
+        department,
+        role,
+        works,
+        fee,
+        location,
+        verificationDocType,
+        document,
+        idNumber,
+        apiVetting: false,
+        verified: false,
       });
 
+      // Save Crew to the database
       const savedCrew = await newCrew.save();
 
-      // ✅ Send Email Notification Asynchronously (Prevents Delayed API Response)
-      sendEmail({
-        to: email,
-        subject: "Welcome to the Nollywood Filmmaker Database – Verification in Progress",
-        text: `Dear ${firstName} ${lastName},
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+          text: `Dear ${firstName} ${lastName},
+                 Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+                 We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+                 As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+                 We look forward to having you as part of this growing community!
+                 Best,
+                 Nollywood Filmmaker Database
+          `,
+          html: `
+          <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Nollywood Filmmaker Database</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    .header img {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
 
-Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
-We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
-As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
-We look forward to having you as part of this growing community!
+  <div class="container">
+    <div class="header">
+      <a href="https://nollywoodfilmmaker.com">
+        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+             alt="Nollywood Filmmaker Database">
+      </a>
+    </div>
 
-Best regards,
-Nollywood Filmmaker Database
-        `,
-        html: `
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; color: #333; }
-              .container { max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: auto; }
-              h1 { color: #333; }
-              p { font-size: 16px; line-height: 1.5; }
-              .footer { margin-top: 20px; font-size: 14px; color: #777; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>Hello ${firstName} ${lastName},</h1>
-              <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>. Your submission is under review.</p>
-              <p>We will notify you once your profile is verified. Welcome aboard!</p>
-              <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
-            </div>
-          </body>
-          </html>
-        `,
-      }).catch((emailError) => console.error("Error sending email:", emailError));
+    <h1>Hello ${firstName} ${lastName},</h1>
 
-      return res.status(201).json({ message: "Crew member created successfully.", data: savedCrew });
+    <p>Dear ${firstName},</p>
+
+    <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+    <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+    <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+    <p>We look forward to having you as part of this growing community!</p>
+
+    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+  </div>
+
+</body>
+</html>
+
+          `,
+        });
+
+        console.log('Email sent successfully.');
+
+        return res
+          .status(201)
+          .json({ message: "Crew member created successfully.", data: savedCrew });
+
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+        return res
+          .status(500)
+          .json({ message: "Crew member created, but email notification failed.", data: savedCrew });
+      }
     });
 
   } catch (error) {
-    console.error("Error in createCrewMember:", error);
-    return res.status(500).json({ message: "An unexpected error occurred.", error: error });
+    console.error(error);
+    return res.status(500).json({ message: "An error occurred.", error: error });
   }
 };
-
 
 
 // Create Company Function
 export const createCompany = async (req: Request, res: Response) => {
   try {
-    // ✅ Validate Required Fields Before Uploading Files
-    const {
-      name, email, userId, mobile, website, bio, type, clientele,
-      useRateCard, fee, location, verificationDocType, idNumber, cacNumber
-    } = req.body;
-
-    const missingFields: string[] = [];
-
-    if (!name?.trim()) missingFields.push("name");
-    if (!email?.trim()) missingFields.push("email");
-    if (!userId?.trim()) missingFields.push("userId");
-    if (!mobile?.trim()) missingFields.push("mobile");
-    if (!type?.trim()) missingFields.push("type");
-    if (!verificationDocType?.trim()) missingFields.push("verificationDocType");
-    if (!idNumber?.trim()) missingFields.push("idNumber");
-    if (!cacNumber?.trim()) missingFields.push("cacNumber");
-    if (!location?.trim()) missingFields.push("location");
-    if (!bio?.trim()) missingFields.push("bio");
-    
-    if (missingFields.length > 0) {
-      console.error(`❌ Missing required fields: ${missingFields.join(", ")}`);
-      return res.status(400).json({
-        message: "All required fields must be provided.",
-        missingFields, // Include missing fields in the response
-      });
-    }
-    
-
-    // ✅ Handle File Uploads
+    // Use Multer to handle file uploads
     upload(req, res, async (err) => {
       if (err) {
-        console.error("File upload error:", err);
-        return res.status(500).json({ message: "Error uploading files to S3", error: err.message });
+        return res.status(500).json({
+          message: "Error uploading files to S3",
+          error: err.message,
+        });
       }
 
-      const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+      // Extract files from request
+      const files = req.files as {
+        [fieldname: string]: Express.MulterS3.File[];
+      };
 
-      // ✅ Validate Uploaded Files
+      // Validate required files
       if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
-        return res.status(400).json({ message: "Profile picture, document, and CAC document are required." });
+        return res.status(400).json({
+          message: "Profile picture, document, and CAC document are required.",
+        });
       }
 
-      // ✅ Extract File Locations
       const profilePic = files.file[0].location;
       const document = files.doc[0].location;
       const cacdoc = files.cacdoc[0].location;
-      let rateCard = "";
 
-      // ✅ Validate and Process Rate Card
+      let rateCard = "";
+      const {
+        name,
+        email,
+        userId,
+        mobile,
+        website,
+        bio,
+        type,
+        clientele,
+        useRateCard,
+        fee,
+        location,
+        verificationDocType,
+        idNumber,
+        cacNumber,
+      } = req.body;
+
+      // Validate useRateCard and check for the rate card file if required
       if (useRateCard === "true") {
         if (!files?.rateCard?.[0]?.location) {
-          return res.status(400).json({ message: "Rate card file is required when useRateCard is true." });
+          return res
+            .status(400)
+            .json({ message: "Rate card file is required when useRateCard is true." });
         }
         rateCard = files.rateCard[0].location;
       }
 
-      // ✅ Create and Save Company in Database
+      // Validate required fields
+      if (
+        !name ||
+        !email ||
+        !userId ||
+        !mobile ||
+        !type ||
+        !verificationDocType ||
+        !idNumber
+      ) {
+        return res.status(400).json({ message: "All required fields must be provided." });
+      }
+
+      // Create a new Company instance
       const newCompany = new Company({
-        name, email, userId, mobile, website, bio, propic: profilePic,
-        type, clientele, useRateCard, rateCard, fee, location,
-        verificationDocType, document, idNumber, cacdoc,
-        apiVetting: false, verified: false,
+        name,
+        email,
+        userId,
+        mobile,
+        website,
+        bio,
+        propic: profilePic,
+        type,
+        clientele,
+        useRateCard,
+        rateCard,
+        fee,
+        location,
+        verificationDocType,
+        document,
+        idNumber,
+        cacdoc,
+        apiVetting: false,
+        verified: false,
       });
 
+      // Save Company to the database
       const savedCompany = await newCompany.save();
 
-      // ✅ Send Email Notification Asynchronously (Prevents Delayed API Response)
-      sendEmail({
-        to: email,
-        subject: "Welcome to the Nollywood Filmmaker Database – Verification in Progress",
-        text: `Dear ${name},
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+          text: `Dear ${name},
 
-Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
-We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
-As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
-We look forward to having you as part of this growing community!
+                 Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+                 We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+                 As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+                 We look forward to having you as part of this growing community!
+                 Best,
+                 Nollywood Filmmaker Database
+          `,
+          html: `
+          <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Nollywood Filmmaker Database</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    .header img {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
 
-Best regards,
-Nollywood Filmmaker Database
-        `,
-        html: `
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; color: #333; }
-              .container { max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: auto; }
-              h1 { color: #333; }
-              p { font-size: 16px; line-height: 1.5; }
-              .footer { margin-top: 20px; font-size: 14px; color: #777; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>Hello ${name},</h1>
-              <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>. Your submission is under review.</p>
-              <p>We will notify you once your profile is verified. Welcome aboard!</p>
-              <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
-            </div>
-          </body>
-          </html>
-        `,
-      }).catch((emailError) => console.error("Error sending email:", emailError));
+  <div class="container">
+    <div class="header">
+      <a href="https://nollywoodfilmmaker.com">
+        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+             alt="Nollywood Filmmaker Database">
+      </a>
+    </div>
 
-      return res.status(201).json({ message: "Company created successfully.", data: savedCompany });
+    <h1>Hello ${name},</h1>
+
+    <p>Dear ${name},</p>
+
+    <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+    <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+    <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+    <p>We look forward to having you as part of this growing community!</p>
+
+    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+  </div>
+
+</body>
+</html>
+          `,
+        });
+
+        console.log("Email sent successfully.");
+
+        return res.status(201).json({ 
+          message: "Company created successfully.", 
+          data: savedCompany 
+        });
+
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+        return res.status(500).json({ 
+          message: "Company created, but email notification failed.", 
+          data: savedCompany 
+        });
+      }
     });
 
   } catch (error) {
     console.error("Error in createCompany:", error);
-    return res.status(500).json({ message: "An unexpected error occurred.", error: error });
+    return res.status(500).json({ message: "An error occurred.", error });
   }
 };
+
 
 
 export const createCrewCompany = async (req: Request, res: Response) => {
