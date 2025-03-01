@@ -20,7 +20,6 @@ const s3 = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
-  endpoint: `https://s3-accelerate.amazonaws.com`, // ✅ Enables Transfer Acceleration
 });
 
 // ✅ Configure Multer-S3 for optimized upload
@@ -46,6 +45,7 @@ const upload = multer({
   { name: "rateCard", maxCount: 1 },
   { name: "cacdoc", maxCount: 1 },
 ]);
+
 
 const multerMiddleware = multer().none();
 
