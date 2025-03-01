@@ -1923,8 +1923,8 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     const { page = 1, limit = 10 } = req.query;
 
     // Validate `type` parameter
-    if (type !== "crew" && type !== "consultant") {
-      return res.status(400).json({ message: "Invalid type. Use 'crew' or 'consultant'." });
+    if (type !== "crew" && type !== "Company") {
+      return res.status(400).json({ message: "Invalid type. Use 'crew' or 'Company'." });
     }
 
     // Pagination parameters
@@ -1949,7 +1949,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     }
 
     // Apply type filter for `consultant`
-    if (type === "consultant" && typeFilter) {
+    if (type === "Company" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
@@ -1976,7 +1976,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
 
     if (sortBy === "department" && type === "crew") {
       sortOptions.department = 1;
-    } else if (sortBy === "type" && type === "consultant") {
+    } else if (sortBy === "type" && type === "Company") {
       sortOptions.type = 1;
     }
 
