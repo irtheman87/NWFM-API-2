@@ -1933,7 +1933,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     const skip = (pageNumber - 1) * pageSize;
 
     // Choose the appropriate model dynamically
-    const Model = (type === "crew" ? Crew : Consultant) as mongoose.Model<any>;
+    const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
 
     // Construct query filters
     const query: any = { verified: true }; // Ensure verified is true
