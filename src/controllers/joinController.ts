@@ -58,10 +58,27 @@ export const createCrewMember = async (req: Request, res: Response) => {
       works, fee, location, verificationDocType, idNumber
     } = req.body;
 
-    if (!firstName || !lastName || !email || !userId || !mobile || !dob || !department || !role || !verificationDocType || !idNumber) {
-      return res.status(400).json({ message: "All required fields must be provided." });
-    }
+    const missingFields: string[] = [];
 
+    if (!firstName?.trim()) missingFields.push("firstName");
+    if (!lastName?.trim()) missingFields.push("lastName");
+    if (!email?.trim()) missingFields.push("email");
+    if (!userId?.trim()) missingFields.push("userId");
+    if (!mobile?.trim()) missingFields.push("mobile");
+    if (!dob?.trim()) missingFields.push("dob");
+    if (!department?.trim()) missingFields.push("department");
+    if (!role?.trim()) missingFields.push("role");
+    if (!verificationDocType?.trim()) missingFields.push("verificationDocType");
+    if (!idNumber?.trim()) missingFields.push("idNumber");
+    
+    if (missingFields.length > 0) {
+      console.error(`❌ Missing required fields: ${missingFields.join(", ")}`);
+      return res.status(400).json({
+        message: "All required fields must be provided.",
+        missingFields, // Include missing fields in the response
+      });
+    }
+    
     // ✅ Handle File Uploads
     upload(req, res, async (err) => {
       if (err) {
@@ -146,9 +163,27 @@ export const createCompany = async (req: Request, res: Response) => {
       useRateCard, fee, location, verificationDocType, idNumber, cacNumber
     } = req.body;
 
-    if (!name || !email || !userId || !mobile || !type || !verificationDocType || !idNumber) {
-      return res.status(400).json({ message: "All required fields must be provided." });
+    const missingFields: string[] = [];
+
+    if (!name?.trim()) missingFields.push("name");
+    if (!email?.trim()) missingFields.push("email");
+    if (!userId?.trim()) missingFields.push("userId");
+    if (!mobile?.trim()) missingFields.push("mobile");
+    if (!type?.trim()) missingFields.push("type");
+    if (!verificationDocType?.trim()) missingFields.push("verificationDocType");
+    if (!idNumber?.trim()) missingFields.push("idNumber");
+    if (!cacNumber?.trim()) missingFields.push("cacNumber");
+    if (!location?.trim()) missingFields.push("location");
+    if (!bio?.trim()) missingFields.push("bio");
+    
+    if (missingFields.length > 0) {
+      console.error(`❌ Missing required fields: ${missingFields.join(", ")}`);
+      return res.status(400).json({
+        message: "All required fields must be provided.",
+        missingFields, // Include missing fields in the response
+      });
     }
+    
 
     // ✅ Handle File Uploads
     upload(req, res, async (err) => {
