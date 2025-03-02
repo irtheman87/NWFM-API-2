@@ -136,11 +136,17 @@ export const createCrewMember = async (req: Request, res: Response) => {
       // Save Crew to the database
       const savedCrew = await newCrew.save();
 
+      const capitalize = (str: string) => 
+        str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+      
+      const firstNameCap = capitalize(firstName);
+      const lastNameCap = capitalize(lastName);
+
       try {
         await sendEmail({
           to: email,
           subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
-          text: `Dear ${firstName} ${lastName},
+          text: `Dear ${firstNameCap} ${lastNameCap},
                  Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
                  We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
                  As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
@@ -200,9 +206,9 @@ export const createCrewMember = async (req: Request, res: Response) => {
       </a>
     </div>
 
-    <h1>Hello ${firstName} ${lastName},</h1>
+    <h1>Hello ${firstNameCap} ${lastNameCap},</h1>
 
-    <p>Dear ${firstName},</p>
+    <p>Dear ${firstNameCap},</p>
 
     <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
 
@@ -336,11 +342,16 @@ export const createCompany = async (req: Request, res: Response) => {
       // Save Company to the database
       const savedCompany = await newCompany.save();
 
+      const capitalize = (str: string) => 
+        str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+      const nameCap = capitalize(name);
+
       try {
         await sendEmail({
           to: email,
           subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
-          text: `Dear ${name},
+          text: `Dear ${nameCap},
 
                  Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
                  We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
@@ -401,9 +412,9 @@ export const createCompany = async (req: Request, res: Response) => {
       </a>
     </div>
 
-    <h1>Hello ${name},</h1>
+    <h1>Hello ${nameCap},</h1>
 
-    <p>Dear ${name},</p>
+    <p>Dear ${nameCap},</p>
 
     <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
 
