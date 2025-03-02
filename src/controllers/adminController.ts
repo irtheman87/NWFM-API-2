@@ -29,6 +29,7 @@ import Resolve from '../models/Resolve';
 import UserModel from '../models/UserModel';
 import EmailList from '../models/EmailList';
 import Attendance from '../models/attendanceModel';
+import { findSourceMap } from 'module';
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -3618,10 +3619,16 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
 
     await crew.save();
 
+    const capitalize = (str: string) => 
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+    const firstNameCap = capitalize(crew.firstName);
+    const lastNameCap = capitalize(crew.lastName);
+
     await sendEmail({
       to: crew.email,
       subject: 'Your Nollywood Filmmaker Profile is Now Verified!',
-      text: `Dear ${crew.firstName} ${crew.lastName},
+      text: `Dear ${firstNameCap} ${lastNameCap},
 
             Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
             You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}
@@ -3682,7 +3689,7 @@ p {
   </a>
 </div>
 
-<h1>Dear ${crew.firstName} ${crew.lastName},</h1>
+<h1>Dear ${firstNameCap} ${lastNameCap},</h1>
 
 <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
 <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}</p>
@@ -3801,10 +3808,15 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
 
     await company.save();
 
+    const capitalize = (str: string) => 
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+    const companyNameCap = capitalize(company.name);
+
       await sendEmail({
         to: company.email,
         subject: 'Your Nollywood Filmmaker Profile is Now Verified!',
-        text: `Dear ${company.name},
+        text: `Dear ${companyNameCap},
 
               Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
               You can view your verified profile here: You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} 
@@ -3865,7 +3877,7 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
     </a>
   </div>
 
-  <h1>Dear ${company.name},</h1>
+  <h1>Dear ${companyNameCap},</h1>
 
   <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
   <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} </p>
