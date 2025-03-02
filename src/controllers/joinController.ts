@@ -79,8 +79,9 @@ export const createCrewMember = async (req: Request, res: Response) => {
       const {
         firstName,
         lastName,
+        username,
+        password,
         email,
-        userId,
         mobile,
         dob,
         bio,
@@ -98,7 +99,6 @@ export const createCrewMember = async (req: Request, res: Response) => {
         !firstName ||
         !lastName ||
         !email ||
-        !userId ||
         !mobile ||
         !dob ||
         !department ||
@@ -111,12 +111,39 @@ export const createCrewMember = async (req: Request, res: Response) => {
           .json({ message: "All required fields must be provided." });
       }
 
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "All fields are required." });
+      }
+  
+      // Check if email or username already exists
+      const existingUser = await CrewCompany.findOne({ 
+        $or: [{ username }, { email }] 
+      });
+      if (existingUser) {
+        return res
+          .status(409)
+          .json({ message: "Username or email already exists." });
+      }
+  
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      // Create new CrewCompany
+      const newCrewCompany = new CrewCompany({
+        username,
+        email,
+        password: hashedPassword,
+      });
+  
+      // Save to the database
+      const savedCrewCompany = await newCrewCompany.save();
+
       // Create a new Crew instance
       const newCrew = new Crew({
         firstName,
         lastName,
         email,
-        userId,
+        userId: savedCrewCompany._id,
         mobile,
         dob,
         bio,
@@ -281,6 +308,8 @@ export const createCompany = async (req: Request, res: Response) => {
         name,
         email,
         userId,
+        username, 
+        password,
         mobile,
         website,
         bio,
@@ -316,12 +345,39 @@ export const createCompany = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "All required fields must be provided." });
       }
 
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "All fields are required." });
+      }
+  
+      // Check if email or username already exists
+      const existingUser = await CrewCompany.findOne({ 
+        $or: [{ username }, { email }] 
+      });
+      if (existingUser) {
+        return res
+          .status(409)
+          .json({ message: "Username or email already exists." });
+      }
+  
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      // Create new CrewCompany
+      const newCrewCompany = new CrewCompany({
+        username,
+        email,
+        password: hashedPassword,
+      });
+  
+      // Save to the database
+      const savedCrewCompany = await newCrewCompany.save();
+
       // Create a new Company instance
       const newCompany = new Company({
         name,
         email,
-        userId,
         mobile,
+        userId: savedCrewCompany._id,
         website,
         bio,
         propic: profilePic,
