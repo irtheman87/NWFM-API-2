@@ -336,7 +336,6 @@ export const createCompany = async (req: Request, res: Response) => {
       if (
         !name ||
         !email ||
-        !userId ||
         !mobile ||
         !type ||
         !verificationDocType ||
