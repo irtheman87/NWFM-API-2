@@ -3475,13 +3475,33 @@ export const getEmailList = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    const emails = await EmailList.find(); // Fetch all email entries
-    res.status(200).json({ message: "Email list retrieved successfully.", data: emails });
+    // Extract pagination parameters
+    const { page = 1, limit = 50 } = req.query;
+    const pageNumber = Math.max(1, parseInt(page as string, 10));
+    const pageSize = Math.max(1, parseInt(limit as string, 10));
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Fetch paginated email list
+    const emails = await EmailList.find().skip(skip).limit(pageSize);
+
+    // Count total records
+    const totalRecords = await EmailList.countDocuments();
+
+    res.status(200).json({
+      message: "Email list retrieved successfully.",
+      data: emails,
+      pagination: {
+        totalRecords,
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalRecords / pageSize),
+      },
+    });
   } catch (error) {
     console.error("Error fetching email list:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 export const fetchAttendanceByRoom = async (req: Request, res: Response): Promise<Response> => {
   try {
