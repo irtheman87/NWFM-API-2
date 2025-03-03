@@ -2676,96 +2676,78 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     }
 
     const { type, sortBy, fee, roles, location, typeFilter, department, verified } = req.query;
-    const { page = 1, limit = 10 } = req.query;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
 
-    // Validate `type` parameter
-    if (type !== "crew" && type !== "company") {
+    if (!type || (type !== "crew" && type !== "company")) {
       return res.status(400).json({ message: "Invalid type. Use 'crew' or 'company'." });
     }
 
-    // Pagination parameters
-    const pageNumber = Math.max(1, parseInt(page as string, 10));
-    const pageSize = Math.max(1, parseInt(limit as string, 10));
-    const skip = (pageNumber - 1) * pageSize;
-
-    // Choose the appropriate model
+    const skip = (page - 1) * limit;
     const Model = (type === "crew" ? Crew : Company) as mongoose.Model<any>;
 
     // Construct query filters
     const query: any = {};
 
-    // Apply role filter for `crew`
     if (type === "crew" && roles) {
       query.role = { $in: (roles as string).split(",") };
     }
 
-    // Apply department filter for `crew`
     if (type === "crew" && department) {
       query.department = { $regex: department as string, $options: "i" };
     }
 
-    // Apply type filter for `company`
     if (type === "company" && typeFilter) {
       query.type = { $regex: typeFilter as string, $options: "i" };
     }
 
-    // Apply location filter (expects "country,state")
     if (location) {
-      const locationParts = (location as string).split(",");
-      const country = locationParts[0]?.trim();
-      const state = locationParts[1]?.trim();
-
-      query["location.country"] = { $regex: country, $options: "i" };
-
-      if (state) {
-        query["location.state"] = { $regex: state, $options: "i" };
-      }
+      const [country, state] = (location as string).split(",").map((item) => item.trim());
+      if (country) query["location.country"] = { $regex: country, $options: "i" };
+      if (state) query["location.state"] = { $regex: state, $options: "i" };
     }
 
-    // Filter by `verified` status
     if (verified !== undefined) {
-      query.verified = verified === "true"; // Convert string to boolean
+      query.verified = verified === "true";
     }
 
     if (fee) {
       query.fee = fee as string;
     }
 
-    // Define sorting conditions
-    const sortOptions: Record<string, 1 | -1> = { createdAt: -1 }; // Default sorting by `createdAt`
+    // Sorting logic
+    const sortOptions: Record<string, 1 | -1> = { createdAt: -1, _id: 1 };
 
     if (sortBy === "department" && type === "crew") {
       sortOptions.department = 1;
     } else if (sortBy === "type" && type === "company") {
       sortOptions.type = 1;
     } else if (sortBy === "verified") {
-      sortOptions.verified = -1; // Verified first
+      sortOptions.verified = -1;
     }
 
     // Fetch paginated and sorted data
-    const data = await Model.find(query).sort(sortOptions).skip(skip).limit(pageSize);
-
-    // Count total records
+    const data = await Model.find(query).sort(sortOptions).skip(skip).limit(limit);
     const totalRecords = await Model.countDocuments(query);
 
-    // Return response
     return res.status(200).json({
       message: `${type.charAt(0).toUpperCase() + type.slice(1)} data fetched successfully.`,
       data,
       pagination: {
         totalRecords,
-        currentPage: pageNumber,
-        totalPages: Math.ceil(totalRecords / pageSize),
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
       },
     });
   } catch (error) {
     console.error("Error fetching data:", error);
     return res.status(500).json({
       message: "Failed to fetch data",
-      error: error,
+      error: error || error,
     });
   }
 };
+
 
 
 
