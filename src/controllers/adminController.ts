@@ -3384,7 +3384,7 @@ export const deleteCrewByUserId = async (req: Request, res: Response): Promise<R
 
     // Respond with a success message
     return res.status(200).json({
-      message: `${result.deletedCount} crew record(s) deleted successfully.`,
+      message: `Complete ${result.deletedCount} crew record(s) deleted successfully.`,
     });
   } catch (error) {
     console.error("Error deleting crew records:", error);
@@ -3554,7 +3554,7 @@ export const deleteCompanyByUserId = async (req: Request, res: Response): Promis
 
     // Respond with a success message
     return res.status(200).json({
-      message: `${result.deletedCount} company record(s) deleted successfully.`,
+      message: `Complete ${result.deletedCount} company record(s) deleted successfully.`,
     });
   } catch (error) {
     console.error("Error deleting company records:", error);
