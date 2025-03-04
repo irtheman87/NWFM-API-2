@@ -882,6 +882,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
     teamMenber,
     putinfestivals,
     revprojection,
+    fundingtype,
   } = req.body;
 
   try {
@@ -920,6 +921,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
       userId,
       putinfestivals,
       revprojection,
+      fundingtype,
       files: fileUrls,
     });
 
