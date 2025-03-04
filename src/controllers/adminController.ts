@@ -3255,9 +3255,123 @@ export const deleteCrewByUserId = async (req: Request, res: Response): Promise<R
     if (!userId) {
       return res.status(400).json({ message: "User ID is required for deletion." });
     }
+    
+    // Find crew record matching the given userId  
+    const crewed = await Crew.findOne({ userId }).exec();
+    
+    if (!crewed) {
+      return res.status(404).json({ message: "Crew member not found." });
+    }
+    
+    // Function to capitalize the first letter of a string
+    const capitalize = (str: string) => 
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+    
+    const firstNameCap = capitalize(crewed.firstName);
+    
+    await sendEmail({
+      to: crewed.email, 
+      subject: 'Verification Unsuccessful – Resubmit Your Application',
+      text: `Dear ${firstNameCap},
+    
+    Thank you for applying to the Nollywood Filmmaker Database. Unfortunately, we were unable to verify your application due to one or more of the following reasons:
+    
+    - Not enough work done – Please indicate your work experience and provide links. If there’s no link, specify the exhibition platform where your work is available.
+    - Mismatch in roles – Please only list roles you have actually worked in.
+    - ID verification issues – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.
+    - Company verification issues – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.
+    - Unreachable phone number – We were unable to confirm your phone number.
+    
+    Your application has been deleted, but you are welcome to resubmit with the correct details at any time.
+    
+    If you believe this was a mistake, please contact us at support@nollywoodfilmmaker.com and we will review your case.
+    
+    Best Regards,  
+    Nollywood Filmmaker
+      `,
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Verification Unsuccessful</title>
+      <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+      </style>
+      </head>
+      <body>
+    
+      <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker Database">
+        </a>
+      </div>
+    
+      <h1>Dear ${firstNameCap},</h1>
+    
+      <p>Thank you for applying to the Nollywood Filmmaker Database. Unfortunately, we were unable to verify your application due to one or more of the following reasons:</p>
+    
+      <ul>
+        <li><strong>Not enough work done</strong> – Please indicate your work experience and provide links. If there’s no link, specify the exhibition platform where your work is available.</li>
+        <li><strong>Mismatch in roles</strong> – Please only list roles you have actually worked in.</li>
+        <li><strong>ID verification issues</strong> – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.</li>
+        <li><strong>Company verification issues</strong> – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.</li>
+        <li><strong>Unreachable phone number</strong> – We were unable to confirm your phone number.</li>
+      </ul>
+    
+      <p>Your application has been deleted, but you are welcome to resubmit with the correct details at any time.</p>
+    
+      <p>If you believe this was a mistake, please contact us at <a href="mailto:support@nollywoodfilmmaker.com">support@nollywoodfilmmaker.com</a> and we will review your case.</p>
+    
+      <p>Best Regards,</p>
+      <p><strong>Nollywood Filmmaker</strong></p>
+    
+      <p class="footer">Best regards,<br><strong>Nollywood Filmmaker</strong></p>
+      </div>
+    
+      </body>
+      </html>
+      `,
+    });    
 
     // Delete crew records matching the given userId
     const result = await Crew.deleteMany({ userId }).exec();
+
+    const account = await CrewCompany.deleteMany({ _id: userId }).exec();
 
     // Check if any records were deleted
     if (result.deletedCount === 0) {
@@ -3265,6 +3379,8 @@ export const deleteCrewByUserId = async (req: Request, res: Response): Promise<R
         message: "No crew records found for the specified User ID.",
       });
     }
+
+
 
     // Respond with a success message
     return res.status(200).json({
@@ -3313,8 +3429,121 @@ export const deleteCompanyByUserId = async (req: Request, res: Response): Promis
       return res.status(400).json({ message: "User ID is required for deletion." });
     }
 
+    const company = await Company.findOne({ userId }).exec();
+    
+    if (!company) {
+      return res.status(404).json({ message: "Crew member not found." });
+    }
+    
+    // Function to capitalize the first letter of a string
+    const capitalize = (str: string) => 
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+    
+    const firstNameCap = capitalize(company.name);
+    
+    await sendEmail({
+      to: company.email, 
+      subject: 'Verification Unsuccessful – Resubmit Your Application',
+      text: `Dear ${firstNameCap},
+    
+    Thank you for applying to the Nollywood Filmmaker Database. Unfortunately, we were unable to verify your application due to one or more of the following reasons:
+    
+    - Not enough work done – Please indicate your work experience and provide links. If there’s no link, specify the exhibition platform where your work is available.
+    - Mismatch in roles – Please only list roles you have actually worked in.
+    - ID verification issues – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.
+    - Company verification issues – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.
+    - Unreachable phone number – We were unable to confirm your phone number.
+    
+    Your application has been deleted, but you are welcome to resubmit with the correct details at any time.
+    
+    If you believe this was a mistake, please contact us at support@nollywoodfilmmaker.com and we will review your case.
+    
+    Best Regards,  
+    Nollywood Filmmaker
+      `,
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Verification Unsuccessful</title>
+      <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+      </style>
+      </head>
+      <body>
+    
+      <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker Database">
+        </a>
+      </div>
+    
+      <h1>Dear ${firstNameCap},</h1>
+    
+      <p>Thank you for applying to the Nollywood Filmmaker Database. Unfortunately, we were unable to verify your application due to one or more of the following reasons:</p>
+    
+      <ul>
+        <li><strong>Not enough work done</strong> – Please indicate your work experience and provide links. If there’s no link, specify the exhibition platform where your work is available.</li>
+        <li><strong>Mismatch in roles</strong> – Please only list roles you have actually worked in.</li>
+        <li><strong>ID verification issues</strong> – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.</li>
+        <li><strong>Company verification issues</strong> – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.</li>
+        <li><strong>Unreachable phone number</strong> – We were unable to confirm your phone number.</li>
+      </ul>
+    
+      <p>Your application has been deleted, but you are welcome to resubmit with the correct details at any time.</p>
+    
+      <p>If you believe this was a mistake, please contact us at <a href="mailto:support@nollywoodfilmmaker.com">support@nollywoodfilmmaker.com</a> and we will review your case.</p>
+    
+      <p>Best Regards,</p>
+      <p><strong>Nollywood Filmmaker</strong></p>
+    
+      <p class="footer">Best regards,<br><strong>Nollywood Filmmaker</strong></p>
+      </div>
+    
+      </body>
+      </html>
+      `,
+    });    
+
     // Delete companies matching the given userId
     const result = await Company.deleteMany({ userId }).exec();
+
+    const account = await CrewCompany.deleteMany({ _id: userId }).exec();
 
     // Check if any companies were deleted
     if (result.deletedCount === 0) {
