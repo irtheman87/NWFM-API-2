@@ -4108,13 +4108,17 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
       return res.status(200).json({ message: "Can Not Perform Step 2 Verification Until step 1 is true" });
     }
 
-    await crew.save();
-
     const profileImageURL = `${crew.propic}`;
 
     const fullname = `${crew.firstName} ${crew.lastName}`
 
     const badgeURL = await generateBadge('crew', profileImageURL, 'https://nollywoodfilmmaker.com', fullname);
+
+    crew.badgelink = badgeURL;
+
+    await crew.save();
+
+
 
     const capitalize = (str: string) => 
       str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
@@ -4311,13 +4315,17 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
       return res.status(200).json({ message: "Can Not Perform Step 2 Verification Until step 1 is true" });
     }
 
-    await company.save();
-
     const profileImageURL = `${company.propic}`;
 
     const fullname = `${company.name}`
 
     const badgeURL = await generateBadge('company', profileImageURL, 'https://nollywoodfilmmaker.com', fullname, fullname);
+    
+    company.badgelink = badgeURL;
+
+    await company.save();
+
+
 
     const capitalize = (str: string) => 
       str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";

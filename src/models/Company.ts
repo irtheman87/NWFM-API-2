@@ -36,6 +36,7 @@ type CompanyDocument = Document & {
   cacdoc: string;
   apiVetting?: boolean;
   verified?: boolean;
+  badgelink?: string;
 };
 
 // Define the schema for the Company model
@@ -72,6 +73,7 @@ const CompanySchema: Schema = new Schema(
     cacdoc: { type: String, required: true },
     apiVetting: { type: Boolean },
     verified: { type: Boolean },
+    badgelink: { type: String },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps
