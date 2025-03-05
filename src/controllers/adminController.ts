@@ -4429,7 +4429,7 @@ export const generateBadge = async (
 
     // Load profile picture
     const profilePic = await loadImage(profileImageURL);
-    const circleX = width / 2, circleY = 550, radius = 260; // Moved down & slightly enlarged
+    const circleX = width / 2, circleY = 650, radius = 270; // Moved further down & centered
 
     // Draw profile picture in a circular clip
     ctx.save();
@@ -4448,10 +4448,10 @@ export const generateBadge = async (
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 1100); // Adjusted for new positioning
+      ctx.fillText(crewname, width / 2, 1250); // Adjusted for better spacing
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 1100);
+      ctx.fillText(company, width / 2, 1250);
       badgename = company;
     } else {
       badgename = 'Unknown';
@@ -4461,17 +4461,17 @@ export const generateBadge = async (
     ctx.font = 'bold 80px DejaVuSans'; // Increased font size
     ctx.fillStyle = '#053736';
     ctx.textAlign = 'center';
-    ctx.fillText('VERIFIED', width / 2, 1150);
+    ctx.fillText('VERIFIED', width / 2, 1300);
 
     // Load and draw verification icon (moved down & slightly larger)
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
     const verificationIcon = await loadImage(verificationIconURL);
-    ctx.drawImage(verificationIcon, circleX + radius - 100, circleY - radius + 30, 100, 100); // Moved down, increased size
+    ctx.drawImage(verificationIcon, circleX + radius - 100, circleY - radius + 50, 110, 110); // Moved down, increased size
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
-    ctx.drawImage(qrImage, (width - 250) / 2, height - 230, 250, 250); // Centered at bottom
+    ctx.drawImage(qrImage, (width - 250) / 2, height - 220, 250, 250); // Centered at bottom
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
