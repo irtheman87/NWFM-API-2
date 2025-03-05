@@ -2,18 +2,17 @@ import { Request, Response } from "express";
 import Crew from "../models/Crew";
 import multer from "multer";
 import multerS3 from "multer-s3";
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import Company from "../models/Company";
 import CrewCompany from "../models/CrewCompany";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import mongoose from "mongoose";
 import sendEmail from "../utils/sendEmail";
-
 import EmailList from "../models/EmailList";
 
 // Initialize S3 client
-// ✅ Create an S3 Client with Transfer Acceleration Enabled
+// Create an S3 Client with Transfer Acceleration Enabled
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
@@ -22,13 +21,13 @@ const s3 = new S3Client({
   },
 });
 
-// ✅ Configure Multer-S3 for optimized upload
+// Configure Multer-S3 for optimized upload
 const storage = multerS3({
   s3: s3,
   bucket: process.env.AWS_S3_BUCKET_NAME || "",
-  contentType: multerS3.AUTO_CONTENT_TYPE, // ✅ Sets the correct Content-Type automatically
-  acl: "private", // ✅ Faster than "public-read"
-  cacheControl: "max-age=31536000", // ✅ Improves CDN caching if used
+  contentType: multerS3.AUTO_CONTENT_TYPE, // Sets the correct Content-Type automatically
+  acl: "private", // Faster than "public-read"
+  cacheControl: "max-age=31536000", // Improves CDN caching if used
   key: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `uploads/${uniqueSuffix}-${file.originalname}`);
@@ -38,7 +37,7 @@ const storage = multerS3({
 // ✅ Use Multer Memory Storage to Avoid Disk Writes
 const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // ✅ Limit to 10MB for speed
+  limits: { fileSize: 10 * 1024 * 1024 }, // Limit to 10MB for speed
 }).fields([
   { name: "file", maxCount: 1 },
   { name: "doc", maxCount: 1 },

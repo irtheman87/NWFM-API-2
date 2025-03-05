@@ -30,6 +30,41 @@ import UserModel from '../models/UserModel';
 import EmailList from '../models/EmailList';
 import Attendance from '../models/attendanceModel';
 import { findSourceMap } from 'module';
+import { createCanvas, loadImage } from 'canvas';
+const QRCode = require('qrcode');
+import fs from 'fs';
+import path from 'path';
+const axios =  require('axios');
+import { S3Client, PutObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => {
+  const bucketName = process.env.AWS_S3_BUCKET_NAME || '';
+  const key = `badges/${filename}`;
+
+  const uploadParams = {
+    Bucket: bucketName,
+    Key: key,
+    Body: buffer,
+    ContentType: 'image/png',
+    ACL: 'private' as ObjectCannedACL, // ✅ Type assertion to fix the error
+  };
+
+  try {
+    await s3.send(new PutObjectCommand(uploadParams));
+    return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`; // S3 URL
+  } catch (error) {
+    console.error('S3 Upload Error:', error);
+    throw new Error('Failed to upload image to S3');
+  }
+};
 
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
@@ -4070,6 +4105,12 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
 
     await crew.save();
 
+    const profileImageURL = `${crew.propic}`;
+
+    const fullname = `${crew.firstName} ${crew.lastName}`
+
+    const badgeURL = await generateBadge('crew', profileImageURL, '', fullname);
+
     const capitalize = (str: string) => 
       str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
 
@@ -4083,6 +4124,8 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
 
             Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
             You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}
+
+            <a href="${badgeURL}">Your Badge</a>
             Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
             
             Best
@@ -4144,6 +4187,12 @@ p {
 
 <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
 <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}</p>
+
+  <a href="${badgeURL}">
+    <img src="${badgeURL}" 
+         alt="Nollywood Filmmaker Database">
+  </a>
+
 <p>Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.</p>
 
 <p>Best</p>
@@ -4348,5 +4397,97 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error updating verification status:", error);
     return res.status(500).json({ message: "Error updating verification status", error });
+  }
+};
+
+const loadImageFromURL = async (url: string) => {
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
+  return loadImage(Buffer.from(response.data));
+};
+
+export const generateBadge = async (
+  type: string,
+  profileImageURL: string,
+  qrData: string,
+  crewname?: string,
+  company?: string
+): Promise<string> => {
+  try {
+    const width = 800, height = 1000;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // Load background template from S3
+    const templateURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF_VERIFY_Background_empty.jpg';
+    const template = await loadImageFromURL(templateURL);
+    ctx.drawImage(template, 0, 0, width, height);
+
+    // Load profile picture from URL
+    const profilePic = await loadImageFromURL(profileImageURL);
+    const circleX = 400, circleY = 300, radius = 150;
+
+    // Draw profile picture in a circular clip
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(profilePic, circleX - radius, circleY - radius, radius * 2, radius * 2);
+    ctx.restore();
+
+    let badgename = '';
+    
+    // Draw name or company
+    ctx.font = 'bold 50px Arial';
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+
+    if (type === 'crew' && crewname) {
+      ctx.fillText(crewname, width / 2, 550);
+      badgename = crewname;
+    } else if (company) {
+      ctx.fillText(company, width / 2, 550);
+      badgename = company;
+    } else {
+      badgename = 'Unknown'; // Fallback value
+    }
+
+    // Draw "Verified" text
+    ctx.font = 'bold 60px Arial';
+    ctx.fillStyle = '#008000';
+    ctx.fillText('VERIFIED', width / 2, 700);
+
+    // Load and draw verification icon
+    const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png'; // Replace with actual icon URL
+    const verificationIcon = await loadImageFromURL(verificationIconURL);
+    ctx.drawImage(verificationIcon, width / 2 + 150, 660, 60, 60); // Adjust position as needed
+
+    // Generate QR code
+    const qrImageData = await QRCode.toDataURL(qrData);
+    const qrImage = await loadImage(qrImageData);
+    ctx.drawImage(qrImage, width / 2 - 100, 750, 200, 200);
+
+    // Convert canvas to buffer
+    const buffer = canvas.toBuffer('image/png');
+
+    // Upload to S3
+    const fileName = `badges/${badgename.replace(/\s+/g, '_')}_${Date.now()}.png`;
+    const uploadParams = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME || '',
+      Key: fileName,
+      Body: buffer,
+      ContentType: 'image/png',
+      ACL: 'private' as ObjectCannedACL, // Fix ACL type issue
+    };
+
+    await s3.send(new PutObjectCommand(uploadParams));
+
+    console.log(`https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`);
+    // Return S3 URL
+    return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+  } catch (error) {
+    console.error('Error generating badge:', error);
+    throw new Error('Failed to generate badge');
   }
 };
