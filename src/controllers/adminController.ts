@@ -4437,7 +4437,7 @@ export const generateBadge = async (
     ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-    ctx.drawImage(profilePic, circleX - radius, circleY - radius + 60, radius * 2, radius * 2);
+    ctx.drawImage(profilePic, circleX - radius, circleY - radius - 60, radius * 2, radius * 2);
     ctx.restore();
 
     let badgename = '';
@@ -4458,19 +4458,19 @@ export const generateBadge = async (
     }
 
 
-    ctx.font = 'bold 70px DejaVuSans'; // Increased font size for better visibility
-    ctx.fillStyle = '#000';
+    ctx.font = 'bold 80px DejaVuSans'; // Increased font size for better visibility
+    ctx.fillStyle = '#053736';
     ctx.textAlign = 'center';
     ctx.fillText('VERIFIED', width / 2, 1100); // Moved up for better spacing
     // Load and draw verification icon (top-right of profile pic)
-    const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
+    const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/new_verification_bg.JPG';
     const verificationIcon = await loadImage(verificationIconURL);
-    ctx.drawImage(verificationIcon, circleX + radius - 110, circleY - radius + 30, 80, 80); // Adjusted for new size
+    ctx.drawImage(verificationIcon, circleX + radius - 110, circleY - radius - 30, 80, 80); // Adjusted for new size
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
-    ctx.drawImage(qrImage, (width - 250) / 2, height - 300, 250, 250); // Centered at bottom
+    ctx.drawImage(qrImage, (width - 250) / 2, height - 400, 250, 250); // Centered at bottom
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
