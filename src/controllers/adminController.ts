@@ -4313,6 +4313,12 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
 
     await company.save();
 
+    const profileImageURL = `${company.propic}`;
+
+    const fullname = `${company.name}`
+
+    const badgeURL = await generateBadge('company', profileImageURL, 'https://nollywoodfilmmaker.com', fullname, fullname);
+
     const capitalize = (str: string) => 
       str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
 
@@ -4325,6 +4331,9 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
 
               Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
               You can view your verified profile here: You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} 
+
+              <a href="${badgeURL}">Your Badge</a>
+
               Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
               
               Best
@@ -4386,6 +4395,11 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
 
   <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
   <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} </p>
+
+    <a href="${badgeURL}">
+    <img src="${badgeURL}" 
+         alt="Nollywood Filmmaker Database">
+  </a>
   <p>Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.</p>
 
   <p>Best</p>
