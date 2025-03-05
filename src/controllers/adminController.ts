@@ -4453,13 +4453,18 @@ export const generateBadge = async (
     const profilePic = await loadImage(profileImageURL);
     const circleX = width / 2, circleY = 650, radius = 270;
 
+    // Ensure 1:1 crop from top
+    const minSide = Math.min(profilePic.width, profilePic.height);
+    const sx = 0, sy = 0; // Crop starts from the top-left
+    const sWidth = minSide, sHeight = minSide;
+
     // Draw profile picture in a circular clip
     ctx.save();
     ctx.beginPath();
     ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-    ctx.drawImage(profilePic, circleX - radius, circleY - radius, radius * 2, radius * 2);
+    ctx.drawImage(profilePic, sx, sy, sWidth, sHeight, circleX - radius, circleY - radius, radius * 2, radius * 2);
     ctx.restore();
 
     let badgename = '';
