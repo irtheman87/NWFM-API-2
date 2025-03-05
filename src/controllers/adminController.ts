@@ -4418,7 +4418,7 @@ export const generateBadge = async (
   company?: string
 ): Promise<string> => {
   try {
-    const width = 1080, height = 1080; // Updated dimensions
+    const width = 1200, height = 1500; // Updated dimensions
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
@@ -4429,7 +4429,7 @@ export const generateBadge = async (
 
     // Load profile picture
     const profilePic = await loadImage(profileImageURL);
-    const circleX = width / 2, circleY = 450, radius = 200; // Adjusted for larger size
+    const circleX = width / 2, circleY = 500, radius = 250; // Adjusted for new size
 
     // Draw profile picture in a circular clip
     ctx.save();
@@ -4443,15 +4443,15 @@ export const generateBadge = async (
     let badgename = '';
 
     // Draw name or company
-    ctx.font = 'bold 60px DejaVuSans';
+    ctx.font = 'bold 70px DejaVuSans'; // Increased font size for better visibility
     ctx.fillStyle = '#000';
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 720); // Moved up slightly
+      ctx.fillText(crewname, width / 2, 850); // Moved up for better spacing
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 720);
+      ctx.fillText(company, width / 2, 850);
       badgename = company;
     } else {
       badgename = 'Unknown';
@@ -4460,12 +4460,12 @@ export const generateBadge = async (
     // Load and draw verification icon (top-right of profile pic)
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
     const verificationIcon = await loadImage(verificationIconURL);
-    ctx.drawImage(verificationIcon, circleX + radius - 70, circleY - radius - 10, 70, 70); // Adjusted for new size
+    ctx.drawImage(verificationIcon, circleX + radius - 80, circleY - radius - 30, 80, 80); // Adjusted for new size
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
-    ctx.drawImage(qrImage, (width - 220) / 2, height - 260, 220, 220); // Centered at bottom
+    ctx.drawImage(qrImage, (width - 250) / 2, height - 300, 250, 250); // Centered at bottom
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
