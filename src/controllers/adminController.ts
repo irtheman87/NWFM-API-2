@@ -4448,10 +4448,10 @@ export const generateBadge = async (
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 1150); // Moved up for better positioning
+      ctx.fillText(crewname, width / 2, 1050); // Moved up for better positioning
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 1150);
+      ctx.fillText(company, width / 2, 1050);
       badgename = company;
     } else {
       badgename = 'Unknown';
@@ -4471,7 +4471,7 @@ export const generateBadge = async (
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
-    ctx.drawImage(qrImage, (width - 250) / 2, height - 230, 250, 250);
+    ctx.drawImage(qrImage, (width - 250) / 2, height - 220, 250, 250);
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
