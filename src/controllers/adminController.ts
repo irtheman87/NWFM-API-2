@@ -4134,6 +4134,8 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
             Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
             You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}
 
+            Click to Download your Nollywood Filmmaker Verified Badge Below
+
             <a href="${badgeURL}">Your Badge</a>
             Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
             
@@ -4196,6 +4198,8 @@ p {
 
 <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
 <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/crew/${crew.userId}</p>
+
+<p>Click to Download your Nollywood Filmmaker Verified Badge Below</p>
 
   <a href="${badgeURL}">
     <img src="${badgeURL}" 
@@ -4340,6 +4344,8 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
               Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.
               You can view your verified profile here: You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} 
 
+              Click to Download your Nollywood Filmmaker Verified Badge Below
+
               <a href="${badgeURL}">Your Badge</a>
 
               Feel free to share your profile on social media and let others know about your services. Remember you can edit and update your profile anytime.
@@ -4403,6 +4409,8 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
 
   <p>Congratulations! Your profile on the Nollywood Filmmaker Database has been successfully verified. You are now officially part of the most dynamic network of industry professionals.</p>
   <p>You can view your verified profile here: https://nollywoodfilmmaker.com/filmmaker-database/profile/company/${company.userId} </p>
+
+  <p>Click to Download your Nollywood Filmmaker Verified Badge Below</p>
 
     <a href="${badgeURL}">
     <img src="${badgeURL}" 
