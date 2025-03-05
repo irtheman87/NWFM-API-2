@@ -30,7 +30,7 @@ import UserModel from '../models/UserModel';
 import EmailList from '../models/EmailList';
 import Attendance from '../models/attendanceModel';
 import { findSourceMap } from 'module';
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas, loadImage, registerFont  } from 'canvas';
 const QRCode = require('qrcode');
 import fs from 'fs';
 import path from 'path';
@@ -66,6 +66,7 @@ const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => 
   }
 };
 
+registerFont('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', { family: 'DejaVuSans' });
 // Generate Access Token
 export const generateAccessToken = (userId: string, role: string) => {
   return jwt.sign(
@@ -4419,12 +4420,12 @@ export const generateBadge = async (
 
     // Load background template from S3
     const templateURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF_VERIFY_Background_empty.jpg';
-    const template = await loadImageFromURL(templateURL);
+    const template = await loadImage(templateURL);
     ctx.drawImage(template, 0, 0, width, height);
 
     // Load profile picture from URL
-    const profilePic = await loadImageFromURL(profileImageURL);
-    const circleX = 400, circleY = 300, radius = 150;
+    const profilePic = await loadImage(profileImageURL);
+    const circleX = 400, circleY = 350, radius = 150; // Lowered Y position
 
     // Draw profile picture in a circular clip
     ctx.save();
@@ -4436,36 +4437,36 @@ export const generateBadge = async (
     ctx.restore();
 
     let badgename = '';
-    
+
     // Draw name or company
-    ctx.font = 'bold 50px Arial';
+    ctx.font = 'bold 50px DejaVuSans';
     ctx.fillStyle = '#000';
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 550);
+      ctx.fillText(crewname, width / 2, 600); // Adjusted text position
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 550);
+      ctx.fillText(company, width / 2, 600);
       badgename = company;
     } else {
       badgename = 'Unknown'; // Fallback value
     }
 
     // Draw "Verified" text
-    ctx.font = 'bold 60px Arial';
+    ctx.font = 'bold 60px DejaVuSans';
     ctx.fillStyle = '#008000';
-    ctx.fillText('VERIFIED', width / 2, 700);
+    ctx.fillText('VERIFIED', width / 2, 750);
 
     // Load and draw verification icon
-    const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png'; // Replace with actual icon URL
-    const verificationIcon = await loadImageFromURL(verificationIconURL);
-    ctx.drawImage(verificationIcon, width / 2 + 150, 660, 60, 60); // Adjust position as needed
+    const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
+    const verificationIcon = await loadImage(verificationIconURL);
+    ctx.drawImage(verificationIcon, width / 2 + 150, 710, 60, 60); // Adjusted position
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
-    ctx.drawImage(qrImage, width / 2 - 100, 750, 200, 200);
+    ctx.drawImage(qrImage, 50, height - 250, 200, 200); // Bottom left
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
@@ -4477,13 +4478,12 @@ export const generateBadge = async (
       Key: fileName,
       Body: buffer,
       ContentType: 'image/png',
-      ACL: 'private' as ObjectCannedACL, // Fix ACL type issue
+      ACL: 'private' as ObjectCannedACL,
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
 
     console.log(`https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`);
-    // Return S3 URL
     return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
   } catch (error) {
