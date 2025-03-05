@@ -4448,10 +4448,10 @@ export const generateBadge = async (
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 700); // Moved up slightly
+      ctx.fillText(crewname, width / 2, 720); // Moved up slightly
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 700);
+      ctx.fillText(company, width / 2, 720);
       badgename = company;
     } else {
       badgename = 'Unknown';
@@ -4460,7 +4460,7 @@ export const generateBadge = async (
     // Load and draw verification icon (top-right of profile pic)
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
     const verificationIcon = await loadImage(verificationIconURL);
-    ctx.drawImage(verificationIcon, circleX + radius - 30, circleY - radius - 30, 70, 70); // Adjusted for new size
+    ctx.drawImage(verificationIcon, circleX + radius - 70, circleY - radius - 10, 70, 70); // Adjusted for new size
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
