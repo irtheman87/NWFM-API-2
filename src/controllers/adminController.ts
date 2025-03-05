@@ -3317,6 +3317,7 @@ export const deleteCrewByUserId = async (req: Request, res: Response): Promise<R
     - ID verification issues – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.
     - Company verification issues – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.
     - Unreachable phone number – We were unable to confirm your phone number.
+    - No Clientele - If you registered as a company, please list atleast one client you have worked with
     
     Your application has been deleted, but you are welcome to resubmit with the correct details at any time.
     
@@ -3387,6 +3388,7 @@ export const deleteCrewByUserId = async (req: Request, res: Response): Promise<R
         <li><strong>ID verification issues</strong> – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.</li>
         <li><strong>Company verification issues</strong> – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.</li>
         <li><strong>Unreachable phone number</strong> – We were unable to confirm your phone number.</li>
+        <li><strong>No Clientele</strong> – If you registered as a company, please list atleast one client you have worked with.</li>
       </ul>
     
       <p>Your application has been deleted, but you are welcome to resubmit with the correct details at any time.</p>
@@ -3489,6 +3491,7 @@ export const deleteCompanyByUserId = async (req: Request, res: Response): Promis
     - ID verification issues – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.
     - Company verification issues – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.
     - Unreachable phone number – We were unable to confirm your phone number.
+    - No Clientele - If you registered as a company, please list atleast one client you have worked with.
     
     Your application has been deleted, but you are welcome to resubmit with the correct details at any time.
     
@@ -3559,6 +3562,7 @@ export const deleteCompanyByUserId = async (req: Request, res: Response): Promis
         <li><strong>ID verification issues</strong> – Your ID documents could not be verified, the face on your ID doesn’t match your profile, or the name you registered with doesn’t match your ID. Ensure your profile has a headshot.</li>
         <li><strong>Company verification issues</strong> – If you registered as a company, your company registration certificate could not be verified, or the company name does not match the certificate.</li>
         <li><strong>Unreachable phone number</strong> – We were unable to confirm your phone number.</li>
+        <li><strong>No Clientele</strong> – If you registered as a company, please list atleast one client you have worked with.</li>
       </ul>
     
       <p>Your application has been deleted, but you are welcome to resubmit with the correct details at any time.</p>
@@ -4418,14 +4422,14 @@ export const generateBadge = async (
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Load background template from S3
+    // Load background template
     const templateURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF_VERIFY_Background_empty.jpg';
     const template = await loadImage(templateURL);
     ctx.drawImage(template, 0, 0, width, height);
 
-    // Load profile picture from URL
+    // Load profile picture
     const profilePic = await loadImage(profileImageURL);
-    const circleX = 400, circleY = 350, radius = 150; // Lowered Y position
+    const circleX = width / 2, circleY = 450, radius = 150; // Centered profile pic
 
     // Draw profile picture in a circular clip
     ctx.save();
@@ -4444,24 +4448,19 @@ export const generateBadge = async (
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 600); // Adjusted text position
+      ctx.fillText(crewname, width / 2, 750);
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 600);
+      ctx.fillText(company, width / 2, 750);
       badgename = company;
     } else {
-      badgename = 'Unknown'; // Fallback value
+      badgename = 'Unknown';
     }
 
-    // Draw "Verified" text
-    ctx.font = 'bold 60px DejaVuSans';
-    ctx.fillStyle = '#008000';
-    ctx.fillText('VERIFIED', width / 2, 750);
-
-    // Load and draw verification icon
+    // Load and draw verification icon (top-left of profile pic)
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
     const verificationIcon = await loadImage(verificationIconURL);
-    ctx.drawImage(verificationIcon, width / 2 + 150, 710, 60, 60); // Adjusted position
+    ctx.drawImage(verificationIcon, circleX - radius - 30, circleY - radius - 30, 60, 60); // Top-left of profile pic
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
