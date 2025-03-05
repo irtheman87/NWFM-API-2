@@ -4109,7 +4109,7 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
 
     const fullname = `${crew.firstName} ${crew.lastName}`
 
-    const badgeURL = await generateBadge('crew', profileImageURL, '', fullname);
+    const badgeURL = await generateBadge('crew', profileImageURL, 'https://nollywoodfilmmaker.com', fullname);
 
     const capitalize = (str: string) => 
       str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
