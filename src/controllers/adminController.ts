@@ -4418,7 +4418,7 @@ export const generateBadge = async (
   company?: string
 ): Promise<string> => {
   try {
-    const width = 1200, height = 1500; // Updated dimensions
+    const width = 1200, height = 1500;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
@@ -4429,7 +4429,7 @@ export const generateBadge = async (
 
     // Load profile picture
     const profilePic = await loadImage(profileImageURL);
-    const circleX = width / 2, circleY = 650, radius = 270; // Moved further down & centered
+    const circleX = width / 2, circleY = 650, radius = 270;
 
     // Draw profile picture in a circular clip
     ctx.save();
@@ -4443,35 +4443,35 @@ export const generateBadge = async (
     let badgename = '';
 
     // Draw name or company
-    ctx.font = 'bold 70px DejaVuSans'; // Increased font size for better visibility
+    ctx.font = 'bold 70px DejaVuSans';
     ctx.fillStyle = '#000';
     ctx.textAlign = 'center';
 
     if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 1250); // Adjusted for better spacing
+      ctx.fillText(crewname, width / 2, 1150); // Moved up for better positioning
       badgename = crewname;
     } else if (company) {
-      ctx.fillText(company, width / 2, 1250);
+      ctx.fillText(company, width / 2, 1150);
       badgename = company;
     } else {
       badgename = 'Unknown';
     }
 
     // Draw "VERIFIED" text
-    ctx.font = 'bold 80px DejaVuSans'; // Increased font size
+    ctx.font = 'bold 80px DejaVuSans';
     ctx.fillStyle = '#053736';
     ctx.textAlign = 'center';
-    ctx.fillText('VERIFIED', width / 2, 1300);
+    ctx.fillText('VERIFIED', width / 2, 1210); // Moved up with spacing from badgename
 
-    // Load and draw verification icon (moved down & slightly larger)
+    // Load and draw verification icon
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
     const verificationIcon = await loadImage(verificationIconURL);
-    ctx.drawImage(verificationIcon, circleX + radius - 100, circleY - radius + 50, 110, 110); // Moved down, increased size
+    ctx.drawImage(verificationIcon, circleX + radius - 100, circleY - radius + 50, 110, 110);
 
     // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
-    ctx.drawImage(qrImage, (width - 250) / 2, height - 220, 250, 250); // Centered at bottom
+    ctx.drawImage(qrImage, (width - 250) / 2, height - 230, 250, 250);
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
