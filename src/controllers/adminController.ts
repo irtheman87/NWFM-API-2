@@ -3565,6 +3565,7 @@ export const deleteCompanyByUserId = async (req: Request, res: Response): Promis
   }
 };
 
+
 export const deleteCrewCompanyById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;

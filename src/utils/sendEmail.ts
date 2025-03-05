@@ -36,9 +36,9 @@ const sendEmail = async ({
       replyTo: 'support@nollywoodfilmmaker.com', // Improve legitimacy
     });
 
-    console.log('Email sent successfully via Brevo');
+    console.log('Email sent successfully via ZeptoMail');
   } catch (error) {
-    console.error('Error sending email via Brevo:', error);
+    console.error('Error sending email via ZeptoMail:', error);
     throw new Error('Email sending failed');
   }
 };
