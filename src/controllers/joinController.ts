@@ -93,6 +93,8 @@ export const createCrewMember = async (req: Request, res: Response) => {
         idNumber,
       } = req.body;
 
+       let emailtoUse = email.trim().toLowerCase();
+
       // Validate required fields
       if (
         !firstName ||
@@ -116,7 +118,7 @@ export const createCrewMember = async (req: Request, res: Response) => {
   
       // Check if email or username already exists
       const existingUser = await CrewCompany.findOne({ 
-        $or: [{ username }, { email }] 
+        $or: [{ username }, { email: emailtoUse }] 
       });
       if (existingUser) {
         return res
@@ -130,7 +132,7 @@ export const createCrewMember = async (req: Request, res: Response) => {
       // Create new CrewCompany
       const newCrewCompany = new CrewCompany({
         username,
-        email,
+        email: emailtoUse,
         password: hashedPassword,
       });
   
@@ -141,7 +143,7 @@ export const createCrewMember = async (req: Request, res: Response) => {
       const newCrew = new Crew({
         firstName,
         lastName,
-        email,
+        email: emailtoUse,
         userId: savedCrewCompany._id,
         mobile,
         dob,
@@ -321,6 +323,8 @@ export const createCompany = async (req: Request, res: Response) => {
         idNumber,
       } = req.body;
 
+      let emailtoUse = email.trim().toLowerCase();
+
       // Validate useRateCard and check for the rate card file if required
       if (useRateCard === "true") {
         if (!files?.rateCard?.[0]?.location) {
@@ -349,7 +353,7 @@ export const createCompany = async (req: Request, res: Response) => {
   
       // Check if email or username already exists
       const existingUser = await CrewCompany.findOne({ 
-        $or: [{ username }, { email }] 
+        $or: [{ username }, { email: emailtoUse }] 
       });
       if (existingUser) {
         return res
@@ -363,7 +367,7 @@ export const createCompany = async (req: Request, res: Response) => {
       // Create new CrewCompany
       const newCrewCompany = new CrewCompany({
         username,
-        email,
+        email: emailtoUse,
         password: hashedPassword,
       });
   
@@ -373,7 +377,7 @@ export const createCompany = async (req: Request, res: Response) => {
       // Create a new Company instance
       const newCompany = new Company({
         name,
-        email,
+        email: emailtoUse,
         mobile,
         userId: savedCrewCompany._id,
         website,

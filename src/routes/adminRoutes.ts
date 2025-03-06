@@ -7,7 +7,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
     getReadyRequests, getRequestByOrderId, setRequestStatusToCompleted, fetchAppointmentsWithRequests, fetchWithdrawals, fetchDataByType,
     completeDebit, fetchWalletHistoryTotalsByCID, fetchAllWithdrawals, fetchAllDeposits, fetchTotalTransactions, fetchWithdrawalById,
   fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, getAllConsultantsList,
-  getEmailList, fetchAttendanceByRoom, updateVerificationStatus, updateCrewVerificationStatus, setApiVettingTrue, setCompanyApiVettingTrue} from '../controllers/adminController';
+  getEmailList, fetchAttendanceByRoom, updateVerificationStatus, updateCrewVerificationStatus, setApiVettingTrue, setCompanyApiVettingTrue,
+  FailedCrewCompanyById} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -96,6 +97,8 @@ router.delete("/crew/:userId", deleteCrewByUserId);
 router.delete("/company/:userId", deleteCompanyByUserId);
 
 router.delete("/crew-company/:id", deleteCrewCompanyById);
+
+router.patch("/crew-company/:id", FailedCrewCompanyById);
 
 router.get('/resolves/:orderId', getResolvesByOrderId);
 

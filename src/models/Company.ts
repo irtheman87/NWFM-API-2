@@ -37,6 +37,8 @@ type CompanyDocument = Document & {
   apiVetting?: boolean;
   verified?: boolean;
   badgelink?: string;
+  failed?: boolean;
+  note?: string;
 };
 
 // Define the schema for the Company model
@@ -74,6 +76,8 @@ const CompanySchema: Schema = new Schema(
     apiVetting: { type: Boolean },
     verified: { type: Boolean },
     badgelink: { type: String },
+    failed  : { type: Boolean },
+    note: { type: String },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps
