@@ -261,15 +261,20 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     const pageNumber = Math.max(Number(page), 1);
     const pageSize = Math.max(Number(limit), 1);
 
-    let filter: Record<string, any> = {
-      status: { $in: ['pending', 'ongoing', 'completed'] }, // Fix typo (stattusof → status)
-    };
+    let filter: Record<string, any>;
 
-    if (status) {
-      filter.status = status;
+    if (!status) {
+      filter = {
+        stattusof: { $in: ['pending', 'ongoing', 'completed'] }, // Match status from the list
+      };
+    } else {
+      filter = {
+        stattusof: { $in: [status] }, // Match status from the provided value
+      };
     }
+    
     if (type) {
-      filter.type = type;
+      filter.type = type; // Add type filter only if provided
     }
 
     // Fetch paginated and sorted requests
@@ -282,38 +287,40 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
         const transaction = await Transaction.findOne(
-          { orderId: request.orderId, status: 'completed' },
-          'orderId status price title'
+          { orderId: request.orderId, status: 'completed' }, // Match by orderId and status
+          'orderId status price title' // Fetch specific fields
         );
 
         if (!transaction) return null; // Exclude requests with no "completed" transactions
 
-        const user = await User.findById(request.userId, 'fname lname email profilepics');
+        const user = await User.findById(request.userId, 'fname lname email profilepics'); // Fetch specific user details
+        const type = request.type;
+let cid = null;
 
-        // Determine consultant based on request type
-        let cid = null;
-        if (request.type === 'request') {
-          cid = await Task.findOne({ orderId: request.orderId }, 'cid');
-        } else {
-          cid = await AppointmentModel.findOne({ orderId: request.orderId }, 'cid');
-        }
+if (type === "request") {
+  cid = await Task.findOne({ orderId: request.orderId }, "cid");
+} else {
+  cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
+}
 
-        if (!cid) {
-          console.warn(`CID is null for orderId: ${request.orderId}`);
-          return { ...request.toObject(), user, assignedConsultant: null, transaction };
-        }
+console.log("CID fetched:", cid);
 
-        const consultant = await Consultant.findById(cid.cid, 'fname lname');
+if (!cid) {
+  console.warn("CID is null or undefined for orderId:", request.orderId);
+}
 
-        if (!consultant) {
-          console.warn(`Consultant not found for CID: ${cid.cid}`);
-        }
+const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
+
+if (!consultant) {
+  console.warn("Consultant not found for CID:", cid);
+}
+
 
         return {
           ...request.toObject(),
           user,
-          assignedConsultant: consultant || null,
-          transaction,
+          assignedConsultant: consultant,
+          transaction, // Include transaction details
         };
       })
     );
@@ -340,7 +347,6 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     });
   }
 };
-
 
 
 
