@@ -917,7 +917,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
       keycharacters: keycharacters ? JSON.parse(keycharacters) : [],
       keycrew: keycrew ? JSON.parse(keycrew) : [],
       teamMenber: teamMenber ? JSON.parse(teamMenber) : [],
-      orderId,
+      orderId: newTransaction.orderId,
       userId,
       putinfestivals,
       revprojection,
