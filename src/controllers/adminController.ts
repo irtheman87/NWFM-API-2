@@ -4766,9 +4766,10 @@ export const generateBadge = async (
     const profilePic = await loadImage(profileImageURL);
     const circleX = width / 2, circleY = 650, radius = 270;
 
-    // Ensure 1:1 crop from top
+    // Crop from the center
     const minSide = Math.min(profilePic.width, profilePic.height);
-    const sx = 0, sy = 0; // Crop starts from the top-left
+    const sx = (profilePic.width - minSide) / 2;
+    const sy = (profilePic.height - minSide) / 2;
     const sWidth = minSide, sHeight = minSide;
 
     // Draw profile picture in a circular clip
@@ -4780,28 +4781,39 @@ export const generateBadge = async (
     ctx.drawImage(profilePic, sx, sy, sWidth, sHeight, circleX - radius, circleY - radius, radius * 2, radius * 2);
     ctx.restore();
 
-    let badgename = '';
+    let badgename = type === 'crew' && crewname ? crewname : company || 'Unknown';
 
-    // Draw name or company
+    // Split text into two lines if too long
+    const maxWidth = width * 0.8; // 80% of canvas width
     ctx.font = 'bold 70px DejaVuSans';
     ctx.fillStyle = '#000';
     ctx.textAlign = 'center';
 
-    if (type === 'crew' && crewname) {
-      ctx.fillText(crewname, width / 2, 1050); // Moved up for better positioning
-      badgename = crewname;
-    } else if (company) {
-      ctx.fillText(company, width / 2, 1050);
-      badgename = company;
+    const words = badgename.split(' ');
+    let line1 = '', line2 = '';
+
+    for (const word of words) {
+      const testLine = line1 ? `${line1} ${word}` : word;
+      const testWidth = ctx.measureText(testLine).width;
+      if (testWidth > maxWidth) {
+        line2 = `${line2} ${word}`.trim();
+      } else {
+        line1 = testLine;
+      }
+    }
+
+    // Draw name, breaking into two lines if needed
+    if (line2) {
+      ctx.fillText(line1, width / 2, 1020); // First line
+      ctx.fillText(line2, width / 2, 1090); // Second line
     } else {
-      badgename = 'Unknown';
+      ctx.fillText(line1, width / 2, 1050); // Single-line case
     }
 
     // Draw "VERIFIED" text
     ctx.font = 'bold 80px DejaVuSans';
     ctx.fillStyle = '#053736';
-    ctx.textAlign = 'center';
-    ctx.fillText('VERIFIED', width / 2, 1210); // Moved up with spacing from badgename
+    ctx.fillText('VERIFIED', width / 2, 1210);
 
     // Load and draw verification icon
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
