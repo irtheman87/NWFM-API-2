@@ -2711,7 +2711,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: "Access denied. Admin role required." });
     }
 
-    const { type, sortBy, fee, roles, location, typeFilter, department, verified, failed } = req.query;
+    const { type, name, sortBy, fee, roles, location, typeFilter, department, verified, failed } = req.query;
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = parseInt(req.query.limit as string, 10) || 10;
 
@@ -2724,6 +2724,16 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
 
     // Construct query filters
     const query: any = {};
+
+    // Name filtering
+    if (type === "crew" && name) {
+      query.$or = [
+        { fname: { $regex: name as string, $options: "i" } },
+        { lname: { $regex: name as string, $options: "i" } },
+      ];
+    } else if (type === "company" && name) {
+      query.name = { $regex: name as string, $options: "i" };
+    }
 
     if (type === "crew" && roles) {
       query.role = { $in: (roles as string).split(",") };
