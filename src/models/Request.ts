@@ -23,6 +23,24 @@ type teamMenber = {
   bio: string;
 };
 
+type shootdays = {
+  date: string;
+};
+
+type startpop = {
+  date: string;
+};
+
+type characterlockdate = {
+  date: string;
+  name: string;
+};
+
+type locationlockeddate = {
+  date: string;
+  name: string;
+};
+
 export interface IRequest extends Document {
   movie_title?: string;
   synopsis?: string;
@@ -73,6 +91,11 @@ export interface IRequest extends Document {
   putinfestivals?: string;
   fundingtype?: string;
   revprojection?: string;
+  stage?: string;
+  shootdays?: shootdays[];
+  startpop?: startpop[];
+  characterlockdate?: characterlockdate[];
+  locationlockeddate?: locationlockeddate[];
   
 }
 
@@ -98,6 +121,24 @@ const keyCrewSchema = new Schema<KeyCrew>({
 const teamMenberSchema = new Schema<teamMenber>({
   name : { type: String, required: true },
   bio: { type: String, required: true },
+});
+
+const shootdaysSchema = new Schema<shootdays>({
+  date: { type: String, required: true },
+});
+
+const startpopSchema = new Schema<startpop>({
+  date: { type: String, required: true },
+});
+
+const characterlockdateSchema = new Schema<characterlockdate>({
+  date: { type: String, required: true },
+  name: { type: String, required: true },
+});
+
+const locationlockeddateSchema = new Schema<locationlockeddate>({
+  date: { type: String, required: true },
+  name: { type: String, required: true },
 });
 
 const requestSchema = new Schema<IRequest>(
@@ -151,6 +192,11 @@ const requestSchema = new Schema<IRequest>(
     putinfestivals: { type: String },
     fundingtype: { type: String },
     revprojection: { type: String },
+    stage: { type: String },
+    shootdays: { type: [shootdaysSchema], default: [] },
+    startpop: { type: [startpopSchema], default: [] },
+    characterlockdate: { type: [characterlockdateSchema], default: [] },
+    locationlockeddate: { type: [locationlockeddateSchema], default: [] },
   },
   { timestamps: true }
 );

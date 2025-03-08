@@ -193,7 +193,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
 
 
 export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns, showtype, episodes } = req.body;
+  const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns, showtype, episodes, stage } = req.body;
 
   try {
     const price = await getServicePriceByName(title);
@@ -236,6 +236,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       expertise: 'Director',
       showtype: showtype,
       episodes: episodes,
+      stage: stage,
     });
     await newRequest.save();
 
@@ -415,7 +416,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
 export const CreateBudgetTransaction = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, days, info, budgetrange,  fileName, showtype, episodes
+    actors, crew, shootdays, info, budgetrange,  fileName, showtype, episodes
   } = req.body;
 
   try {
@@ -467,7 +468,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
       platform,
       actors,
       crew,
-      days,
+      shootdays: shootdays,
       info,
       budgetrange,
       orderId: newTransaction.orderId,
@@ -484,7 +485,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     const currentId = newTransaction.id;
     // Send a single JSON response
     if(showtype){
-      const actualPrice = Number(price) + 10000000;
+      const actualPrice = Number(price) * episodes;
       // const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
         body: {
@@ -655,8 +656,8 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
   
 export const createAPitch = async (req: Request, res: Response) => {
   const { 
-    title, userId, type, name, movie_title, platform, 
-    actors, crew, visualStyle, info, budgetrange, fileName, showtype, episodes, pageCount
+    title, userId, type, days, movie_title, platform, 
+    actors, startpop, genre, info, budgetrange, fileName, showtype, episodes, pageCount, characterlockdate, locationlockeddate
   } = req.body;
 
   try {
@@ -716,8 +717,6 @@ export const createAPitch = async (req: Request, res: Response) => {
       }
     }
     
-    totalPrice += 5000000;
-    
 
 
     const newTransaction = new Transaction({ 
@@ -735,10 +734,9 @@ export const createAPitch = async (req: Request, res: Response) => {
       nameofservice: title,
       platform,
       actors,
-      crew,
       info,
       budgetrange,
-      visualStyle,
+      genre: genre,
       orderId: newTransaction.orderId,
       userId,
       expertise: 'Director',
@@ -746,16 +744,23 @@ export const createAPitch = async (req: Request, res: Response) => {
       filename: fileName,
       showtype: showtype,
       episodes: episodes,
+      days,
+      startpop: startpop,
+      characterlockdate: characterlockdate,
+      locationlockeddate: locationlockeddate,
     });
     await newRequest.save();
     
 
     const currentId = newTransaction.id;
     // Send a single JSON response
+    if(showtype){
+      const actualPrice = 8000000 * Number(episodes);
+
       const paymentReq = {
         body: {
           email: userEmail,
-          amount: totalPrice,
+          amount: actualPrice,
           id: currentId,
         },
       };
@@ -768,6 +773,29 @@ export const createAPitch = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
+     
+
+    }else{
+      const newPrice = 250000000;
+
+      const paymentReq = {
+        body: {
+          email: userEmail,
+          amount: newPrice,
+          id: currentId,
+        },
+      };
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+
+    }     
 
   } catch (error: unknown) {
     if (error instanceof Error) {
