@@ -2728,8 +2728,8 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     // Name filtering
     if (type === "crew" && name) {
       query.$or = [
-        { fname: { $regex: name as string, $options: "i" } },
-        { lname: { $regex: name as string, $options: "i" } },
+        { firstName: { $regex: name as string, $options: "i" } },
+        { lastName: { $regex: name as string, $options: "i" } },
       ];
     } else if (type === "company" && name) {
       query.name = { $regex: name as string, $options: "i" };
