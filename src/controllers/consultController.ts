@@ -1919,7 +1919,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
       return res.status(403).json({ message: "Access denied. Consultant role required." });
     }
 
-    const { type, sortBy, roles, location, typeFilter, department, fee } = req.query;
+    const { type, name, sortBy, roles, location, typeFilter, department, fee } = req.query;
     const { page = 1, limit = 10 } = req.query;
 
     // Validate `type` parameter
@@ -1937,6 +1937,16 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
 
     // Construct query filters
     const query: any = { verified: true }; // Ensure verified is true
+
+     // Name filtering
+    if (type === "crew" && name) {
+      query.$or = [
+        { firstName: { $regex: name as string, $options: "i" } },
+        { lastName: { $regex: name as string, $options: "i" } },
+      ];
+    } else if (type === "company" && name) {
+      query.name = { $regex: name as string, $options: "i" };
+    }
 
     // Apply role filter for `crew`
     if (type === "crew" && roles) {
