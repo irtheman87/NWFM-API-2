@@ -445,7 +445,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     let transprice = 0; // Use `let` instead of `const`
     
     if (showtype) {
-      transprice = Number(price) + 10000000;
+      transprice = Number(price) * episodes;
     } else {
       transprice = Number(price);
     }
@@ -484,13 +484,10 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     // Send a single JSON response with status 201
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype){
-      const actualPrice = Number(price) * episodes;
-      // const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
         body: {
           email: userEmail,
-          amount: actualPrice,
+          amount: transprice,
           id: currentId,
         },
       };
@@ -503,26 +500,6 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
-    }else{
-      const paymentReq = {
-        body: {
-          email: userEmail,
-          amount: price,
-          id: currentId,
-        },
-      };
-  
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }
-
-
   } catch (error: unknown) {
     if (error instanceof Error) {
       res.status(500).json({
@@ -657,27 +634,30 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, days, movie_title, platform, 
-    actors, startpop, genre, info, budgetrange, fileName, showtype, episodes, pageCount, characterlockdate, locationlockeddate
+    actors, startpop, genre, info, budgetrange, fileName, 
+    showtype, episodes, pageCount, characterlockdate, locationlockeddate
   } = req.body;
 
   try {
     const price = await getServicePriceByName(title);
     const userEmail = await fetchUserEmailById(userId);
 
-    const pageCountString = pageCount; // Example from FormData
-    const pageCountArray = JSON.parse(pageCountString);
+    // Ensure pageCount is an array
+    let pageCountArray: number[];
+    try {
+      pageCountArray = Array.isArray(pageCount) ? pageCount : JSON.parse(pageCount);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid format for pageCount. Must be an array." });
+    }
 
-     console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
+    console.log(pageCountArray); // Debugging output
 
     try {
       // Get the list of indexes for the Transaction collection
       const indexes = await Transaction.collection.indexes();
-    
-      // Check if the index named 'reference_1' exists
       const indexExists = indexes.some(index => index.name === 'reference_1');
-    
+
       if (indexExists) {
-        // Drop the index if it exists
         await Transaction.collection.dropIndex('reference_1');
         console.log('Index on "reference" dropped successfully.');
       } else {
@@ -691,43 +671,38 @@ export const createAPitch = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "pageCount must be an array" });
     }
 
-    // Define the pricing rules
-    const rateOne = 5000000; // for pages between 20 and 50 (inclusive)
-    const rateTwo = 10000000; // for pages between 51 and 100 (inclusive)
-
-    // Initialize the total price
     let totalPrice = 0;
 
-    // Loop through each page count in the array
-    for (const count of pageCountArray) {
-      // Validate that each element is a number
-      if (typeof count !== 'number') {
-        return res.status(400).json({ message: "Each element in pageCount must be a number" });
-      }
+    if (showtype) {
+      totalPrice = 8000000 * Number(episodes);
+    } else {
+      totalPrice = Number(price);
+    } // ✅ Fix: Close the if-else block properly
 
-      // Check which pricing range the count falls into
-      if (count >= 1 && count <= 50) {
-        totalPrice += rateOne;
-      } else if (count >= 51 && count <= 100) {
-        totalPrice += rateTwo;
-      } else {
-        // If a page count is out of range, return an error or skip as needed.
-        // Here, we choose to return an error.
-        return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
-      }
-    }
-    
-
-
-    const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' 
+    const newTransaction = new Transaction({
+      title,
+      userId,
+      type,
+      orderId: generateOrderId(),
+      price: totalPrice,
+      reference: '',
+      status: 'processing',
     });
     await newTransaction.save();
 
     const files = req.files as Express.MulterS3.File[] | undefined;
     const fileUrls = files ? files.map(file => file.location) : [];
 
-    const newRequest = new RequesModel({
+    // Ensure characterlockdate & locationlockeddate are arrays
+    let characterLockArray, locationLockArray;
+    try {
+      characterLockArray = Array.isArray(characterlockdate) ? characterlockdate : JSON.parse(characterlockdate);
+      locationLockArray = Array.isArray(locationlockeddate) ? locationlockeddate : JSON.parse(locationlockeddate);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid format for characterlockdate or locationlockeddate. Must be an array." });
+    }
+
+    const newRequest = new RequesModel({ // ✅ Fix: Use correct model name
       movie_title,
       stattusof: 'pending',
       type,
@@ -736,67 +711,39 @@ export const createAPitch = async (req: Request, res: Response) => {
       actors,
       info,
       budgetrange,
-      genre: genre,
+      genre,
       orderId: newTransaction.orderId,
       userId,
       expertise: 'Director',
       files: fileUrls,
       filename: fileName,
-      showtype: showtype,
-      episodes: episodes,
+      showtype,
+      episodes,
       days,
-      startpop: startpop,
-      characterlockdate: characterlockdate,
-      locationlockeddate: locationlockeddate,
+      startpop,
+      characterlockdate: characterLockArray, // ✅ Ensure correct format
+      locationlockeddate: locationLockArray, // ✅ Ensure correct format
     });
     await newRequest.save();
-    
 
     const currentId = newTransaction.id;
-    // Send a single JSON response
-    if(showtype){
-      const actualPrice = 8000000 * Number(episodes);
 
-      const paymentReq = {
-        body: {
-          email: userEmail,
-          amount: actualPrice,
-          id: currentId,
-        },
-      };
-  
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-     
+    const paymentReq = {
+      body: {
+        email: userEmail,
+        amount: totalPrice,
+        id: currentId,
+      },
+    };
 
-    }else{
-      const newPrice = 250000000;
-
-      const paymentReq = {
-        body: {
-          email: userEmail,
-          amount: newPrice,
-          id: currentId,
-        },
-      };
-  
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-
-    }     
-
+    try {
+      const result = await handlePaymentInitialization(paymentReq);
+      console.log('Payment initialized successfully:', result);
+      res.status(201).json({ message: 'Transaction and request created successfully', result });
+    } catch (error: unknown) {
+      console.error('Error during payment initialization:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       res.status(500).json({
