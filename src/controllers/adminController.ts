@@ -36,6 +36,7 @@ import fs from 'fs';
 import path from 'path';
 const axios =  require('axios');
 import { S3Client, PutObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
+import WeeklySchedule from '../models/Availability';
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -351,28 +352,62 @@ if (!consultant) {
 
 
 export const fetchConsultantsByExpertise = async (req: Request, res: Response): Promise<Response> => {
-  const { expertise } = req.query;
+  const { expertise, date } = req.query;
 
   try {
-    // Validate the expertise parameter
+    // Validate parameters
     if (!expertise || typeof expertise !== 'string') {
       return res.status(400).json({ message: 'Invalid or missing expertise parameter' });
     }
 
-    // Fetch consultants with matching expertise and active status
-    const consultants = await Consultant.find({ 
-      expertise: expertise, 
-      status: 'active' // Only include consultants with active status 
-    }).select('fname lname _id expertise status'); // Only select the required fields
+    if (!date || typeof date !== 'string') {
+      return res.status(400).json({ message: 'Invalid or missing date parameter' });
+    }
+
+    // Get day of week from date
+    const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+
+    // Step 1: Get consultant IDs that are available on the selected day with matching expertise
+    const schedules = await WeeklySchedule.find({
+      schedule: {
+        $elemMatch: {
+          day: dayOfWeek,
+          status: 'open',
+          expertise: expertise,
+          slots: { $ne: [] } // must have at least one available slot
+        }
+      }
+    });
+
+    // Extract consultant IDs (cid) from the schedule
+    const consultantIds = schedules.map(schedule => schedule.schedule
+      .filter(slot => slot.day === dayOfWeek && slot.status === 'open' && slot.expertise.includes(expertise) && slot.slots.length > 0)
+      .map(slot => slot.cid.toString())
+    ).flat();
+
+    // Remove duplicates
+    const uniqueConsultantIds = Array.from(new Set(consultantIds.map(id => id.toString())));
+
+    if (uniqueConsultantIds.length === 0) {
+      return res.status(404).json({ message: 'No available consultants found for the selected day and expertise' });
+    }
+
+    // Step 2: Fetch consultant details
+    const consultants = await Consultant.find({
+      _id: { $in: uniqueConsultantIds },
+      status: 'active',
+      expertise: expertise
+    }).select('fname lname _id expertise status');
 
     if (consultants.length === 0) {
-      return res.status(404).json({ message: 'No active consultants found with the specified expertise' });
+      return res.status(404).json({ message: 'No active consultants found with the specified expertise and availability' });
     }
 
     return res.status(200).json({
-      message: 'Active consultants fetched successfully',
+      message: 'Available active consultants fetched successfully',
       consultants,
     });
+
   } catch (error) {
     console.error('Error fetching consultants:', error);
     return res.status(500).json({ message: 'Failed to fetch consultants', error });
