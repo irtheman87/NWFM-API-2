@@ -37,6 +37,7 @@ import path from 'path';
 const axios =  require('axios');
 import { S3Client, PutObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
 import WeeklySchedule from '../models/Availability';
+import ContactFormSubmission from '../models/ContactFormSubmission';
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -4891,5 +4892,37 @@ export const generateBadge = async (
   } catch (error) {
     console.error('Error generating badge:', error);
     throw new Error('Failed to generate badge');
+  }
+};
+
+export const getContactSubmissions = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Extract page and limit from query, provide default values
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalSubmissions = await ContactFormSubmission.countDocuments();
+
+    // Fetch paginated submissions
+    const submissions = await ContactFormSubmission.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      message: 'Contact submissions fetched successfully',
+      currentPage: page,
+      totalPages: Math.ceil(totalSubmissions / limit),
+      totalSubmissions,
+      submissions,
+    });
+  } catch (error) {
+    console.error('Error fetching contact submissions:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch submissions',
+      error: (error as Error).message,
+    });
   }
 };

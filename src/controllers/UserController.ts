@@ -21,6 +21,7 @@ import moment from 'moment-timezone';
 import { createNotification } from '../utils/UtilityFunctions';
 import Consultant from '../models/consultant';
 import WeeklySchedule from '../models/Availability';
+import ContactFormSubmission from '../models/ContactFormSubmission';
 
 
 // Define the storage engine
@@ -1456,6 +1457,123 @@ export const fetchUserSpecificIssues = async (req: Request, res: Response): Prom
     return res.status(500).json({
       message: 'Failed to fetch user-specific issues',
       error,
+    });
+  }
+};
+
+export const submitContactForm = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      message,
+      agreedToPrivacyPolicy,
+    } = req.body;
+
+    // Basic validation
+    if (!firstName || !lastName || !email || !message || agreedToPrivacyPolicy !== true) {
+      return res.status(400).json({
+        message: 'Please fill in all required fields and agree to the privacy policy.',
+      });
+    }
+
+    const userFullName = `${firstName} ${lastName}`;
+
+    // 📨 Send Acknowledgment Email First
+    await sendEmail({
+      to: email,
+      subject: 'Thank You for Getting in Touch!',
+      text: `Dear ${userFullName},
+
+Thank you for reaching out to us. We have received your message and will get back to you shortly.
+
+Best regards,
+Nollywood Filmmaker Team`,
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thank You</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: auto;
+          }
+          .header img {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 8px;
+          }
+          h1 {
+            color: #333;
+          }
+          p {
+            font-size: 16px;
+            line-height: 1.5;
+          }
+          .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #777;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <a href="https://nollywoodfilmmaker.com">
+              <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" alt="Nollywood Filmmaker Database">
+            </a>
+          </div>
+
+          <h1>Dear ${userFullName},</h1>
+          <p>Thank you for getting in touch with us. We’ve received your message and will respond shortly.</p>
+
+          <p>We appreciate your interest in the Nollywood Filmmaker!</p>
+
+          <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Team</strong></p>
+        </div>
+      </body>
+      </html>
+      `
+    });
+
+    // 💾 Save form submission to database
+    const newSubmission = new ContactFormSubmission({
+      firstName,
+      lastName,
+      email,
+      phone,
+      message,
+      agreedToPrivacyPolicy,
+    });
+
+    await newSubmission.save();
+
+    return res.status(201).json({
+      message: 'Contact form submitted successfully and acknowledgment email sent.',
+      data: newSubmission,
+    });
+
+  } catch (error: any) {
+    console.error('Error submitting contact form:', error);
+    return res.status(500).json({
+      message: 'An error occurred while submitting the form',
+      error: error.message,
     });
   }
 };

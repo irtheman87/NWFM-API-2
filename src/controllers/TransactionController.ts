@@ -44,7 +44,11 @@ const storage = multerS3({
 });
 
 // Configure multer to handle multiple files
-export const uploadFiles = multer({ storage }).array('files', 10);
+export const uploadFiles = multer({ storage }).fields([
+  { name: 'files', maxCount: 10 },
+  { name: 'characterbible', maxCount: 1 }
+]);
+
 
 function getDayOfWeek(date: Date | string): string {
   // Convert date string to Date object if necessary
@@ -132,8 +136,13 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     await newTransaction.save();
 
     // Get file URLs from uploaded files if any
-    const files = req.files as Express.MulterS3.File[] | undefined;
-    const fileUrls = files ? files.map(file => file.location) : [];
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+    const uploadedFiles = files['files'] || [];
+    const fileUrls = uploadedFiles.map(file => file.location);
+
+    const characterBibleFile = files['characterbible']?.[0];
+    const characterBibleUrl = characterBibleFile?.location;
+
 
     // Create a new request with file URLs or empty array if no files were uploaded
     const newRequest = new RequesModel({
@@ -152,6 +161,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       filename: fileName,
       showtype: showtype,
       episodes: episodes,
+      characterbible: characterBibleUrl,
     });
     await newRequest.save();
 
@@ -217,6 +227,13 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
+    // const files = req.files as Express.MulterS3.File[] | undefined;
+    // const fileUrls = files ? files.map(file => file.location) : [];
+
+    // // Optional check before continuing
+    // if (!files || files.length === 0) {
+    //   return res.status(400).json({ message: 'No file uploaded for character bible' });
+    // }
 
     const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' });
     await newTransaction.save();
@@ -243,7 +260,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
     const currentId = newTransaction.id;
     // Send a single JSON response
     if(showtype && episodes > 1){
-      const actualPrice = Number(price) - 5000000;
+      const actualPrice = 5000000;
       const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
         body: {
@@ -456,8 +473,9 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     });
     await newTransaction.save();
 
-    const files = req.files as Express.MulterS3.File[] | undefined;
-    const fileUrls = files ? files.map(file => file.location) : [];
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+    const uploadedFiles = files['files'] || [];
+    const fileUrls = uploadedFiles.map(file => file.location);
 
     // Create and save new request
     const newRequest = new RequesModel({
@@ -690,8 +708,9 @@ export const createAPitch = async (req: Request, res: Response) => {
     });
     await newTransaction.save();
 
-    const files = req.files as Express.MulterS3.File[] | undefined;
-    const fileUrls = files ? files.map(file => file.location) : [];
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+    const uploadedFiles = files['files'] || [];
+    const fileUrls = uploadedFiles.map(file => file.location);
 
     // Ensure characterlockdate & locationlockeddate are arrays
     let characterLockArray, locationLockArray;
@@ -875,8 +894,9 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
     await newTransaction.save();
 
     // Handle file uploads (key art, script, etc.)
-    const files = req.files as Express.MulterS3.File[] | undefined;
-    const fileUrls = files ? files.map((file) => file.location) : [];
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+    const uploadedFiles = files['files'] || [];
+    const fileUrls = uploadedFiles.map(file => file.location);
 
     // Create a new request entry
     const newRequest = new RequesModel({

@@ -96,6 +96,7 @@ export interface IRequest extends Document {
   startpop?: startpop[];
   characterlockdate?: characterlockdate[];
   locationlockeddate?: locationlockeddate[];
+  characterbible?: string;
   
 }
 
@@ -197,6 +198,8 @@ const requestSchema = new Schema<IRequest>(
     startpop: { type: [startpopSchema], default: [] },
     characterlockdate: { type: [characterlockdateSchema], default: [] },
     locationlockeddate: { type: [locationlockeddateSchema], default: [] },
+    characterbible: { type: String },
+
   },
   { timestamps: true }
 );
