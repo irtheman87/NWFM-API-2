@@ -63,7 +63,7 @@ router.get('/fetch/awaiting/:userId', fetchAwaitingRequests);
 router.get('/consultant/:cid/availability', getDailyAvailability);
 router.post('/requests/:cid/createappointment', updateRequestAndCreateAppointment);
 router.get('/issues/:uid', fetchUserSpecificIssues);
-router.post('/contact', submitContactForm);
+router.post('/contacted', submitContactForm);
 
 
 
