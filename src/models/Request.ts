@@ -23,9 +23,9 @@ type teamMenber = {
   bio: string;
 };
 
-type shootdays = {
-  date: string;
-};
+// type shootdays = {
+//   date: string;
+// };
 
 type startpop = {
   date: string;
@@ -92,7 +92,7 @@ export interface IRequest extends Document {
   fundingtype?: string;
   revprojection?: string;
   stage?: string;
-  shootdays?: shootdays[];
+  shootdays?: number;
   startpop?: startpop[];
   characterlockdate?: characterlockdate[];
   locationlockeddate?: locationlockeddate[];
@@ -124,9 +124,9 @@ const teamMenberSchema = new Schema<teamMenber>({
   bio: { type: String, required: true },
 });
 
-const shootdaysSchema = new Schema<shootdays>({
-  date: { type: String, required: true },
-});
+// const shootdaysSchema = new Schema<shootdays>({
+//   date: { type: String, required: true },
+// });
 
 const startpopSchema = new Schema<startpop>({
   date: { type: String, required: true },
@@ -194,7 +194,7 @@ const requestSchema = new Schema<IRequest>(
     fundingtype: { type: String },
     revprojection: { type: String },
     stage: { type: String },
-    shootdays: { type: [shootdaysSchema], default: [] },
+    shootdays: { type: Number },
     startpop: { type: [startpopSchema], default: [] },
     characterlockdate: { type: [characterlockdateSchema], default: [] },
     locationlockeddate: { type: [locationlockeddateSchema], default: [] },
