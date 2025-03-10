@@ -1582,57 +1582,46 @@ Nollywood Filmmaker Team`,
 
 export const sendUserMessage = async (req: Request, res: Response): Promise<Response> => {
   const { orderId, uid, message } = req.body;
-  const token = req.headers.authorization?.split(' ')[1];
+
   try {
-  
-    // Validate token presence
-    if (!token) {
-      return res.status(401).json({ message: 'Access denied. No token provided.' });
-    }
-
-    // Decode and verify the token
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { userId: string; role: string };
-
-    // Check if the role is 'user' and userId matches
-    if (decoded.role !== 'user' || decoded.userId !== uid) {
-      return res.status(403).json({ message: 'Access denied. User role and matching userId required.' });
-    }
-    
-    // Find the existing conversation for this orderId
+    // Find existing conversation by orderId
     const serviceChat = await ServiceChat.findOne({ orderId });
     if (!serviceChat) {
-      return res.status(400).json({ message: 'Consultant must initiate the conversation first.' });
+      return res.status(400).json({ message: 'A consultant must initiate the conversation first.' });
     }
     
-    // Count the messages in the conversation
-    const messageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id });
-    
-    // If no message or already two messages, reject the user's response
-    if (messageCount === 0) {
+    // Ensure at least one consultant message exists before allowing a user response
+    const consultantMessageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id, role: 'consultant' });
+    if (consultantMessageCount < 1) {
       return res.status(400).json({ message: 'Consultant has not initiated the conversation yet.' });
     }
-    if (messageCount >= 2) {
-      return res.status(400).json({ message: 'The conversation is limited to 2 messages.' });
+    
+    // Count user messages in the conversation
+    const userMessageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id, role: 'user' });
+    if (userMessageCount >= 2) {
+      return res.status(400).json({ message: 'User message limit (2) reached for this conversation.' });
     }
     
-    // Create the user's message thread
+    // Create a new user message thread
     const threadMessage = new ServiceChatThread({
       role: 'user',
-      uid,
+      uid, // user's id
       scid: serviceChat._id,
       message,
     });
-    
     await threadMessage.save();
-    
+
     return res.status(201).json({
       message: 'User message sent successfully.',
       conversationId: serviceChat._id,
       thread: threadMessage,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending user message:', error);
-    return res.status(500).json({ message: 'Failed to send user message', error: (error as Error).message });
+    return res.status(500).json({
+      message: 'Failed to send user message.',
+      error: error.message,
+    });
   }
 };
 
