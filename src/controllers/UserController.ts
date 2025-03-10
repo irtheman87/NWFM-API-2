@@ -1582,41 +1582,56 @@ Nollywood Filmmaker Team`,
 
 export const sendUserMessage = async (req: Request, res: Response): Promise<Response> => {
   const { orderId, uid, message } = req.body;
-
   try {
-    // Find the existing conversation
+    // Find the existing conversation for this order
     const serviceChat = await ServiceChat.findOne({ orderId });
     if (!serviceChat) {
       return res.status(400).json({ message: 'A consultant must initiate the conversation first.' });
     }
-
-    // Check if the last message was from the user already
-    const lastMessage = await ServiceChatThread.findOne({ scid: serviceChat._id }).sort({ createdAt: -1 });
-    if (lastMessage && lastMessage.role === 'user') {
-      return res.status(400).json({
-        message: 'Please wait for the consultant to respond before sending another user message.'
-      });
+    
+    // Count user messages in the conversation
+    const userMessages = await ServiceChatThread.find({ scid: serviceChat._id, role: 'user' }).sort({ createdAt: 1 });
+    const userCount = userMessages.length;
+    
+    // Enforce a maximum of 2 user messages
+    if (userCount >= 2) {
+      return res.status(400).json({ message: 'User message limit (2) reached for this conversation.' });
     }
-
-    // Create and save the user message
+    
+    // Ensure the conversation has at least one consultant message before user can reply
+    const consultantMessages = await ServiceChatThread.find({ scid: serviceChat._id, role: 'consultant' }).sort({ createdAt: 1 });
+    if (consultantMessages.length === 0) {
+      return res.status(400).json({ message: 'Consultant has not initiated the conversation yet.' });
+    }
+    
+    // If there's already one user message, check that the last message was from the consultant
+    if (userCount === 1) {
+      const lastMessage = await ServiceChatThread.findOne({ scid: serviceChat._id }).sort({ createdAt: -1 });
+      if (lastMessage && lastMessage.role === 'user') {
+        return res.status(400).json({ message: 'Please wait for the consultant to respond before sending another user message.' });
+      }
+    }
+    
+    // Create the new user message
     const threadMessage = new ServiceChatThread({
       role: 'user',
-      uid, // user's id
+      uid,
       scid: serviceChat._id,
-      message
+      message,
     });
+    
     await threadMessage.save();
-
+    
     return res.status(201).json({
       message: 'User message sent successfully.',
       conversationId: serviceChat._id,
-      thread: threadMessage
+      thread: threadMessage,
     });
   } catch (error: any) {
     console.error('Error sending user message:', error);
     return res.status(500).json({
       message: 'Failed to send user message.',
-      error: error.message
+      error: error.message,
     });
   }
 };

@@ -2826,43 +2826,53 @@ export const updateChatSoundUrl = async (req: Request, res: Response): Promise<R
 
 export const sendConsultantMessage = async (req: Request, res: Response): Promise<Response> => {
   const { orderId, consultantCid, message } = req.body;
-
   try {
-    // Find or create the conversation for this orderId
+    // Find existing conversation or create a new one if not present
     let serviceChat = await ServiceChat.findOne({ orderId });
     if (!serviceChat) {
-      // Only a consultant can initiate a conversation
+      // Only a consultant can initiate the conversation
       serviceChat = new ServiceChat({ orderId, cid: consultantCid });
       await serviceChat.save();
-    } else {
-      // Check if the last message was already from the consultant
+    }
+    
+    // Count consultant messages in the conversation
+    const consultantMessages = await ServiceChatThread.find({ scid: serviceChat._id, role: 'consultant' }).sort({ createdAt: 1 });
+    const consultantCount = consultantMessages.length;
+    
+    // Enforce a maximum of 2 consultant messages
+    if (consultantCount >= 2) {
+      return res.status(400).json({ message: 'Consultant message limit (2) reached for this conversation.' });
+    }
+    
+    // If there is already 1 consultant message, check if the last message was from consultant
+    // (i.e., user has not yet responded)
+    if (consultantCount === 1) {
       const lastMessage = await ServiceChatThread.findOne({ scid: serviceChat._id }).sort({ createdAt: -1 });
       if (lastMessage && lastMessage.role === 'consultant') {
-        return res.status(400).json({
-          message: 'Please wait for the user to respond before sending another consultant message.'
-        });
+        return res.status(400).json({ message: 'Please wait for the user to respond before sending another consultant message.' });
       }
     }
-
-    // Create and save the consultant message
+    
+    // Create a new consultant message thread
     const threadMessage = new ServiceChatThread({
       role: 'consultant',
-      uid: consultantCid, // consultant's id is used as uid
+      uid: consultantCid,
       scid: serviceChat._id,
-      message
+      message,
     });
+    
     await threadMessage.save();
-
+    
     return res.status(201).json({
       message: 'Consultant message sent successfully.',
       conversationId: serviceChat._id,
-      thread: threadMessage
+      thread: threadMessage,
     });
   } catch (error: any) {
     console.error('Error sending consultant message:', error);
     return res.status(500).json({
       message: 'Failed to send consultant message.',
-      error: error.message
+      error: error.message,
     });
   }
 };
