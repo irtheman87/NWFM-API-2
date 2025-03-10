@@ -2828,39 +2828,41 @@ export const sendConsultantMessage = async (req: Request, res: Response): Promis
   const { orderId, consultantCid, message } = req.body;
 
   try {
-    // Find an existing conversation by orderId
+    // Find or create the conversation for this orderId
     let serviceChat = await ServiceChat.findOne({ orderId });
     if (!serviceChat) {
-      // Consultant must initiate the conversation
+      // Only a consultant can initiate a conversation
       serviceChat = new ServiceChat({ orderId, cid: consultantCid });
       await serviceChat.save();
+    } else {
+      // Check if the last message was already from the consultant
+      const lastMessage = await ServiceChatThread.findOne({ scid: serviceChat._id }).sort({ createdAt: -1 });
+      if (lastMessage && lastMessage.role === 'consultant') {
+        return res.status(400).json({
+          message: 'Please wait for the user to respond before sending another consultant message.'
+        });
+      }
     }
-    
-    // Count how many consultant messages already exist in this conversation
-    const consultantMessageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id, role: 'consultant' });
-    if (consultantMessageCount >= 2) {
-      return res.status(400).json({ message: 'Consultant message limit (2) reached for this conversation.' });
-    }
-    
-    // Create a new consultant message thread
+
+    // Create and save the consultant message
     const threadMessage = new ServiceChatThread({
       role: 'consultant',
-      uid: consultantCid, // consultant's id is used as uid here
+      uid: consultantCid, // consultant's id is used as uid
       scid: serviceChat._id,
-      message,
+      message
     });
     await threadMessage.save();
 
     return res.status(201).json({
       message: 'Consultant message sent successfully.',
       conversationId: serviceChat._id,
-      thread: threadMessage,
+      thread: threadMessage
     });
   } catch (error: any) {
     console.error('Error sending consultant message:', error);
     return res.status(500).json({
       message: 'Failed to send consultant message.',
-      error: error.message,
+      error: error.message
     });
   }
 };

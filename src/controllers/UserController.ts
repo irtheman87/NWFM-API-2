@@ -1584,43 +1584,39 @@ export const sendUserMessage = async (req: Request, res: Response): Promise<Resp
   const { orderId, uid, message } = req.body;
 
   try {
-    // Find existing conversation by orderId
+    // Find the existing conversation
     const serviceChat = await ServiceChat.findOne({ orderId });
     if (!serviceChat) {
       return res.status(400).json({ message: 'A consultant must initiate the conversation first.' });
     }
-    
-    // Ensure at least one consultant message exists before allowing a user response
-    const consultantMessageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id, role: 'consultant' });
-    if (consultantMessageCount < 1) {
-      return res.status(400).json({ message: 'Consultant has not initiated the conversation yet.' });
+
+    // Check if the last message was from the user already
+    const lastMessage = await ServiceChatThread.findOne({ scid: serviceChat._id }).sort({ createdAt: -1 });
+    if (lastMessage && lastMessage.role === 'user') {
+      return res.status(400).json({
+        message: 'Please wait for the consultant to respond before sending another user message.'
+      });
     }
-    
-    // Count user messages in the conversation
-    const userMessageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id, role: 'user' });
-    if (userMessageCount >= 2) {
-      return res.status(400).json({ message: 'User message limit (2) reached for this conversation.' });
-    }
-    
-    // Create a new user message thread
+
+    // Create and save the user message
     const threadMessage = new ServiceChatThread({
       role: 'user',
       uid, // user's id
       scid: serviceChat._id,
-      message,
+      message
     });
     await threadMessage.save();
 
     return res.status(201).json({
       message: 'User message sent successfully.',
       conversationId: serviceChat._id,
-      thread: threadMessage,
+      thread: threadMessage
     });
   } catch (error: any) {
     console.error('Error sending user message:', error);
     return res.status(500).json({
       message: 'Failed to send user message.',
-      error: error.message,
+      error: error.message
     });
   }
 };
