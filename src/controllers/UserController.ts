@@ -22,6 +22,8 @@ import { createNotification } from '../utils/UtilityFunctions';
 import Consultant from '../models/consultant';
 import WeeklySchedule from '../models/Availability';
 import ContactFormSubmission from '../models/ContactFormSubmission';
+import ServiceChatThread from '../models/ServiceChatThread';
+import ServiceChat from '../models/ServiceChat';
 
 
 // Define the storage engine
@@ -1573,6 +1575,102 @@ Nollywood Filmmaker Team`,
     console.error('Error submitting contact form:', error);
     return res.status(500).json({
       message: 'An error occurred while submitting the form',
+      error: error.message,
+    });
+  }
+};
+
+export const sendUserMessage = async (req: Request, res: Response): Promise<Response> => {
+  const { orderId, uid, message } = req.body;
+  const token = req.headers.authorization?.split(' ')[1];
+  try {
+  
+    // Validate token presence
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+
+    // Decode and verify the token
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { userId: string; role: string };
+
+    // Check if the role is 'user' and userId matches
+    if (decoded.role !== 'user' || decoded.userId !== uid) {
+      return res.status(403).json({ message: 'Access denied. User role and matching userId required.' });
+    }
+    
+    // Find the existing conversation for this orderId
+    const serviceChat = await ServiceChat.findOne({ orderId });
+    if (!serviceChat) {
+      return res.status(400).json({ message: 'Consultant must initiate the conversation first.' });
+    }
+    
+    // Count the messages in the conversation
+    const messageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id });
+    
+    // If no message or already two messages, reject the user's response
+    if (messageCount === 0) {
+      return res.status(400).json({ message: 'Consultant has not initiated the conversation yet.' });
+    }
+    if (messageCount >= 2) {
+      return res.status(400).json({ message: 'The conversation is limited to 2 messages.' });
+    }
+    
+    // Create the user's message thread
+    const threadMessage = new ServiceChatThread({
+      role: 'user',
+      uid,
+      scid: serviceChat._id,
+      message,
+    });
+    
+    await threadMessage.save();
+    
+    return res.status(201).json({
+      message: 'User message sent successfully.',
+      conversationId: serviceChat._id,
+      thread: threadMessage,
+    });
+  } catch (error) {
+    console.error('Error sending user message:', error);
+    return res.status(500).json({ message: 'Failed to send user message', error: (error as Error).message });
+  }
+};
+
+export const getServiceChatMessages = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Get Service Chat ID from query parameters
+    const { scid } = req.query;
+    if (!scid || typeof scid !== 'string') {
+      return res.status(400).json({ message: "Service Chat ID (scid) is required." });
+    }
+    
+    // Optional pagination parameters
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Fetch messages for the given ServiceChat ID, sorted by creation time (oldest first)
+    const messages = await ServiceChatThread.find({ scid })
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Count total messages for pagination metadata
+    const total = await ServiceChatThread.countDocuments({ scid });
+    
+    return res.status(200).json({
+      message: "Messages fetched successfully.",
+      messages,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error: any) {
+    console.error("Error fetching messages:", error);
+    return res.status(500).json({
+      message: "Failed to fetch messages",
       error: error.message,
     });
   }

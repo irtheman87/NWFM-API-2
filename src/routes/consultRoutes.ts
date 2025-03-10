@@ -7,7 +7,9 @@ import { registerConsult, loginConsult, refreshConsultantToken, createAvailabili
   getTasksByConsultant, handleChatTransaction, uploadConsultantFiles, fetchResolveFiles, verifyEmailAndSetPassword, getWalletByCid,
   getWalletHistory, fetchDataByType, createWithdrawal, fetchWalletHistoryTotalsByCID, fetchBankDetailsByCID, createBank,
 fetchWithdrawalsByCID, fetchDepositsByCID, fetchDepositById, fetchWithdrawalById, getCompletedCounts,
-updateBankDetails, fetchChatSettings, updateChatSettingsStatus, createChatSettings, updateChatSoundUrl} from '../controllers/consultController';
+updateBankDetails, fetchChatSettings, updateChatSettingsStatus, createChatSettings, updateChatSoundUrl,
+sendConsultantMessage,
+getServiceChatMessages} from '../controllers/consultController';
 import { isAdmin, isnotAdmin } from '../middleware/authMiddleware';
 import { verifyConsultantToken } from '../middleware/TokenValidator';
 import jwt from 'jsonwebtoken';
@@ -62,6 +64,8 @@ router.get('/chat-settings/:cid', fetchChatSettings);
 router.put('/chat-settings/:cid/status', updateChatSettingsStatus);
 router.post('/chat-settings', createChatSettings);
 router.put("/chatsettings/:cid/soundurl", updateChatSoundUrl);
+router.post('/servicechat/consultant', sendConsultantMessage);
+router.get('/servicechat/messages', getServiceChatMessages);
 
 
 

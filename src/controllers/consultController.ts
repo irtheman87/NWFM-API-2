@@ -37,6 +37,8 @@ import Crew from '../models/Crew';
 import Bank from '../models/Bank';
 import task from '../models/task';
 import ChatSettingsModel from '../models/chatSettingsModel';
+import ServiceChatThread from '../models/ServiceChatThread';
+import ServiceChat from '../models/ServiceChat';
 
 
 const s3 = new S3Client({
@@ -2819,5 +2821,114 @@ export const updateChatSoundUrl = async (req: Request, res: Response): Promise<R
   } catch (error) {
     console.error("Error updating chat sound URL:", error);
     return res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export const sendConsultantMessage = async (req: Request, res: Response): Promise<Response> => {
+  const { orderId, consultantCid, message } = req.body;
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Check Authorization Header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Consultant Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Consultant role required.' });
+    }
+
+    // Find an existing conversation for this order
+    let serviceChat = await ServiceChat.findOne({ orderId });
+    if (serviceChat) {
+      // If conversation already exists, ensure no consultant message has been sent yet
+      const messageCount = await ServiceChatThread.countDocuments({ scid: serviceChat._id });
+      if (messageCount >= 1) {
+        return res.status(400).json({ message: 'Consultant has already initiated the conversation.' });
+      }
+    } else {
+      // If no conversation exists, create one initiated by the consultant
+      serviceChat = new ServiceChat({
+        orderId,
+        cid: consultantCid,
+      });
+      await serviceChat.save();
+    }
+    
+    // Create the consultant's message thread
+    const threadMessage = new ServiceChatThread({
+      role: 'consultant',
+      uid: consultantCid, // consultant's id is used as uid
+      scid: serviceChat._id,
+      message,
+    });
+    
+    await threadMessage.save();
+    
+    return res.status(201).json({
+      message: 'Consultant message sent successfully.',
+      conversationId: serviceChat._id,
+      thread: threadMessage,
+    });
+  } catch (error) {
+    console.error('Error sending consultant message:', error);
+    return res.status(500).json({ message: 'Failed to send consultant message', error: (error as Error).message });
+  }
+};
+
+export const getServiceChatMessages = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Get Service Chat ID from query parameters
+    const { scid } = req.query;
+    if (!scid || typeof scid !== 'string') {
+      return res.status(400).json({ message: "Service Chat ID (scid) is required." });
+    }
+    
+    // Optional pagination parameters
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Fetch messages for the given ServiceChat ID, sorted by creation time (oldest first)
+    const messages = await ServiceChatThread.find({ scid })
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Count total messages for pagination metadata
+    const total = await ServiceChatThread.countDocuments({ scid });
+    
+    return res.status(200).json({
+      message: "Messages fetched successfully.",
+      messages,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error: any) {
+    console.error("Error fetching messages:", error);
+    return res.status(500).json({
+      message: "Failed to fetch messages",
+      error: error.message,
+    });
   }
 };

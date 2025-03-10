@@ -3,7 +3,9 @@ import { registerUser, loginUser, refreshToken, updateUserById, updateUserPasswo
   upload, fetchUserPreferences, updatePreference, fetchUserProfilePic, 
   getAvailableHoursCount, checkTransactionStatus, fetchUserRequests, fetchCompletedRequests, 
   fetchSingleRequest, fetchAwaitingRequests,
-  submitContactForm} from '../controllers/UserController';
+  submitContactForm,
+  sendUserMessage,
+  getServiceChatMessages} from '../controllers/UserController';
 import { isnotAdmin } from '../middleware/authMiddleware';
 import { fetchServicesByType } from '../controllers/ServicesController';
 import Transaction from '../models/SetTransaction';
@@ -64,8 +66,8 @@ router.get('/consultant/:cid/availability', getDailyAvailability);
 router.post('/requests/:cid/createappointment', updateRequestAndCreateAppointment);
 router.get('/issues/:uid', fetchUserSpecificIssues);
 router.post('/contacted', submitContactForm);
-
-
+router.post('/servicechat/user', sendUserMessage);
+router.get('/servicechat/messages', getServiceChatMessages);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {
