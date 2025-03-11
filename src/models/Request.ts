@@ -32,12 +32,12 @@ type startpop = {
 };
 
 type characterlockdate = {
-  date: string;
+  date: string[];
   name: string;
 };
 
 type locationlockeddate = {
-  date: string;
+  date: string[];
   name: string;
 };
 
@@ -134,12 +134,12 @@ const startpopSchema = new Schema<startpop>({
 });
 
 const characterlockdateSchema = new Schema<characterlockdate>({
-  date: { type: String, required: true },
+  date: [{ type: String, required: true }],
   name: { type: String, required: true },
 });
 
 const locationlockeddateSchema = new Schema<locationlockeddate>({
-  date: { type: String, required: true },
+  date: [{ type: String, required: true }],
   name: { type: String, required: true },
 });
 
