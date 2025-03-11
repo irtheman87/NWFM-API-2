@@ -654,7 +654,7 @@ export const getAvailableHoursCount = async (
     }[] = [];
 
     // Initialize available hours spaced by 1 hour
-    for (let hour = 9; hour <= 23; hour++) {
+    for (let hour = 6; hour <= 23; hour++) {
       availableHoursArray.push({
         time: `${hour}:00`,
         available: 0,
