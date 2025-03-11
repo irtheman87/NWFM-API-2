@@ -711,6 +711,9 @@ export const createAPitch = async (req: Request, res: Response) => {
       totalPrice = Number(price);
     } // ✅ Fix: Close the if-else block properly
 
+
+
+
     const newTransaction = new Transaction({
       title,
       userId,
@@ -795,10 +798,12 @@ export const createAPitch = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
 
+    console.log(totalPrice);
+
     const paymentReq = {
       body: {
         email: userEmail,
-        amount: totalPrice,
+        amount: totalPrice.toString(),
         id: currentId,
       },
     };
