@@ -735,6 +735,23 @@ export const createAPitch = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid format for characterlockdate or locationlockeddate. Must be an array." });
     }
 
+    let jstartpop;
+    let jcharacterlockdate;
+    let jlocationlockeddate;
+
+    if (typeof startpop === 'string') {
+       jstartpop = JSON.parse(startpop);
+    }
+
+    if (typeof characterlockdate === 'string') {
+      jcharacterlockdate = JSON.parse(characterlockdate);
+    }
+
+    if (typeof locationlockeddate === 'string') {
+      jlocationlockeddate = JSON.parse(locationlockeddate);
+    }
+
+
     const newRequest = new RequesModel({ // ✅ Fix: Use correct model name
       movie_title,
       stattusof: 'pending',
@@ -753,9 +770,9 @@ export const createAPitch = async (req: Request, res: Response) => {
       showtype,
       episodes,
       days,
-      startpop,
-      characterlockdate: characterLockArray, // ✅ Ensure correct format
-      locationlockeddate: locationLockArray, // ✅ Ensure correct format
+      startpop: jstartpop, // ✅ Ensure correct format
+      characterlockdate: jcharacterlockdate, // ✅ Ensure correct format
+      locationlockeddate: jlocationlockeddate, // ✅ Ensure correct format
     });
     await newRequest.save();
 
