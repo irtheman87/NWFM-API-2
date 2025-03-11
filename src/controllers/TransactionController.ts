@@ -727,13 +727,13 @@ export const createAPitch = async (req: Request, res: Response) => {
     const fileUrls = uploadedFiles.map(file => file.location);
 
     // Ensure characterlockdate & locationlockeddate are arrays
-    let characterLockArray, locationLockArray;
-    try {
-      characterLockArray = Array.isArray(characterlockdate) ? characterlockdate : JSON.parse(characterlockdate);
-      locationLockArray = Array.isArray(locationlockeddate) ? locationlockeddate : JSON.parse(locationlockeddate);
-    } catch (error) {
-      return res.status(400).json({ message: "Invalid format for characterlockdate or locationlockeddate. Must be an array." });
-    }
+    // let characterLockArray, locationLockArray;
+    // try {
+    //   characterLockArray = Array.isArray(characterlockdate) ? characterlockdate : JSON.parse(characterlockdate);
+    //   locationLockArray = Array.isArray(locationlockeddate) ? locationlockeddate : JSON.parse(locationlockeddate);
+    // } catch (error) {
+    //   return res.status(400).json({ message: "Invalid format for characterlockdate or locationlockeddate. Must be an array." });
+    // }
 
     let jstartpop;
     let jcharacterlockdate;
