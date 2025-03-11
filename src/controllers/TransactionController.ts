@@ -912,8 +912,8 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
     const uploadedFiles = files['files'] || [];
     const fileUrls = uploadedFiles.map(file => file.location);
 
-    const keyartfile = files['keyart']?.[0];
-    const keyartfileUrl = keyartfile?.location;
+    const keyartfiles = files['keyart'] || [];
+    const keyartfileUrls = keyartfiles.map(file => file.location);;
 
     // Create a new request entry
     const newRequest = new RequesModel({
@@ -935,7 +935,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
       revprojection,
       fundingtype,
       files: fileUrls,
-      keyArtCreated: keyartfileUrl,
+      keyArtCreated: keyartfileUrls,
     });
 
     await newRequest.save();
