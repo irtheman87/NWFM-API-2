@@ -703,17 +703,17 @@ export const createAPitch = async (req: Request, res: Response) => {
     //   return res.status(400).json({ message: "pageCount must be an array" });
     // }
 
-    console.log(price);
+    console.log(`Default Sever Price : ${price}`);
 
     let totalPrice = 0;
 
     if (showtype) {
-      totalPrice = 8000000 * Number(episodes);
+      totalPrice = 80000 * Number(episodes);
     } else {
       totalPrice = Number(price);
     } // ✅ Fix: Close the if-else block properly
 
-
+    console.log(`Total Price : ${totalPrice}`);
 
 
     const newTransaction = new Transaction({
@@ -800,7 +800,7 @@ export const createAPitch = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
 
-    console.log(totalPrice);
+    // console.log(totalPrice);
 
     const paymentReq = {
       body: {
