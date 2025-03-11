@@ -727,13 +727,30 @@ export const createAPitch = async (req: Request, res: Response) => {
     const fileUrls = uploadedFiles.map(file => file.location);
 
     // Ensure characterlockdate & locationlockeddate are arrays
-    // let characterLockArray, locationLockArray;
-    // try {
-    //   characterLockArray = Array.isArray(characterlockdate) ? characterlockdate : JSON.parse(characterlockdate);
-    //   locationLockArray = Array.isArray(locationlockeddate) ? locationlockeddate : JSON.parse(locationlockeddate);
-    // } catch (error) {
-    //   return res.status(400).json({ message: "Invalid format for characterlockdate or locationlockeddate. Must be an array." });
-    // }
+    let characterLockArray = [];
+    let locationLockArray = [];
+    
+    try {
+      characterLockArray = Array.isArray(characterlockdate)
+        ? characterlockdate
+        : characterlockdate && typeof characterlockdate === 'string'
+          ? JSON.parse(characterlockdate)
+          : [];
+    
+      locationLockArray = Array.isArray(locationlockeddate)
+        ? locationlockeddate
+        : locationlockeddate && typeof locationlockeddate === 'string'
+          ? JSON.parse(locationlockeddate)
+          : [];
+    
+      // Optional: validate again after parsing
+      if (!Array.isArray(characterLockArray) || !Array.isArray(locationLockArray)) {
+        return res.status(400).json({ message: "Parsed values are not arrays" });
+      }
+    
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid JSON format for characterlockdate or locationlockeddate" });
+    }
 
     let jstartpop;
     let jcharacterlockdate;
@@ -743,13 +760,13 @@ export const createAPitch = async (req: Request, res: Response) => {
        jstartpop = JSON.parse(startpop);
     }
 
-    if (typeof characterlockdate === 'string') {
-      jcharacterlockdate = JSON.parse(characterlockdate);
-    }
+    // if (typeof characterlockdate === 'string') {
+    //   jcharacterlockdate = JSON.parse(characterlockdate);
+    // }
 
-    if (typeof locationlockeddate === 'string') {
-      jlocationlockeddate = JSON.parse(locationlockeddate);
-    }
+    // if (typeof locationlockeddate === 'string') {
+    //   jlocationlockeddate = JSON.parse(locationlockeddate);
+    // }
 
 
     const newRequest = new RequesModel({ // ✅ Fix: Use correct model name
@@ -771,8 +788,8 @@ export const createAPitch = async (req: Request, res: Response) => {
       episodes,
       days,
       startpop: jstartpop, // ✅ Ensure correct format
-      characterlockdate: jcharacterlockdate, // ✅ Ensure correct format
-      locationlockeddate: jlocationlockeddate, // ✅ Ensure correct format
+      characterlockdate: characterLockArray, // ✅ Ensure correct format
+      locationlockeddate: locationLockArray, // ✅ Ensure correct format
     });
     await newRequest.save();
 
