@@ -703,6 +703,8 @@ export const createAPitch = async (req: Request, res: Response) => {
     //   return res.status(400).json({ message: "pageCount must be an array" });
     // }
 
+    console.log(price);
+
     let totalPrice = 0;
 
     if (showtype) {
