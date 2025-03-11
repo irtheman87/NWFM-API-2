@@ -126,7 +126,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     //   }
     // }
 
-    if(!showtype){
+    if(showtype === "No"){
       totalPrice = Number(price);
     }else{
       totalPrice = (5000000 * Number(episodes)) + 5000000;
@@ -260,7 +260,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype && episodes > 1){
+    if(showtype === "Yes" && episodes > 1){
       const actualPrice = 5000000;
       const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
@@ -377,7 +377,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
     await newRequest.save();
 
     const currentId = newTransaction.id;
-    if(showtype && episodes > 1){
+    if(showtype === "Yes" && episodes > 1){
       const actualPrice = Number(price) - 5000000;
       const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
@@ -462,7 +462,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
 
     let transprice = 0; // Use `let` instead of `const`
     
-    if (showtype) {
+    if (showtype === "Yes") {
       if(episodes < 6){
         transprice = 250000 * episodes;
       }else if(episodes >= 6 && episodes < 11){
@@ -609,7 +609,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
 
     const currentId = newTransaction.id;
     // Send a single JSON response
-    if(showtype){
+    if(showtype === "Yes"){
       const actualPrice = Number(price) + 10000000;
       // const newPrice = (actualPrice * Number(episodes)) + 5000000;
       const paymentReq = {
@@ -710,7 +710,7 @@ export const createAPitch = async (req: Request, res: Response) => {
     if (showtype === "Yes") {
       totalPrice = 80000 * Number(episodes);
     } else {
-      totalPrice = 250000;
+      totalPrice = Number(price);
     } // ✅ Fix: Close the if-else block properly
 
     console.log(`Total Price : ${totalPrice}`);
