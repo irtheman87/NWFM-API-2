@@ -707,7 +707,7 @@ export const createAPitch = async (req: Request, res: Response) => {
 
     let totalPrice = 0;
 
-    if (showtype) {
+    if (showtype === "Yes") {
       totalPrice = 80000 * Number(episodes);
     } else {
       totalPrice = 250000;
