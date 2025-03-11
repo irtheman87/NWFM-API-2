@@ -87,7 +87,7 @@ export interface IRequest extends Document {
   keycharacters?: KeyCharacter[];
   keycrew?: KeyCrew[];
   teamMenber?: teamMenber[];
-  estimatedBudget?: number;
+  estimatedBudget?: string;
   putinfestivals?: string;
   fundingtype?: string;
   revprojection?: string;
@@ -97,6 +97,7 @@ export interface IRequest extends Document {
   characterlockdate?: characterlockdate[];
   locationlockeddate?: locationlockeddate[];
   characterbible?: string;
+  keyArtCreated?: string;
   
 }
 
@@ -189,7 +190,7 @@ const requestSchema = new Schema<IRequest>(
     keycharacters: { type: [keyCharacterSchema], default: [] },
     keycrew: { type: [keyCrewSchema], default: [] },
     teamMenber: { type: [teamMenberSchema], default: [] },
-    estimatedBudget: { type: Number },
+    estimatedBudget: { type: String },
     putinfestivals: { type: String },
     fundingtype: { type: String },
     revprojection: { type: String },
@@ -199,6 +200,7 @@ const requestSchema = new Schema<IRequest>(
     characterlockdate: { type: [characterlockdateSchema], default: [] },
     locationlockeddate: { type: [locationlockeddateSchema], default: [] },
     characterbible: { type: String },
+    keyArtCreated: { type: String },
 
   },
   { timestamps: true }

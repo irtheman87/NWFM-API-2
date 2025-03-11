@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import Transaction, {generateOrderId} from '../models/SetTransaction';
 import RequesModel from '../models/Request'; // Adjust the path to your request model
 import https from 'https'; // Ensure you import https if not already imported
@@ -46,7 +46,8 @@ const storage = multerS3({
 // Configure multer to handle multiple files
 export const uploadFiles = multer({ storage }).fields([
   { name: 'files', maxCount: 10 },
-  { name: 'characterbible', maxCount: 1 }
+  { name: 'characterbible', maxCount: 1 },
+  { name: 'keyart', maxCount: 1 }
 ]);
 
 
@@ -462,7 +463,20 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     let transprice = 0; // Use `let` instead of `const`
     
     if (showtype) {
-      transprice = Number(price) * episodes;
+      if(episodes < 6){
+        transprice = 250000 * episodes;
+      }else if(episodes >= 6 && episodes < 11){
+        transprice = 350000 * episodes;
+      }else if(episodes >= 11 && episodes < 16){  
+        transprice = 450000 * episodes; 
+      }else if(episodes >= 16 && episodes < 21){  
+        transprice = 500000 * episodes; 
+      }else if(episodes >= 21 && episodes < 26){
+        transprice = 500000 * episodes;
+      }else if(episodes >= 26 && episodes < 31){
+        transprice = 600000 * episodes;  
+      }
+      
     } else {
       transprice = Number(price);
     }
@@ -653,7 +667,7 @@ export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, days, movie_title, platform, 
     actors, startpop, genre, info, budgetrange, fileName, 
-    showtype, episodes, pageCount, characterlockdate, locationlockeddate
+    showtype, episodes, characterlockdate, locationlockeddate
   } = req.body;
 
   try {
@@ -661,14 +675,14 @@ export const createAPitch = async (req: Request, res: Response) => {
     const userEmail = await fetchUserEmailById(userId);
 
     // Ensure pageCount is an array
-    let pageCountArray: number[];
-    try {
-      pageCountArray = Array.isArray(pageCount) ? pageCount : JSON.parse(pageCount);
-    } catch (error) {
-      return res.status(400).json({ message: "Invalid format for pageCount. Must be an array." });
-    }
+    // let pageCountArray: number[];
+    // try {
+    //   pageCountArray = Array.isArray(pageCount) ? pageCount : JSON.parse(pageCount);
+    // } catch (error) {
+    //   return res.status(400).json({ message: "Invalid format for pageCount. Must be an array." });
+    // }
 
-    console.log(pageCountArray); // Debugging output
+    // console.log(pageCountArray); // Debugging output
 
     try {
       // Get the list of indexes for the Transaction collection
@@ -685,9 +699,9 @@ export const createAPitch = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
-    if (!Array.isArray(pageCountArray)) {
-      return res.status(400).json({ message: "pageCount must be an array" });
-    }
+    // if (!Array.isArray(pageCountArray)) {
+    //   return res.status(400).json({ message: "pageCount must be an array" });
+    // }
 
     let totalPrice = 0;
 
@@ -898,6 +912,9 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
     const uploadedFiles = files['files'] || [];
     const fileUrls = uploadedFiles.map(file => file.location);
 
+    const keyartfile = files['keyart']?.[0];
+    const keyartfileUrl = keyartfile?.location;
+
     // Create a new request entry
     const newRequest = new RequesModel({
       movie_title,
@@ -918,6 +935,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
       revprojection,
       fundingtype,
       files: fileUrls,
+      keyArtCreated: keyartfileUrl,
     });
 
     await newRequest.save();
