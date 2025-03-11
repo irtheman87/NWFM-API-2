@@ -47,7 +47,7 @@ const storage = multerS3({
 export const uploadFiles = multer({ storage }).fields([
   { name: 'files', maxCount: 10 },
   { name: 'characterbible', maxCount: 1 },
-  { name: 'keyart', maxCount: 1 }
+  { name: 'keyart', maxCount: 10 }
 ]);
 
 
