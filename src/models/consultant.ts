@@ -35,8 +35,8 @@ const consultSchema = new Schema<IConsultant>(
     expertise: {
       type: [String],
       validate: [
-        (val: string[]) => val.length <= 9,
-        'Expertise array cannot exceed 9 items',
+        (val: string[]) => val.length <= 10,
+        'Expertise array cannot exceed 10 items',
       ],
     },    
     profilepics: { type: String },

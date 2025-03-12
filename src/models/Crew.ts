@@ -36,6 +36,7 @@ interface Crew extends Document {
     badgelink?: string;
     failed?: boolean;
     note?: string;
+    nfscore?: string;
 }
 
 const CrewSchema: Schema = new Schema({
@@ -72,6 +73,7 @@ const CrewSchema: Schema = new Schema({
     badgelink: { type: String },
     failed: { type: Boolean },
     note: { type: String },
+    nfscore: { type: String },
 }, {
     timestamps: true,
 });

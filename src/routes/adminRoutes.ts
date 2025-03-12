@@ -8,7 +8,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
     completeDebit, fetchWalletHistoryTotalsByCID, fetchAllWithdrawals, fetchAllDeposits, fetchTotalTransactions, fetchWithdrawalById,
   fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, getAllConsultantsList,
   getEmailList, fetchAttendanceByRoom, updateVerificationStatus, updateCrewVerificationStatus, setApiVettingTrue, setCompanyApiVettingTrue,
-  FailedCrewCompanyById, getContactSubmissions} from '../controllers/adminController';
+  FailedCrewCompanyById, getContactSubmissions,
+  updateMissingNfscore} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -165,6 +166,9 @@ router.get('/transactions/monthly-totals', async (req: Request, res: Response) =
 router.get('/profile', isAdmin, (req, res) => {
     res.json({ message: 'Access granted to protected profile route' });
 });
+
+
+router.put("/update-nfscore", updateMissingNfscore);
   
 
 module.exports = router;

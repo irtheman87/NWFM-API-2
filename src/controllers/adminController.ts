@@ -4952,3 +4952,32 @@ export const getContactSubmissions = async (req: Request, res: Response): Promis
     });
   }
 };
+
+//System Update to add missing nfscore field
+export const updateMissingNfscore = async (req: Request, res: Response) => {
+  try {
+    // Update Crew where nfscore does not exist
+    const crewResult = await Crew.updateMany(
+      { nfscore: { $exists: false } },
+      { $set: { nfscore: "0" } }
+    );
+
+    // Update Company where nfscore does not exist
+    const companyResult = await Company.updateMany(
+      { nfscore: { $exists: false } },
+      { $set: { nfscore: "0" } }
+    );
+
+    return res.status(200).json({
+      message: "nfscore field updated for Crew and Company",
+      crewModified: crewResult.modifiedCount,
+      companyModified: companyResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error updating nfscore fields:", error);
+    return res.status(500).json({
+      message: "Failed to update nfscore fields",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};

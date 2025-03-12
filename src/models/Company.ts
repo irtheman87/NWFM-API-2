@@ -39,6 +39,7 @@ type CompanyDocument = Document & {
   badgelink?: string;
   failed?: boolean;
   note?: string;
+  nfscore?: string;
 };
 
 // Define the schema for the Company model
@@ -78,6 +79,7 @@ const CompanySchema: Schema = new Schema(
     badgelink: { type: String },
     failed  : { type: Boolean },
     note: { type: String },
+    nfscore: { type: String },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps
