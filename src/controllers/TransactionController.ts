@@ -9,6 +9,9 @@ import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength,
 import { v4 as uuidv4 } from 'uuid';
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
+import path from 'path';
+import fs from 'fs';
+import archiver from 'archiver';
 
 
 interface PaystackResponse {
@@ -49,6 +52,54 @@ export const uploadFiles = multer({ storage }).fields([
   { name: 'characterbible', maxCount: 1 },
   { name: 'keyart', maxCount: 10 }
 ]);
+
+export const zipAndUploadFiles = async (files: Express.Multer.File[]): Promise<string | null> => {
+  if (!files?.length) return null;
+
+  const firstFileName = path.parse(files[0].originalname).name.replace(/\s/g, '_');
+  const zipName = `${firstFileName}_${uuidv4()}.zip`;
+  const zipPath = path.join(__dirname, '..', 'temp', zipName);
+
+  // Ensure temp folder exists
+  fs.mkdirSync(path.dirname(zipPath), { recursive: true });
+
+  const output = fs.createWriteStream(zipPath);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  const zipPromise = new Promise<void>((resolve, reject) => {
+    output.on('close', resolve);
+    archive.on('error', reject);
+  });
+
+  archive.pipe(output);
+  for (const file of files) {
+    archive.file(file.path, { name: file.originalname });
+  }
+  archive.finalize();
+  await zipPromise;
+
+  // Upload to S3
+  const s3Key = `uploads/zips/${zipName}`;
+  const fileBuffer = fs.readFileSync(zipPath);
+  const uploadCmd = new PutObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Key: s3Key,
+    Body: fileBuffer,
+    ContentType: 'application/zip',
+  });
+
+  await s3.send(uploadCmd);
+
+  // Delete local zip file and uploaded temp files
+  fs.unlinkSync(zipPath);
+  for (const file of files) {
+    fs.unlinkSync(file.path);
+  }
+
+  // Return S3 URL
+  const zipUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+  return zipUrl;
+};
 
 
 function getDayOfWeek(date: Date | string): string {
@@ -139,7 +190,10 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     // Get file URLs from uploaded files if any
     const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
     const uploadedFiles = files['files'] || [];
-    const fileUrls = uploadedFiles.map(file => file.location);
+    // const fileUrls = uploadedFiles.map(file => file.location);
+
+    const zippedFileUrl = await zipAndUploadFiles(uploadedFiles);
+    const fileUrls = zippedFileUrl ? [zippedFileUrl] : [];
 
     const characterBibleFile = files['characterbible']?.[0];
     const characterBibleUrl = characterBibleFile?.location;

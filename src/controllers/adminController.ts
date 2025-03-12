@@ -1517,7 +1517,7 @@ export const fetchUserDetails = async (req: Request, res: Response): Promise<Res
 
 export const fetchCompletedUserRequests = async (req: Request, res: Response): Promise<Response> => {
   const { userId } = req.params;
-  const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
+  const { page = 1, limit = 10 } = req.query;
 
   try {
     const authHeader = req.headers.authorization;
@@ -1525,7 +1525,6 @@ export const fetchCompletedUserRequests = async (req: Request, res: Response): P
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
     }
 
-    // Extract and verify token
     const token = authHeader.split(' ')[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
@@ -1539,37 +1538,66 @@ export const fetchCompletedUserRequests = async (req: Request, res: Response): P
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check Admin Role
     const { role } = decodedToken as { role: string };
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    // Validate the userId
+
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    // Convert query params to numbers
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
-
     if (pageNumber <= 0 || limitNumber <= 0) {
       return res.status(400).json({ message: 'Page and limit must be positive integers.' });
     }
 
-    // Fetch completed requests with pagination and sort by most recent updatedAt
     const requests = await RequestModel.find(
       {
-        userId, // Match userId
-        stattusof: 'completed', // Match completed status
+        userId,
+        stattusof: 'completed',
       },
-      'movie_title chat_title stattusof time orderId nameofservice date createdAt updatedAt' // Select specific fields
+      'movie_title chat_title stattusof time orderId nameofservice type date createdAt updatedAt'
     )
-      .sort({ updatedAt: -1 }) // Sort by most recent updatedAt
-      .skip((pageNumber - 1) * limitNumber) // Skip the records for pagination
-      .limit(limitNumber); // Limit the number of records per page
+      .sort({ updatedAt: -1 })
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
 
-    // Fetch the total number of completed requests to calculate the total pages
+    // Enrich requests with transaction and consultant data
+    const detailedRequests = await Promise.all(
+      requests.map(async (requestDoc) => {
+        const request = requestDoc.toObject();
+
+        const transaction = await Transaction.findOne(
+          { orderId: request.orderId, status: 'completed' },
+          'orderId status price title'
+        );
+
+        const user = await User.findById(request.userId, 'fname lname email profilepics');
+
+        let consultant = null;
+        let cid = null;
+
+        if (request.type === 'request') {
+          cid = await Task.findOne({ orderId: request.orderId }, 'cid');
+        } else {
+          cid = await AppointmentModel.findOne({ orderId: request.orderId }, 'cid');
+        }
+
+        if (cid && cid.cid) {
+          consultant = await Consultant.findById(cid.cid, 'fname lname');
+        }
+
+        return {
+          ...request,
+          user,
+          transaction,
+          assignedConsultant: consultant,
+        };
+      })
+    );
+
     const totalRequests = await RequestModel.countDocuments({
       userId,
       stattusof: 'completed',
@@ -1578,15 +1606,19 @@ export const fetchCompletedUserRequests = async (req: Request, res: Response): P
     const totalPages = Math.ceil(totalRequests / limitNumber);
 
     return res.status(200).json({
+      message: 'Completed requests fetched successfully',
       totalItems: totalRequests,
       totalPages,
       currentPage: pageNumber,
       itemsPerPage: limitNumber,
-      requests,
+      requests: detailedRequests,
     });
   } catch (error) {
     console.error('Error fetching completed requests:', error);
-    return res.status(500).json({ message: 'Failed to fetch completed requests', error });
+    return res.status(500).json({
+      message: 'Failed to fetch completed requests',
+      error,
+    });
   }
 };
 
