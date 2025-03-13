@@ -24,6 +24,7 @@ import { request } from 'http';
 import sendEmail from '../utils/sendEmail';
 import RequestModel from '../models/Request';
 import UserModel from '../models/UserModel';
+import { uploadCharacterBible, uploadLocalFiles } from '../utils/moreUtils';
 
  const crypto = require('crypto');
 
@@ -32,7 +33,7 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/services/type/:type', fetchServicesByType);
-router.post('/transaction/read', verifyUserToken, uploadFiles, ReadScriptTransaction);
+router.post('/transaction/read', verifyUserToken, uploadLocalFiles, uploadCharacterBible, ReadScriptTransaction);
 router.post('/transaction/watch', verifyUserToken, uploadFiles,  WatchFinalCutTransaction);
 router.post('/transaction/budget', verifyUserToken, uploadFiles, BudgetTransaction);
 router.post('/transaction/createbudget', verifyUserToken, uploadFiles, CreateBudgetTransaction);
