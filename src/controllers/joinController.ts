@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import Crew from "../models/Crew";
 import multer from "multer";
 import multerS3 from "multer-s3";
@@ -22,28 +22,62 @@ const s3 = new S3Client({
 });
 
 // Configure Multer-S3 for optimized upload
-const storage = multerS3({
-  s3: s3,
-  bucket: process.env.AWS_S3_BUCKET_NAME || "",
-  contentType: multerS3.AUTO_CONTENT_TYPE, // Sets the correct Content-Type automatically
-  acl: "private", // Faster than "public-read"
-  cacheControl: "max-age=31536000", // Improves CDN caching if used
-  key: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `uploads/${uniqueSuffix}-${file.originalname}`);
-  },
+// const storage = multerS3({
+//   s3: s3,
+//   bucket: process.env.AWS_S3_BUCKET_NAME || "",
+//   contentType: multerS3.AUTO_CONTENT_TYPE, // Sets the correct Content-Type automatically
+//   acl: "private", // Faster than "public-read"
+//   cacheControl: "max-age=31536000", // Improves CDN caching if used
+//   key: (req, file, cb) => {
+//     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+//     cb(null, `uploads/${uniqueSuffix}-${file.originalname}`);
+//   },
+// });
+
+const upload = multer({
+  storage: multerS3({
+    s3,
+    bucket: process.env.AWS_BUCKET_NAME!,
+    contentType: multerS3.AUTO_CONTENT_TYPE, // Sets the correct Content-Type automatically
+    acl: "private", // Faster than "public-read"
+    cacheControl: "max-age=31536000", // Improves CDN caching if used
+    metadata: (_req, file, cb) => cb(null, { fieldName: file.fieldname }),
+    key: (_req, file, cb) => {
+      const fileName = `${Date.now()}-${file.originalname}`;
+      cb(null, fileName);
+    },
+  }),
 });
 
-// ✅ Use Multer Memory Storage to Avoid Disk Writes
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Limit to 10MB for speed
-}).fields([
-  { name: "file", maxCount: 1 },
-  { name: "doc", maxCount: 1 },
+export const crewUploadMiddleware = upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'doc', maxCount: 1 },
   { name: "rateCard", maxCount: 1 },
   { name: "cacdoc", maxCount: 1 },
 ]);
+
+export const handleMulterErrors = (req: Request, res: Response, next: NextFunction) => {
+  crewUploadMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(500).json({
+        message: 'Error uploading files to S3',
+        error: err.message,
+      });
+    }
+    next();
+  });
+};
+
+// ✅ Use Multer Memory Storage to Avoid Disk Writes
+// const upload = multer({ 
+//   storage,
+//   limits: { fileSize: 10 * 1024 * 1024 }, // Limit to 10MB for speed
+// }).fields([
+//   { name: "file", maxCount: 1 },
+//   { name: "doc", maxCount: 1 },
+//   { name: "rateCard", maxCount: 1 },
+//   { name: "cacdoc", maxCount: 1 },
+// ]);
 
 
 const multerMiddleware = multer().none();
@@ -51,118 +85,68 @@ const multerMiddleware = multer().none();
 // Create Crew Member Function
 export const createCrewMember = async (req: Request, res: Response) => {
   try {
-    // Use Multer to handle file uploads
-    upload(req, res, async function (err) {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files to S3",
-          error: err.message,
-        });
-      }
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
 
-      // Extract files from request
-      const files = req.files as {
-        [fieldname: string]: Express.MulterS3.File[];
-      };
+    if (!files?.file?.[0] || !files?.doc?.[0]) {
+      return res.status(400).json({ message: 'Both profile picture and document are required.' });
+    }
 
-      // Validate required files
-      if (!files?.file?.[0] || !files?.doc?.[0]) {
-        return res.status(400).json({
-          message: "Both profile picture and document are required.",
-        });
-      }
+    const profilePic = files.file[0].location;
+    const document = files.doc[0].location;
 
-      const profilePic = files.file[0].location;
-      const document = files.doc[0].location;
+    const {
+      firstName, lastName, username, password, email,
+      mobile, dob, bio, department, role, works,
+      fee, location, verificationDocType, idNumber,
+    } = req.body;
 
-      const {
-        firstName,
-        lastName,
-        username,
-        password,
-        email,
-        mobile,
-        dob,
-        bio,
-        department,
-        role,
-        works,
-        fee,
-        location,
-        verificationDocType,
-        idNumber,
-      } = req.body;
+    const emailtoUse = email.trim().toLowerCase();
 
-       let emailtoUse = email.trim().toLowerCase();
+    if (
+      !firstName || !lastName || !email || !mobile || !dob ||
+      !department || !role || !verificationDocType || !idNumber
+    ) {
+      return res.status(400).json({ message: 'All required fields must be provided.' });
+    }
 
-      // Validate required fields
-      if (
-        !firstName ||
-        !lastName ||
-        !email ||
-        !mobile ||
-        !dob ||
-        !department ||
-        !role ||
-        !verificationDocType ||
-        !idNumber
-      ) {
-        return res
-          .status(400)
-          .json({ message: "All required fields must be provided." });
-      }
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required.' });
+    }
 
-      if (!username || !email || !password) {
-        return res.status(400).json({ message: "All fields are required." });
-      }
-  
-      // Check if email or username already exists
-      const existingUser = await CrewCompany.findOne({ 
-        $or: [{ username }, { email: emailtoUse }] 
-      });
-      if (existingUser) {
-        return res
-          .status(409)
-          .json({ message: "Username or email already exists." });
-      }
-  
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      // Create new CrewCompany
-      const newCrewCompany = new CrewCompany({
-        username,
-        email: emailtoUse,
-        password: hashedPassword,
-      });
-  
-      // Save to the database
-      const savedCrewCompany = await newCrewCompany.save();
+    const existingUser = await CrewCompany.findOne({
+      $or: [{ username }, { email: emailtoUse }]
+    });
+    if (existingUser) {
+      return res.status(409).json({ message: 'Username or email already exists.' });
+    }
 
-      // Create a new Crew instance
-      const newCrew = new Crew({
-        firstName,
-        lastName,
-        email: emailtoUse,
-        userId: savedCrewCompany._id,
-        mobile,
-        dob,
-        bio,
-        propic: profilePic,
-        department,
-        role,
-        works,
-        fee,
-        location,
-        verificationDocType,
-        document,
-        idNumber,
-        apiVetting: false,
-        verified: false,
-      });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const savedCrewCompany = await new CrewCompany({
+      username,
+      email: emailtoUse,
+      password: hashedPassword,
+    }).save();
 
-      // Save Crew to the database
-      const savedCrew = await newCrew.save();
+    const savedCrew = await new Crew({
+      firstName,
+      lastName,
+      email: emailtoUse,
+      userId: savedCrewCompany._id,
+      mobile,
+      dob,
+      bio,
+      propic: profilePic,
+      department,
+      role,
+      works,
+      fee,
+      location,
+      verificationDocType,
+      document,
+      idNumber,
+      apiVetting: false,
+      verified: false,
+    }).save();
 
       const capitalize = (str: string) => 
         str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
@@ -267,7 +251,6 @@ export const createCrewMember = async (req: Request, res: Response) => {
           .status(500)
           .json({ message: "Crew member created, but email notification failed.", data: savedCrew });
       }
-    });
 
   } catch (error) {
     console.error(error);
@@ -279,126 +262,96 @@ export const createCrewMember = async (req: Request, res: Response) => {
 // Create Company Function
 export const createCompany = async (req: Request, res: Response) => {
   try {
-    // Use Multer to handle file uploads
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files to S3",
-          error: err.message,
-        });
-      }
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
 
-      // Extract files from request
-      const files = req.files as {
-        [fieldname: string]: Express.MulterS3.File[];
-      };
+    if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
+      return res.status(400).json({
+        message: "Profile picture, document, and CAC document are required.",
+      });
+    }
 
-      // Validate required files
-      if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
+    const profilePic = files.file[0].location;
+    const document = files.doc[0].location;
+    const cacdoc = files.cacdoc[0].location;
+
+    let rateCard = '';
+    const {
+      name,
+      email,
+      username,
+      password,
+      mobile,
+      website,
+      bio,
+      type,
+      clientele,
+      useRateCard,
+      fee,
+      location,
+      verificationDocType,
+      idNumber,
+    } = req.body;
+
+    const emailtoUse = email.trim().toLowerCase();
+
+    if (useRateCard === 'true') {
+      if (!files?.rateCard?.[0]?.location) {
         return res.status(400).json({
-          message: "Profile picture, document, and CAC document are required.",
+          message: 'Rate card file is required when useRateCard is true.',
         });
       }
+      rateCard = files.rateCard[0].location;
+    }
 
-      const profilePic = files.file[0].location;
-      const document = files.doc[0].location;
-      const cacdoc = files.cacdoc[0].location;
+    if (!name || !email || !mobile || !type || !verificationDocType || !idNumber) {
+      return res.status(400).json({ message: 'All required fields must be provided.' });
+    }
 
-      let rateCard = "";
-      const {
-        name,
-        email,
-        userId,
-        username, 
-        password,
-        mobile,
-        website,
-        bio,
-        type,
-        clientele,
-        useRateCard,
-        fee,
-        location,
-        verificationDocType,
-        idNumber,
-      } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required.' });
+    }
 
-      let emailtoUse = email.trim().toLowerCase();
+    const existingUser = await CrewCompany.findOne({
+      $or: [{ username }, { email: emailtoUse }],
+    });
 
-      // Validate useRateCard and check for the rate card file if required
-      if (useRateCard === "true") {
-        if (!files?.rateCard?.[0]?.location) {
-          return res
-            .status(400)
-            .json({ message: "Rate card file is required when useRateCard is true." });
-        }
-        rateCard = files.rateCard[0].location;
-      }
+    if (existingUser) {
+      return res.status(409).json({ message: 'Username or email already exists.' });
+    }
 
-      // Validate required fields
-      if (
-        !name ||
-        !email ||
-        !mobile ||
-        !type ||
-        !verificationDocType ||
-        !idNumber
-      ) {
-        return res.status(400).json({ message: "All required fields must be provided." });
-      }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      if (!username || !email || !password) {
-        return res.status(400).json({ message: "All fields are required." });
-      }
-  
-      // Check if email or username already exists
-      const existingUser = await CrewCompany.findOne({ 
-        $or: [{ username }, { email: emailtoUse }] 
-      });
-      if (existingUser) {
-        return res
-          .status(409)
-          .json({ message: "Username or email already exists." });
-      }
-  
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      // Create new CrewCompany
-      const newCrewCompany = new CrewCompany({
-        username,
-        email: emailtoUse,
-        password: hashedPassword,
-      });
-  
-      // Save to the database
-      const savedCrewCompany = await newCrewCompany.save();
+    const newCrewCompany = new CrewCompany({
+      username,
+      email: emailtoUse,
+      password: hashedPassword,
+    });
 
-      // Create a new Company instance
-      const newCompany = new Company({
-        name,
-        email: emailtoUse,
-        mobile,
-        userId: savedCrewCompany._id,
-        website,
-        bio,
-        propic: profilePic,
-        type,
-        clientele,
-        useRateCard,
-        rateCard,
-        fee,
-        location,
-        verificationDocType,
-        document,
-        idNumber,
-        cacdoc,
-        apiVetting: false,
-        verified: false,
-      });
+    const savedCrewCompany = await newCrewCompany.save();
 
-      // Save Company to the database
-      const savedCompany = await newCompany.save();
+    const newCompany = new Company({
+      name,
+      email: emailtoUse,
+      mobile,
+      userId: savedCrewCompany._id,
+      website,
+      bio,
+      propic: profilePic,
+      type,
+      clientele,
+      useRateCard,
+      rateCard,
+      fee,
+      location,
+      verificationDocType,
+      document,
+      idNumber,
+      cacdoc,
+      apiVetting: false,
+      verified: false,
+    });
+
+    const savedCompany = await newCompany.save();
 
       const capitalize = (str: string) => 
         str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
@@ -504,7 +457,6 @@ export const createCompany = async (req: Request, res: Response) => {
           data: savedCompany 
         });
       }
-    });
 
   } catch (error) {
     console.error("Error in createCompany:", error);
@@ -707,83 +659,65 @@ export const getCompanyById = async (req: Request, res: Response): Promise<Respo
 
 
 export const updateCompanyDetails = async (req: Request, res: Response): Promise<Response> => {
-  // Use the middleware to handle multipart/form-data (file uploads and form fields)
-  return new Promise((resolve) => {
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files.",
-          error: err.message,
-        });
-      }
+  try {
+    const { userId } = req.body;
 
-      try {
-        const { userId } = req.body; // Parse userId from form-data
-        console.log(req.body);
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required to update company details." });
+    }
 
-        if (!userId) {
-          return res.status(400).json({ message: "User ID is required to update company details." });
-        }
+    // Define allowed fields to update
+    const allowedUpdates = [
+      "mobile",
+      "website",
+      "bio",
+      "clientele",
+      "useRateCard",
+      "fee",
+      "location",
+    ];
 
-        // Allowed fields for update (excluding rateCard, which is handled separately as a file)
-        const allowedUpdates = [
-          "mobile",
-          "website",
-          "bio",
-          "clientele",
-          "useRateCard",
-          "fee",
-          "location",
-        ];
-
-        // Extract only the allowed fields from req.body
-        const updates = Object.keys(req.body).reduce((acc, key) => {
-          if (allowedUpdates.includes(key)) {
-            acc[key] = req.body[key];
-          }
-          return acc;
-        }, {} as { [key: string]: any });
-
-        // Extract files
-        const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
-
-        // Ensure there is a file for the rateCard (if required)
-        if (files && files['rateCard'] && files['rateCard'].length > 0) {
-          const rateCard = files['rateCard'][0]?.location;
-          if (rateCard) {
-            updates['rateCard'] = rateCard; // Assuming S3 and multer for uploading
-          }
-        }
-
-        // Ensure valid fields are provided
-        if (Object.keys(updates).length === 0) {
-          return res.status(400).json({ message: "No valid fields provided for update." });
-        }
-
-        // Update company details by userId
-        const company = await Company.findOneAndUpdate({ userId }, updates, {
-          new: true, // Return the updated document
-          runValidators: true, // Apply validation rules
-        });
-
-        if (!company) {
-          return res.status(404).json({ message: "Company not found or invalid userId." });
-        }
-
-        return res.status(200).json({
-          message: "Company details updated successfully.",
-          company,
-        });
-
-      } catch (error) {
-        console.error("Error updating company details:", error);
-        return res.status(500).json({
-          message: "An error occurred while updating company details.",
-          error: error,
-        });
+    // Extract allowed fields from req.body
+    const updates: { [key: string]: any } = {};
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
       }
     });
-  });
+
+    // Handle optional rateCard file
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+    if (files?.rateCard?.[0]?.location) {
+      updates.rateCard = files.rateCard[0].location;
+    }
+
+    // Ensure at least one field is being updated
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided for update." });
+    }
+
+    // Perform the update
+    const updatedCompany = await Company.findOneAndUpdate(
+      { userId },
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCompany) {
+      return res.status(404).json({ message: "Company not found or invalid userId." });
+    }
+
+    return res.status(200).json({
+      message: "Company details updated successfully.",
+      company: updatedCompany,
+    });
+  } catch (error) {
+    console.error("Error updating company details:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating company details.",
+      error,
+    });
+  }
 };
 
 export const updateCrewDetails = async (req: Request, res: Response): Promise<Response> => {
@@ -845,120 +779,83 @@ export const updateCrewDetails = async (req: Request, res: Response): Promise<Re
 
 export const updateCompanyProfilePicture = async (req: Request, res: Response) => {
   try {
-    // Use Multer-S3 middleware to process the incoming files
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files to S3.",
-          error: err.message,
-        });
-      }
+    const { userId } = req.body;
 
-      // Extract userId from `req.body`
-      const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required to update the profile picture." });
+    }
 
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required to update the profile picture." });
-      }
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
 
-      // Extract uploaded files from the request
-      const files = req.files as {
-        [fieldname: string]: Express.MulterS3.File[];
-      };
+    if (!files?.file || files.file.length === 0) {
+      return res.status(400).json({ message: "Profile picture file is required." });
+    }
 
-      // Validate profile picture file
-      if (!files?.file || files.file.length === 0) {
-        return res.status(400).json({ message: "Profile picture file is required." });
-      }
+    const profilePic = files.file[0]?.location;
 
-      // Get the file location URL from S3
-      const profilePic = files.file[0]?.location;
+    const company = await Company.findOneAndUpdate(
+      { userId },
+      { propic: profilePic },
+      { new: true, runValidators: true }
+    );
 
-      if (!profilePic) {
-        return res.status(400).json({ message: "Unable to retrieve uploaded profile picture location." });
-      }
+    if (!company) {
+      return res.status(404).json({ message: "Company not found or invalid userId." });
+    }
 
-      // Update the crew member's profile picture
-      const company = await Company.findOneAndUpdate(
-        { userId },
-        { propic: profilePic },
-        { new: true, runValidators: true }
-      );
-
-      if (!company) {
-        return res.status(404).json({ message: "Company not found or invalid userId." });
-      }
-
-      return res.status(200).json({
-        message: "Profile picture updated successfully.",
-        company,
-      });
+    return res.status(200).json({
+      message: "Profile picture updated successfully.",
+      company,
     });
+
   } catch (error) {
     console.error("Error updating profile picture:", error);
     return res.status(500).json({
       message: "An error occurred while updating the profile picture.",
-      error: error,
+      error,
     });
   }
 };
 
 export const updateProfilePicture = async (req: Request, res: Response) => {
   try {
-    // Use Multer-S3 middleware to process the incoming files
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files to S3.",
-          error: err.message,
-        });
-      }
+    const { userId } = req.body;
 
-      // Extract userId from `req.body`
-      const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required to update the profile picture." });
+    }
 
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required to update the profile picture." });
-      }
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
 
-      // Extract uploaded files from the request
-      const files = req.files as {
-        [fieldname: string]: Express.MulterS3.File[];
-      };
+    if (!files?.file || files.file.length === 0) {
+      return res.status(400).json({ message: "Profile picture file is required." });
+    }
 
-      // Validate profile picture file
-      if (!files?.file || files.file.length === 0) {
-        return res.status(400).json({ message: "Profile picture file is required." });
-      }
+    const profilePic = files.file[0]?.location;
 
-      // Get the file location URL from S3
-      const profilePic = files.file[0]?.location;
+    if (!profilePic) {
+      return res.status(400).json({ message: "Unable to retrieve uploaded profile picture location." });
+    }
 
-      if (!profilePic) {
-        return res.status(400).json({ message: "Unable to retrieve uploaded profile picture location." });
-      }
+    const crew = await Crew.findOneAndUpdate(
+      { userId },
+      { propic: profilePic },
+      { new: true, runValidators: true }
+    );
 
-      // Update the crew member's profile picture
-      const crew = await Crew.findOneAndUpdate(
-        { userId },
-        { propic: profilePic },
-        { new: true, runValidators: true }
-      );
+    if (!crew) {
+      return res.status(404).json({ message: "Crew member not found or invalid userId." });
+    }
 
-      if (!crew) {
-        return res.status(404).json({ message: "Crew member not found or invalid userId." });
-      }
-
-      return res.status(200).json({
-        message: "Profile picture updated successfully.",
-        crew,
-      });
+    return res.status(200).json({
+      message: "Profile picture updated successfully.",
+      crew,
     });
   } catch (error) {
     console.error("Error updating profile picture:", error);
     return res.status(500).json({
       message: "An error occurred while updating the profile picture.",
-      error: error,
+      error,
     });
   }
 };
