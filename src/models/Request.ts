@@ -98,6 +98,8 @@ export interface IRequest extends Document {
   locationlockeddate?: locationlockeddate[];
   characterbible?: string;
   keyArtCreated?: string[];
+  continued?: boolean;
+  continueCount?: number;
   
 }
 
@@ -201,6 +203,8 @@ const requestSchema = new Schema<IRequest>(
     locationlockeddate: { type: [locationlockeddateSchema], default: [] },
     characterbible: { type: String },
     keyArtCreated: {type: [String] },
+    continued: { type: Boolean },
+    continueCount: { type: Number },
 
   },
   { timestamps: true }

@@ -1125,6 +1125,18 @@ function getTimeFromDate(date: Date) {
 
   return { hours, minutes, seconds };
 }
+
+const getTimeFromDated = (dateString: string) => {
+  const date = new Date(dateString);
+  return {
+    hours: date.getHours(),
+    minutes: date.getMinutes(),
+    seconds: date.getSeconds()
+  };
+};
+
+
+
 // Exported chatTransaction function
 export const chatTransaction = async (req: Request, res: Response) => {
   const { title, userId, type, name, chat_title, date, time, summary, consultant} = req.body;
@@ -1318,6 +1330,83 @@ export const ExtendMyTime = async (req: Request, res: Response) => {
   }
 };
 
+export const updateRequestTime = async (req: Request, res: Response) => {
+  const { orderId, date } = req.body;
+
+  try {
+    if (!orderId || !date) {
+      return res.status(400).json({ message: "orderId and date are required." });
+    }
+
+    const parsedDate = new Date(date);
+    const booktime = getTimeFromDated(date);
+
+    const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
+    const endTimeDate = add(parsedDate, { hours: 1 });
+    const formattedEndTime = moment(endTimeDate).utcOffset('+01:00').format(gmtPlusOneFormat);
+
+    const updatedRequest = await RequesModel.findOneAndUpdate(
+      { orderId },
+      {
+        $set: {
+          booktime: parsedDate.toISOString(),
+          time: booktime,
+          endTime: formattedEndTime,
+          continued: true
+        },
+        $inc: { continueCount: 1 }
+      },
+      { new: true }
+    );
+
+    if (!updatedRequest) {
+      return res.status(404).json({ message: "No request found with the provided orderId." });
+    }
+
+    const userEmail = await fetchUserEmailById(updatedRequest.userId);
+
+    const newTransaction = new Transaction({
+      title: updatedRequest.nameofservice,
+      userId: updatedRequest.userId,
+      type: updatedRequest.type,
+      orderId: generateOrderId(),
+      price: 5000000,
+      reference: '',
+      status: 'processing',
+      originalOrderIdFromChat: orderId,
+    });
+    await newTransaction.save();
+
+    const paymentReq = {
+      body: {
+        email: userEmail,
+        amount: 5000000,
+        id: newTransaction.id
+      },
+    };
+
+    try {
+      const result = await handlePaymentInitialization(paymentReq);
+      console.log('Payment initialized successfully:', result);
+      return res.status(201).json({
+        message: "Request updated and payment initialized successfully.",
+        updatedRequest,
+        transaction: newTransaction,
+        payment: result
+      });
+    } catch (paymentError: unknown) {
+      console.error('Error during payment initialization:', paymentError);
+      return res.status(500).json({ error: 'Payment initialization failed' });
+    }
+
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown server error" });
+    }
+  }
+};
 
 async function handlePaymentInitialization(req: any, res?: any) {
   const { email, amount, id } = req.body;

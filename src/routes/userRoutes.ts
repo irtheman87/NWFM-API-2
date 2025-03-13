@@ -11,7 +11,8 @@ import { fetchServicesByType } from '../controllers/ServicesController';
 import Transaction from '../models/SetTransaction';
 import User, { IUser } from '../models/User';
 import { ReadScriptTransaction, WatchFinalCutTransaction, BudgetTransaction, CreateBudgetTransaction, CreateMarketBudgetTransaction, createAPitch, createLegal, chatTransaction,
-  getParameterHandler, uploadFiles, ExtendMyTime, createPitchDeckRequest
+  getParameterHandler, uploadFiles, ExtendMyTime, createPitchDeckRequest,
+  updateRequestTime
  } from '../controllers/TransactionController';
 import { validateUserRequest, verifyUserToken } from '../middleware/TokenValidator';
 import { verifyUserEmail } from '../controllers/utilityroute';
@@ -70,6 +71,7 @@ router.get('/issues/:uid', fetchUserSpecificIssues);
 router.post('/contacted', submitContactForm);
 router.post('/servicechat/user', sendUserMessage);
 router.get('/servicechat/messages', getServiceChatMessages);
+router.put('/continue-chat', updateRequestTime);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {

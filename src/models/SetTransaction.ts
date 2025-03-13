@@ -13,6 +13,7 @@ export interface ITransaction extends Document {
   reference?: string;
   status?: string;
   originalOrderId?: string;
+  originalOrderIdFromChat?: string;
   createdAt?: Date; // Add createdAt field
 }
 
@@ -24,7 +25,8 @@ const transactionSchema = new Schema<ITransaction>({
   price: { type: String, required: true },
   reference: { type: String, required: false }, // Remove `unique: true`
   status: { type: String, required: false },
-  originalOrderId: {type: String, required: false}
+  originalOrderId: {type: String, required: false},
+  originalOrderIdFromChat: {type: String, required: false}
 },
 {
   timestamps: true, // Automatically adds createdAt and updated
