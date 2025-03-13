@@ -66,142 +66,6 @@ function getDayOfWeek(date: Date | string): string {
 
 
 
-// export const ReadScriptTransaction = async (req: Request, res: Response) => {
-//   const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
-
-//   try {
-
-//     const price = await getServicePriceByName(title);
-//     const userEmail = await fetchUserEmailById(userId);
-
-//     // const pageCountString = pageCount; // Example from FormData
-//     // const pageCountArray = JSON.parse(pageCountString);
-
-//     //  console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
-
-//     try {
-//       // Get the list of indexes for the Transaction collection
-//       const indexes = await Transaction.collection.indexes();
-    
-//       // Check if the index named 'reference_1' exists
-//       const indexExists = indexes.some(index => index.name === 'reference_1');
-    
-//       if (indexExists) {
-//         // Drop the index if it exists
-//         await Transaction.collection.dropIndex('reference_1');
-//         console.log('Index on "reference" dropped successfully.');
-//       } else {
-//         console.log('Index "reference_1" does not exist.');
-//       }
-//     } catch (error) {
-//       console.error('Error checking or dropping index:', error);
-//     }
-
-//     // if (!Array.isArray(pageCountArray)) {
-//     //   return res.status(400).json({ message: "pageCount must be an array" });
-//     // }
-
-//     // Define the pricing rules
-//     // const rateOne = 5000000; // for pages between 20 and 50 (inclusive)
-//     // const rateTwo = 10000000; // for pages between 51 and 100 (inclusive)
-
-//     // Initialize the total price
-//     let totalPrice = 0;
-
-//     // // Loop through each page count in the array
-//     // for (const count of pageCountArray) {
-//     //   // Validate that each element is a number
-//     //   if (typeof count !== 'number') {
-//     //     return res.status(400).json({ message: "Each element in pageCount must be a number" });
-//     //   }
-
-//     //   // Check which pricing range the count falls into
-//     //   if (count >= 1 && count <= 50) {
-//     //     totalPrice += rateOne;
-//     //   } else if (count >= 51 && count <= 100) {
-//     //     totalPrice += rateTwo;
-//     //   } else {
-//     //     // If a page count is out of range, return an error or skip as needed.
-//     //     // Here, we choose to return an error.
-//     //     return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
-//     //   }
-//     // }
-
-//     if(showtype === "No"){
-//       totalPrice = Number(price);
-//     }else{
-//       totalPrice = (5000000 * Number(episodes)) + 5000000;
-//     }
-  
-//     // Save transaction data
-//     const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
-//     await newTransaction.save();
-
-//     // Get file URLs from uploaded files if any
-//     const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
-//     const uploadedFiles = files['files'] || [];
-//     const fileUrls = uploadedFiles.map(file => file.location);
-
-//     const characterBibleFile = files['characterbible']?.[0];
-//     const characterBibleUrl = characterBibleFile?.location;
-
-
-//     // Create a new request with file URLs or empty array if no files were uploaded
-//     const newRequest = new RequesModel({
-//       movie_title,
-//       synopsis,
-//       stattusof: 'pending',
-//       type,
-//       nameofservice: title,
-//       genre,
-//       platform: platform,
-//       concerns: concerns,
-//       orderId: newTransaction.orderId,
-//       userId,
-//       expertise: 'Editor',
-//       files: fileUrls, // Storing file URLs in the Request model
-//       filename: fileName,
-//       showtype: showtype,
-//       episodes: episodes,
-//       characterbible: characterBibleUrl,
-//     });
-//     await newRequest.save();
-
-//     // Prepare for payment initialization
-//     const currentId = newTransaction.id;
-
-//      const paymentReq = {
-//         body: {
-//           email: userEmail,
-//           amount: totalPrice,
-//           id: currentId,
-//         },
-//       };
-  
-//       try {
-//         const result = await handlePaymentInitialization(paymentReq);
-//         console.log('Payment initialized successfully:', result);
-//         res.status(201).json({ message: 'Transaction and request created successfully', result });
-//       } catch (error: unknown) {
-//         console.error('Error during payment initialization:', error);
-//         res.status(500).json({ error: 'Internal server error' });
-//       }
-
-//   } catch (error: unknown) {
-//     if (error instanceof Error) {
-//       res.status(500).json({
-//         message: 'Error creating transaction and request',
-//         error: error.message,
-//       });
-//     } else {
-//       res.status(500).json({
-//         message: 'Unknown error occurred',
-//       });
-//     }
-//   }
-// };
-
-
 export const ReadScriptTransaction = async (req: Request, res: Response) => {
   const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
 
@@ -232,8 +96,36 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     } catch (error) {
       console.error('Error checking or dropping index:', error);
     }
-    
+
+    // if (!Array.isArray(pageCountArray)) {
+    //   return res.status(400).json({ message: "pageCount must be an array" });
+    // }
+
+    // Define the pricing rules
+    // const rateOne = 5000000; // for pages between 20 and 50 (inclusive)
+    // const rateTwo = 10000000; // for pages between 51 and 100 (inclusive)
+
+    // Initialize the total price
     let totalPrice = 0;
+
+    // // Loop through each page count in the array
+    // for (const count of pageCountArray) {
+    //   // Validate that each element is a number
+    //   if (typeof count !== 'number') {
+    //     return res.status(400).json({ message: "Each element in pageCount must be a number" });
+    //   }
+
+    //   // Check which pricing range the count falls into
+    //   if (count >= 1 && count <= 50) {
+    //     totalPrice += rateOne;
+    //   } else if (count >= 51 && count <= 100) {
+    //     totalPrice += rateTwo;
+    //   } else {
+    //     // If a page count is out of range, return an error or skip as needed.
+    //     // Here, we choose to return an error.
+    //     return res.status(400).json({ message: `Page count ${count} is out of the allowed range (20-100)` });
+    //   }
+    // }
 
     if(showtype === "No"){
       totalPrice = Number(price);
@@ -246,14 +138,13 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     await newTransaction.save();
 
     // Get file URLs from uploaded files if any
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
     const uploadedFiles = files['files'] || [];
-
-    const zippedFileUrl = await zipAndUploadFiles(uploadedFiles);
-    const fileUrls = zippedFileUrl ? [zippedFileUrl] : [];
+    const fileUrls = uploadedFiles.map(file => file.location);
 
     const characterBibleFile = files['characterbible']?.[0];
-    const characterBibleUrl = (characterBibleFile as Express.MulterS3.File | undefined)?.location;
+    const characterBibleUrl = characterBibleFile?.location;
+
 
     // Create a new request with file URLs or empty array if no files were uploaded
     const newRequest = new RequesModel({
@@ -309,6 +200,115 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     }
   }
 };
+
+
+// export const ReadScriptTransaction = async (req: Request, res: Response) => {
+//   const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
+
+//   try {
+
+//     const price = await getServicePriceByName(title);
+//     const userEmail = await fetchUserEmailById(userId);
+
+//     // const pageCountString = pageCount; // Example from FormData
+//     // const pageCountArray = JSON.parse(pageCountString);
+
+//     //  console.log(pageCountArray); // Output: [23, 44, 55, 55, 66]
+
+//     try {
+//       // Get the list of indexes for the Transaction collection
+//       const indexes = await Transaction.collection.indexes();
+    
+//       // Check if the index named 'reference_1' exists
+//       const indexExists = indexes.some(index => index.name === 'reference_1');
+    
+//       if (indexExists) {
+//         // Drop the index if it exists
+//         await Transaction.collection.dropIndex('reference_1');
+//         console.log('Index on "reference" dropped successfully.');
+//       } else {
+//         console.log('Index "reference_1" does not exist.');
+//       }
+//     } catch (error) {
+//       console.error('Error checking or dropping index:', error);
+//     }
+    
+//     let totalPrice = 0;
+
+//     if(showtype === "No"){
+//       totalPrice = Number(price);
+//     }else{
+//       totalPrice = (5000000 * Number(episodes)) + 5000000;
+//     }
+  
+//     // Save transaction data
+//     const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
+//     await newTransaction.save();
+
+//     // Get file URLs from uploaded files if any
+//     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+//     const uploadedFiles = files['files'] || [];
+
+//     const zippedFileUrl = await zipAndUploadFiles(uploadedFiles);
+//     const fileUrls = zippedFileUrl ? [zippedFileUrl] : [];
+
+// const characterBibleFile = files['characterbible']?.[0];
+// const characterBibleUrl = (characterBibleFile as Express.MulterS3.File | undefined)?.location;
+
+//     // Create a new request with file URLs or empty array if no files were uploaded
+//     const newRequest = new RequesModel({
+//       movie_title,
+//       synopsis,
+//       stattusof: 'pending',
+//       type,
+//       nameofservice: title,
+//       genre,
+//       platform: platform,
+//       concerns: concerns,
+//       orderId: newTransaction.orderId,
+//       userId,
+//       expertise: 'Editor',
+//       files: fileUrls, // Storing file URLs in the Request model
+//       filename: fileName,
+//       showtype: showtype,
+//       episodes: episodes,
+//       characterbible: characterBibleUrl,
+//     });
+//     await newRequest.save();
+
+//     // Prepare for payment initialization
+//     const currentId = newTransaction.id;
+
+//      const paymentReq = {
+//         body: {
+//           email: userEmail,
+//           amount: totalPrice,
+//           id: currentId,
+//         },
+//       };
+  
+//       try {
+//         const result = await handlePaymentInitialization(paymentReq);
+//         console.log('Payment initialized successfully:', result);
+//         res.status(201).json({ message: 'Transaction and request created successfully', result });
+//       } catch (error: unknown) {
+//         console.error('Error during payment initialization:', error);
+//         res.status(500).json({ error: 'Internal server error' });
+//       }
+
+//   } catch (error: unknown) {
+//     if (error instanceof Error) {
+//       res.status(500).json({
+//         message: 'Error creating transaction and request',
+//         error: error.message,
+//       });
+//     } else {
+//       res.status(500).json({
+//         message: 'Unknown error occurred',
+//       });
+//     }
+//   }
+// };
 
 export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
   const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns, showtype, episodes, stage } = req.body;
