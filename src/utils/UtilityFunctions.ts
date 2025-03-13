@@ -365,31 +365,36 @@ export async function debit(
 
 
 
-// S3 client configuration
 const s3 = new S3Client({
-  region: process.env.AWS_REGION,
+  region: process.env.AWS_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 
-// Configure multer to use multer-s3 as the storage engine
 const storage = multerS3({
-  s3: s3,
-  bucket: process.env.AWS_S3_BUCKET_NAME || '',
+  s3,
+  bucket: process.env.AWS_S3_BUCKET_NAME!,
   metadata: (req, file, cb) => {
     cb(null, { fieldName: file.fieldname });
   },
   key: (req, file, cb) => {
-    // Define a unique filename pattern for the uploaded files
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    cb(null, `${uniqueSuffix}-${file.originalname}`);
   },
 });
 
-// Create the multer upload function using the S3 storage configuration
-export const uploads = multer({ storage }).array('files', 10); // Accept up to 10 files
-
-  
-  
+export const uploads = multer({ storage }).fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'doc', maxCount: 1 },
+  { name: 'additionalFile', maxCount: 5 },
+  {name: 'cacdoc', maxCount: 1} // Optional additional fields
+  // Add more fields if needed
+]);
+// Configure multer to accept multiple fields
+// export const uploads = multer({ storage }).fields([
+//   { name: 'files', maxCount: 10 },         // Accept up to 10 files
+//   { name: 'characterbible', maxCount: 1 }, // Accept 1 characterbible file
+//   { name: 'keyart', maxCount: 10 }         // Accept up to 10 keyart files
+// ]);

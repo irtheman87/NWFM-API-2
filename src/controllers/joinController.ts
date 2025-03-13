@@ -49,468 +49,862 @@ const upload = multer({
 const multerMiddleware = multer().none();
 
 // Create Crew Member Function
+// export const createCrewMember = async (req: Request, res: Response) => {
+//   try {
+//     // Use Multer to handle file uploads
+//     upload(req, res, async function (err) {
+//       if (err) {
+//         return res.status(500).json({
+//           message: "Error uploading files to S3",
+//           error: err.message,
+//         });
+//       }
+
+//       // Extract files from request
+//       const files = req.files as {
+//         [fieldname: string]: Express.MulterS3.File[];
+//       };
+
+//       // Validate required files
+//       if (!files?.file?.[0] || !files?.doc?.[0]) {
+//         return res.status(400).json({
+//           message: "Both profile picture and document are required.",
+//         });
+//       }
+
+//       const profilePic = files.file[0].location;
+//       const document = files.doc[0].location;
+
+//       const {
+//         firstName,
+//         lastName,
+//         username,
+//         password,
+//         email,
+//         mobile,
+//         dob,
+//         bio,
+//         department,
+//         role,
+//         works,
+//         fee,
+//         location,
+//         verificationDocType,
+//         idNumber,
+//       } = req.body;
+
+//        let emailtoUse = email.trim().toLowerCase();
+
+//       // Validate required fields
+//       if (
+//         !firstName ||
+//         !lastName ||
+//         !email ||
+//         !mobile ||
+//         !dob ||
+//         !department ||
+//         !role ||
+//         !verificationDocType ||
+//         !idNumber
+//       ) {
+//         return res
+//           .status(400)
+//           .json({ message: "All required fields must be provided." });
+//       }
+
+//       if (!username || !email || !password) {
+//         return res.status(400).json({ message: "All fields are required." });
+//       }
+  
+//       // Check if email or username already exists
+//       const existingUser = await CrewCompany.findOne({ 
+//         $or: [{ username }, { email: emailtoUse }] 
+//       });
+//       if (existingUser) {
+//         return res
+//           .status(409)
+//           .json({ message: "Username or email already exists." });
+//       }
+  
+//       // Hash the password
+//       const hashedPassword = await bcrypt.hash(password, 10);
+  
+//       // Create new CrewCompany
+//       const newCrewCompany = new CrewCompany({
+//         username,
+//         email: emailtoUse,
+//         password: hashedPassword,
+//       });
+  
+//       // Save to the database
+//       const savedCrewCompany = await newCrewCompany.save();
+
+//       // Create a new Crew instance
+//       const newCrew = new Crew({
+//         firstName,
+//         lastName,
+//         email: emailtoUse,
+//         userId: savedCrewCompany._id,
+//         mobile,
+//         dob,
+//         bio,
+//         propic: profilePic,
+//         department,
+//         role,
+//         works,
+//         fee,
+//         location,
+//         verificationDocType,
+//         document,
+//         idNumber,
+//         apiVetting: false,
+//         verified: false,
+//       });
+
+//       // Save Crew to the database
+//       const savedCrew = await newCrew.save();
+
+//       const capitalize = (str: string) => 
+//         str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+      
+//       const firstNameCap = capitalize(firstName);
+//       const lastNameCap = capitalize(lastName);
+
+//       try {
+//         await sendEmail({
+//           to: email,
+//           subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+//           text: `Dear ${firstNameCap} ${lastNameCap},
+//                  Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+//                  We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+//                  As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+//                  We look forward to having you as part of this growing community!
+//                  Best,
+//                  Nollywood Filmmaker Database
+//           `,
+//           html: `
+//           <!DOCTYPE html>
+// <html>
+// <head>
+//   <meta charset="UTF-8">
+//   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//   <title>Welcome to Nollywood Filmmaker Database</title>
+//   <style>
+//     body {
+//       font-family: Arial, sans-serif;
+//       background-color: #f4f4f4;
+//       margin: 0;
+//       padding: 20px;
+//       color: #333;
+//     }
+//     .container {
+//       max-width: 600px;
+//       background: #ffffff;
+//       padding: 20px;
+//       border-radius: 8px;
+//       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+//       margin: auto;
+//     }
+//     .header img {
+//       width: 100%;
+//       max-width: 600px;
+//       border-radius: 8px;
+//     }
+//     h1 {
+//       color: #333;
+//     }
+//     p {
+//       font-size: 16px;
+//       line-height: 1.5;
+//     }
+//     .footer {
+//       margin-top: 20px;
+//       font-size: 14px;
+//       color: #777;
+//     }
+//   </style>
+// </head>
+// <body>
+
+//   <div class="container">
+//     <div class="header">
+//       <a href="https://nollywoodfilmmaker.com">
+//         <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+//              alt="Nollywood Filmmaker Database">
+//       </a>
+//     </div>
+
+//     <h1>Hello ${firstNameCap} ${lastNameCap},</h1>
+
+//     <p>Dear ${firstNameCap},</p>
+
+//     <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+//     <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+//     <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+//     <p>We look forward to having you as part of this growing community!</p>
+
+//     <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+//   </div>
+
+// </body>
+// </html>
+
+//           `,
+//         });
+
+//         console.log('Email sent successfully.');
+
+//         return res
+//           .status(201)
+//           .json({ message: "Crew member created successfully.", data: savedCrew });
+
+//       } catch (emailError) {
+//         console.error("Error sending email:", emailError);
+//         return res
+//           .status(500)
+//           .json({ message: "Crew member created, but email notification failed.", data: savedCrew });
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: "An error occurred.", error: error });
+//   }
+// };
+
 export const createCrewMember = async (req: Request, res: Response) => {
   try {
-    // Use Multer to handle file uploads
-    upload(req, res, async function (err) {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files to S3",
-          error: err.message,
-        });
-      }
+    // Extract files already uploaded by multer middleware
+    const files = req.files as {
+      [fieldname: string]: Express.MulterS3.File[];
+    };
 
-      // Extract files from request
-      const files = req.files as {
-        [fieldname: string]: Express.MulterS3.File[];
-      };
-
-      // Validate required files
-      if (!files?.file?.[0] || !files?.doc?.[0]) {
-        return res.status(400).json({
-          message: "Both profile picture and document are required.",
-        });
-      }
-
-      const profilePic = files.file[0].location;
-      const document = files.doc[0].location;
-
-      const {
-        firstName,
-        lastName,
-        username,
-        password,
-        email,
-        mobile,
-        dob,
-        bio,
-        department,
-        role,
-        works,
-        fee,
-        location,
-        verificationDocType,
-        idNumber,
-      } = req.body;
-
-       let emailtoUse = email.trim().toLowerCase();
-
-      // Validate required fields
-      if (
-        !firstName ||
-        !lastName ||
-        !email ||
-        !mobile ||
-        !dob ||
-        !department ||
-        !role ||
-        !verificationDocType ||
-        !idNumber
-      ) {
-        return res
-          .status(400)
-          .json({ message: "All required fields must be provided." });
-      }
-
-      if (!username || !email || !password) {
-        return res.status(400).json({ message: "All fields are required." });
-      }
-  
-      // Check if email or username already exists
-      const existingUser = await CrewCompany.findOne({ 
-        $or: [{ username }, { email: emailtoUse }] 
+    // Validate uploaded files
+    if (!files?.file?.[0] || !files?.doc?.[0]) {
+      return res.status(400).json({
+        message: "Both profile picture and document are required.",
       });
-      if (existingUser) {
-        return res
-          .status(409)
-          .json({ message: "Username or email already exists." });
-      }
-  
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      // Create new CrewCompany
-      const newCrewCompany = new CrewCompany({
-        username,
-        email: emailtoUse,
-        password: hashedPassword,
-      });
-  
-      // Save to the database
-      const savedCrewCompany = await newCrewCompany.save();
+    }
 
-      // Create a new Crew instance
-      const newCrew = new Crew({
-        firstName,
-        lastName,
-        email: emailtoUse,
-        userId: savedCrewCompany._id,
-        mobile,
-        dob,
-        bio,
-        propic: profilePic,
-        department,
-        role,
-        works,
-        fee,
-        location,
-        verificationDocType,
-        document,
-        idNumber,
-        apiVetting: false,
-        verified: false,
-      });
+    const profilePic = files.file[0].location;
+    const document = files.doc[0].location;
 
-      // Save Crew to the database
-      const savedCrew = await newCrew.save();
+    const {
+      firstName, lastName, username, password, email,
+      mobile, dob, bio, department, role, works, fee,
+      location, verificationDocType, idNumber
+    } = req.body;
 
-      const capitalize = (str: string) => 
-        str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
-      
-      const firstNameCap = capitalize(firstName);
-      const lastNameCap = capitalize(lastName);
+    const emailtoUse = email?.trim().toLowerCase();
 
-      try {
-        await sendEmail({
-          to: email,
-          subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
-          text: `Dear ${firstNameCap} ${lastNameCap},
-                 Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
-                 We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
-                 As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
-                 We look forward to having you as part of this growing community!
-                 Best,
-                 Nollywood Filmmaker Database
-          `,
-          html: `
-          <!DOCTYPE html>
+    if (!firstName || !lastName || !email || !mobile || !dob ||
+        !department || !role || !verificationDocType || !idNumber) {
+      return res.status(400).json({ message: "All required fields must be provided." });
+    }
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Username, email and password are required." });
+    }
+
+    const existingUser = await CrewCompany.findOne({
+      $or: [{ username }, { email: emailtoUse }]
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "Username or email already exists." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newCrewCompany = new CrewCompany({
+      username,
+      email: emailtoUse,
+      password: hashedPassword,
+    });
+
+    const savedCrewCompany = await newCrewCompany.save();
+
+    const newCrew = new Crew({
+      firstName,
+      lastName,
+      email: emailtoUse,
+      userId: savedCrewCompany._id,
+      mobile,
+      dob,
+      bio,
+      propic: profilePic,
+      department,
+      role,
+      works,
+      fee,
+      location,
+      verificationDocType,
+      document,
+      idNumber,
+      apiVetting: false,
+      verified: false,
+    });
+
+    const savedCrew = await newCrew.save();
+
+    const capitalize = (str: string) =>
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+    const firstNameCap = capitalize(firstName);
+    const lastNameCap = capitalize(lastName);
+
+    await sendEmail({
+      to: email,
+      subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+      text: `Dear ${firstNameCap} ${lastNameCap},
+             Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+             We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+             As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+             We look forward to having you as part of this growing community!
+             Best,
+             Nollywood Filmmaker Database
+      `,
+      html: `
+      <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Nollywood Filmmaker Database</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    .container {
-      max-width: 600px;
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      margin: auto;
-    }
-    .header img {
-      width: 100%;
-      max-width: 600px;
-      border-radius: 8px;
-    }
-    h1 {
-      color: #333;
-    }
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    .footer {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #777;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+.container {
+  max-width: 600px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+.header img {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 8px;
+}
+h1 {
+  color: #333;
+}
+p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.footer {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #777;
+}
+</style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="header">
-      <a href="https://nollywoodfilmmaker.com">
-        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
-             alt="Nollywood Filmmaker Database">
-      </a>
-    </div>
+<div class="container">
+<div class="header">
+  <a href="https://nollywoodfilmmaker.com">
+    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+         alt="Nollywood Filmmaker Database">
+  </a>
+</div>
 
-    <h1>Hello ${firstNameCap} ${lastNameCap},</h1>
+<h1>Hello ${firstNameCap} ${lastNameCap},</h1>
 
-    <p>Dear ${firstNameCap},</p>
+<p>Dear ${firstNameCap},</p>
 
-    <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+<p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
 
-    <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+<p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
 
-    <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+<p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
 
-    <p>We look forward to having you as part of this growing community!</p>
+<p>We look forward to having you as part of this growing community!</p>
 
-    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
-  </div>
+<p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+</div>
 
 </body>
 </html>
 
-          `,
-        });
+      `,
+    });
 
-        console.log('Email sent successfully.');
+    console.log('Email sent successfully.');
 
-        return res
-          .status(201)
-          .json({ message: "Crew member created successfully.", data: savedCrew });
-
-      } catch (emailError) {
-        console.error("Error sending email:", emailError);
-        return res
-          .status(500)
-          .json({ message: "Crew member created, but email notification failed.", data: savedCrew });
-      }
+    return res.status(201).json({
+      message: "Crew member created successfully.",
+      data: savedCrew,
     });
 
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "An error occurred.", error: error });
+    console.error("Error creating crew member:", error);
+    return res.status(500).json({
+      message: "An error occurred while creating crew member.",
+      error,
+    });
   }
 };
 
 
+
 // Create Company Function
+// export const createCompany = async (req: Request, res: Response) => {
+//   try {
+//     // Use Multer to handle file uploads
+//     upload(req, res, async (err) => {
+//       if (err) {
+//         return res.status(500).json({
+//           message: "Error uploading files to S3",
+//           error: err.message,
+//         });
+//       }
+
+//       // Extract files from request
+//       const files = req.files as {
+//         [fieldname: string]: Express.MulterS3.File[];
+//       };
+
+//       // Validate required files
+//       if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
+//         return res.status(400).json({
+//           message: "Profile picture, document, and CAC document are required.",
+//         });
+//       }
+
+//       const profilePic = files.file[0].location;
+//       const document = files.doc[0].location;
+//       const cacdoc = files.cacdoc[0].location;
+
+//       let rateCard = "";
+//       const {
+//         name,
+//         email,
+//         userId,
+//         username, 
+//         password,
+//         mobile,
+//         website,
+//         bio,
+//         type,
+//         clientele,
+//         useRateCard,
+//         fee,
+//         location,
+//         verificationDocType,
+//         idNumber,
+//       } = req.body;
+
+//       let emailtoUse = email.trim().toLowerCase();
+
+//       // Validate useRateCard and check for the rate card file if required
+//       if (useRateCard === "true") {
+//         if (!files?.rateCard?.[0]?.location) {
+//           return res
+//             .status(400)
+//             .json({ message: "Rate card file is required when useRateCard is true." });
+//         }
+//         rateCard = files.rateCard[0].location;
+//       }
+
+//       // Validate required fields
+//       if (
+//         !name ||
+//         !email ||
+//         !mobile ||
+//         !type ||
+//         !verificationDocType ||
+//         !idNumber
+//       ) {
+//         return res.status(400).json({ message: "All required fields must be provided." });
+//       }
+
+//       if (!username || !email || !password) {
+//         return res.status(400).json({ message: "All fields are required." });
+//       }
+  
+//       // Check if email or username already exists
+//       const existingUser = await CrewCompany.findOne({ 
+//         $or: [{ username }, { email: emailtoUse }] 
+//       });
+//       if (existingUser) {
+//         return res
+//           .status(409)
+//           .json({ message: "Username or email already exists." });
+//       }
+  
+//       // Hash the password
+//       const hashedPassword = await bcrypt.hash(password, 10);
+  
+//       // Create new CrewCompany
+//       const newCrewCompany = new CrewCompany({
+//         username,
+//         email: emailtoUse,
+//         password: hashedPassword,
+//       });
+  
+//       // Save to the database
+//       const savedCrewCompany = await newCrewCompany.save();
+
+//       // Create a new Company instance
+//       const newCompany = new Company({
+//         name,
+//         email: emailtoUse,
+//         mobile,
+//         userId: savedCrewCompany._id,
+//         website,
+//         bio,
+//         propic: profilePic,
+//         type,
+//         clientele,
+//         useRateCard,
+//         rateCard,
+//         fee,
+//         location,
+//         verificationDocType,
+//         document,
+//         idNumber,
+//         cacdoc,
+//         apiVetting: false,
+//         verified: false,
+//       });
+
+//       // Save Company to the database
+//       const savedCompany = await newCompany.save();
+
+//       const capitalize = (str: string) => 
+//         str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+//       const nameCap = capitalize(name);
+
+//       try {
+//         await sendEmail({
+//           to: email,
+//           subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+//           text: `Dear ${nameCap},
+
+//                  Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+//                  We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+//                  As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+//                  We look forward to having you as part of this growing community!
+//                  Best,
+//                  Nollywood Filmmaker Database
+//           `,
+//           html: `
+//           <!DOCTYPE html>
+// <html>
+// <head>
+//   <meta charset="UTF-8">
+//   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//   <title>Welcome to Nollywood Filmmaker Database</title>
+//   <style>
+//     body {
+//       font-family: Arial, sans-serif;
+//       background-color: #f4f4f4;
+//       margin: 0;
+//       padding: 20px;
+//       color: #333;
+//     }
+//     .container {
+//       max-width: 600px;
+//       background: #ffffff;
+//       padding: 20px;
+//       border-radius: 8px;
+//       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+//       margin: auto;
+//     }
+//     .header img {
+//       width: 100%;
+//       max-width: 600px;
+//       border-radius: 8px;
+//     }
+//     h1 {
+//       color: #333;
+//     }
+//     p {
+//       font-size: 16px;
+//       line-height: 1.5;
+//     }
+//     .footer {
+//       margin-top: 20px;
+//       font-size: 14px;
+//       color: #777;
+//     }
+//   </style>
+// </head>
+// <body>
+
+//   <div class="container">
+//     <div class="header">
+//       <a href="https://nollywoodfilmmaker.com">
+//         <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+//              alt="Nollywood Filmmaker Database">
+//       </a>
+//     </div>
+
+//     <h1>Hello ${nameCap},</h1>
+
+//     <p>Dear ${nameCap},</p>
+
+//     <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+//     <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+//     <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+//     <p>We look forward to having you as part of this growing community!</p>
+
+//     <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+//   </div>
+
+// </body>
+// </html>
+//           `,
+//         });
+
+//         console.log("Email sent successfully.");
+
+//         return res.status(201).json({ 
+//           message: "Company created successfully.", 
+//           data: savedCompany 
+//         });
+
+//       } catch (emailError) {
+//         console.error("Error sending email:", emailError);
+//         return res.status(500).json({ 
+//           message: "Company created, but email notification failed.", 
+//           data: savedCompany 
+//         });
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error in createCompany:", error);
+//     return res.status(500).json({ message: "An error occurred.", error });
+//   }
+// };
+
+
 export const createCompany = async (req: Request, res: Response) => {
   try {
-    // Use Multer to handle file uploads
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(500).json({
-          message: "Error uploading files to S3",
-          error: err.message,
-        });
-      }
+    const files = req.files as {
+      [fieldname: string]: Express.MulterS3.File[];
+    };
 
-      // Extract files from request
-      const files = req.files as {
-        [fieldname: string]: Express.MulterS3.File[];
-      };
+    if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
+      return res.status(400).json({
+        message: "Profile picture, document, and CAC document are required.",
+      });
+    }
 
-      // Validate required files
-      if (!files?.file?.[0]?.location || !files?.doc?.[0]?.location || !files?.cacdoc?.[0]?.location) {
+    const profilePic = files.file[0].location;
+    const document = files.doc[0].location;
+    const cacdoc = files.cacdoc[0].location;
+
+    let rateCard = "";
+    const {
+      name,
+      email,
+      userId,
+      username,
+      password,
+      mobile,
+      website,
+      bio,
+      type,
+      clientele,
+      useRateCard,
+      fee,
+      location,
+      verificationDocType,
+      idNumber,
+    } = req.body;
+
+    const emailtoUse = email.trim().toLowerCase();
+
+    if (useRateCard === "true") {
+      if (!files?.rateCard?.[0]?.location) {
         return res.status(400).json({
-          message: "Profile picture, document, and CAC document are required.",
+          message: "Rate card file is required when useRateCard is true.",
         });
       }
+      rateCard = files.rateCard[0].location;
+    }
 
-      const profilePic = files.file[0].location;
-      const document = files.doc[0].location;
-      const cacdoc = files.cacdoc[0].location;
+    if (
+      !name ||
+      !email ||
+      !mobile ||
+      !type ||
+      !verificationDocType ||
+      !idNumber
+    ) {
+      return res.status(400).json({ message: "All required fields must be provided." });
+    }
 
-      let rateCard = "";
-      const {
-        name,
-        email,
-        userId,
-        username, 
-        password,
-        mobile,
-        website,
-        bio,
-        type,
-        clientele,
-        useRateCard,
-        fee,
-        location,
-        verificationDocType,
-        idNumber,
-      } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
 
-      let emailtoUse = email.trim().toLowerCase();
+    const existingUser = await CrewCompany.findOne({
+      $or: [{ username }, { email: emailtoUse }]
+    });
+    if (existingUser) {
+      return res.status(409).json({ message: "Username or email already exists." });
+    }
 
-      // Validate useRateCard and check for the rate card file if required
-      if (useRateCard === "true") {
-        if (!files?.rateCard?.[0]?.location) {
-          return res
-            .status(400)
-            .json({ message: "Rate card file is required when useRateCard is true." });
-        }
-        rateCard = files.rateCard[0].location;
-      }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Validate required fields
-      if (
-        !name ||
-        !email ||
-        !mobile ||
-        !type ||
-        !verificationDocType ||
-        !idNumber
-      ) {
-        return res.status(400).json({ message: "All required fields must be provided." });
-      }
+    const newCrewCompany = new CrewCompany({
+      username,
+      email: emailtoUse,
+      password: hashedPassword,
+    });
 
-      if (!username || !email || !password) {
-        return res.status(400).json({ message: "All fields are required." });
-      }
-  
-      // Check if email or username already exists
-      const existingUser = await CrewCompany.findOne({ 
-        $or: [{ username }, { email: emailtoUse }] 
-      });
-      if (existingUser) {
-        return res
-          .status(409)
-          .json({ message: "Username or email already exists." });
-      }
-  
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      // Create new CrewCompany
-      const newCrewCompany = new CrewCompany({
-        username,
-        email: emailtoUse,
-        password: hashedPassword,
-      });
-  
-      // Save to the database
-      const savedCrewCompany = await newCrewCompany.save();
+    const savedCrewCompany = await newCrewCompany.save();
 
-      // Create a new Company instance
-      const newCompany = new Company({
-        name,
-        email: emailtoUse,
-        mobile,
-        userId: savedCrewCompany._id,
-        website,
-        bio,
-        propic: profilePic,
-        type,
-        clientele,
-        useRateCard,
-        rateCard,
-        fee,
-        location,
-        verificationDocType,
-        document,
-        idNumber,
-        cacdoc,
-        apiVetting: false,
-        verified: false,
-      });
+    const newCompany = new Company({
+      name,
+      email: emailtoUse,
+      mobile,
+      userId: savedCrewCompany._id,
+      website,
+      bio,
+      propic: profilePic,
+      type,
+      clientele,
+      useRateCard,
+      rateCard,
+      fee,
+      location,
+      verificationDocType,
+      document,
+      idNumber,
+      cacdoc,
+      apiVetting: false,
+      verified: false,
+    });
 
-      // Save Company to the database
-      const savedCompany = await newCompany.save();
+    const savedCompany = await newCompany.save();
 
-      const capitalize = (str: string) => 
-        str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+    const capitalize = (str: string) =>
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
 
-      const nameCap = capitalize(name);
+    const nameCap = capitalize(name);
 
-      try {
-        await sendEmail({
-          to: email,
-          subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
-          text: `Dear ${nameCap},
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Welcome to the Nollywood Filmmaker Database – Verification in Progress',
+        text: `Dear ${nameCap},
 
-                 Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
-                 We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
-                 As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
-                 We look forward to having you as part of this growing community!
-                 Best,
-                 Nollywood Filmmaker Database
-          `,
-          html: `
-          <!DOCTYPE html>
+               Thank you for joining the Nollywood Filmmaker Database, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.
+               We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.
+               As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.
+               We look forward to having you as part of this growing community!
+               Best,
+               Nollywood Filmmaker Database
+        `,
+        html: `
+        <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Nollywood Filmmaker Database</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    .container {
-      max-width: 600px;
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      margin: auto;
-    }
-    .header img {
-      width: 100%;
-      max-width: 600px;
-      border-radius: 8px;
-    }
-    h1 {
-      color: #333;
-    }
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    .footer {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #777;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="header">
-      <a href="https://nollywoodfilmmaker.com">
-        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
-             alt="Nollywood Filmmaker Database">
-      </a>
-    </div>
-
-    <h1>Hello ${nameCap},</h1>
-
-    <p>Dear ${nameCap},</p>
-
-    <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
-
-    <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
-
-    <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
-
-    <p>We look forward to having you as part of this growing community!</p>
-
-    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
   </div>
+
+  <h1>Hello ${nameCap},</h1>
+
+  <p>Dear ${nameCap},</p>
+
+  <p>Thank you for joining the <strong>Nollywood Filmmaker Database</strong>, the most comprehensive network of industry professionals dedicated to connecting talent and opportunities.</p>
+
+  <p>We have received your submission, and our team is currently reviewing your documents as part of the verification process. You will be notified once your profile has been successfully verified.</p>
+
+  <p>As a member of this database, you’ll be positioned to connect with filmmakers seeking your expertise. Our goal is to make it easier for industry professionals like you to collaborate and thrive in Nollywood.</p>
+
+  <p>We look forward to having you as part of this growing community!</p>
+
+  <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+</div>
 
 </body>
 </html>
-          `,
-        });
+        `,
+      });
+      return res.status(201).json({
+        message: "Company created successfully.",
+        data: savedCompany,
+      });
 
-        console.log("Email sent successfully.");
-
-        return res.status(201).json({ 
-          message: "Company created successfully.", 
-          data: savedCompany 
-        });
-
-      } catch (emailError) {
-        console.error("Error sending email:", emailError);
-        return res.status(500).json({ 
-          message: "Company created, but email notification failed.", 
-          data: savedCompany 
-        });
-      }
-    });
+    } catch (emailError) {
+      console.error("Error sending email:", emailError);
+      return res.status(500).json({
+        message: "Company created, but email notification failed.",
+        data: savedCompany,
+      });
+    }
 
   } catch (error) {
     console.error("Error in createCompany:", error);
     return res.status(500).json({ message: "An error occurred.", error });
   }
 };
+
 
 
 

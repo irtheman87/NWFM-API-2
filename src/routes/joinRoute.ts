@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express';
 import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails, updateProfilePicture, updateCompanyProfilePicture, addEmailToList } from '../controllers/joinController';
+import { uploads } from '../utils/UtilityFunctions';
 
 const router = express.Router();
 
- router.post('/crew', createCrewMember);
- router.post('/company', createCompany);
+//  router.post('/crew', createCrewMember);
+ router.post('/crew', uploads, createCrewMember);
+//  router.post('/company', createCompany);
+router.post('/company', uploads,  createCompany);
  router.post("/crewcompany", createCrewCompany);
  router.post("/crewcompany/login", loginCrewCompany);
  router.get("/crew/:id", getCrewById);
