@@ -71,7 +71,7 @@ router.get('/issues/:uid', fetchUserSpecificIssues);
 router.post('/contacted', submitContactForm);
 router.post('/servicechat/user', sendUserMessage);
 router.get('/servicechat/messages', getServiceChatMessages);
-router.put('/continue-chat', updateRequestTime);
+router.put('/continue-chat', verifyUserToken, updateRequestTime);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {
