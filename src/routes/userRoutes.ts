@@ -123,11 +123,21 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         const orderid =  result?.orderId as string;
         //fetchRequestByOrderId(orderid); 
 
-        const request = await RequestModel.findOne({ orderId: result.orderId });
-        if (!request) {
-          throw new Error("Request not found"); // Handle case where request is not found
+        let request = null;
+
+        if(result.originalOrderIdFromChat){
+          request = await RequestModel.findOne({ orderId: result.originalOrderIdFromChat });
+          if (!request) {
+            throw new Error("Request not found"); // Handle case where request is not found
+          }
+        }else{
+          request = await RequestModel.findOne({ orderId: result.orderId });
+          if (!request) {
+            throw new Error("Request not found"); // Handle case where request is not found
+          }
+          
         }
-        
+
         const user = await User.findById(request.userId);
         if (!user) {
           throw new Error("User not found"); // Handle case where user is not found
