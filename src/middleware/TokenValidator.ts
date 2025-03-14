@@ -67,7 +67,7 @@ export const validateUserRequest = async (req: Request, res: Response): Promise<
       orderId: { $in: completedOrderIds },
       stattusof: { $ne: 'completed' }, // Exclude completed requests
     })
-      .sort({ createdAt: sort === 'asc' ? 1 : -1 }) // Sort based on the sort parameter
+      .sort({ updatedAt: sort === 'asc' ? 1 : -1 }) // Sort based on the sort parameter
       .skip((pageNumber - 1) * limitNumber) // Apply pagination
       .limit(limitNumber); // Limit the number of results per page
 
@@ -152,7 +152,7 @@ export const validateUserRequestForAdmin = async (req: Request, res: Response): 
       orderId: { $in: completedOrderIds },
       stattusof: { $ne: 'completed' }, // Exclude completed requests
     })
-      .sort({ createdAt: sort === 'asc' ? 1 : -1 }) // Sort based on the sort parameter
+      .sort({ updatedAt: sort === 'asc' ? 1 : -1 }) // Sort based on the sort parameter
       .skip((pageNumber - 1) * limitNumber) // Apply pagination
       .limit(limitNumber); // Limit the number of results
 
