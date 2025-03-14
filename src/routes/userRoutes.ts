@@ -137,6 +137,12 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         if (!request.booktime) {
           throw new Error("Book time is missing from the request");
         }
+
+        if(request.continued == true){
+          request.stattusof = "ongoing";
+          request.continued = false;
+          await request.save();
+        }
         
         // Helper function to format a Date for Google Calendar (YYYYMMDDTHHmmssZ)
         function formatDateForGoogleCalendar(date: Date): string {
