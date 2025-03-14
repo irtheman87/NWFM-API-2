@@ -138,7 +138,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           throw new Error("Book time is missing from the request");
         }
 
-        if(request.continued == true){
+        if(request.continued === true){
           request.stattusof = "ongoing";
           request.continued = false;
           await request.save();
