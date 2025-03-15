@@ -9,7 +9,9 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   fetchDepositById, deleteCrewByUserId, deleteCompanyByUserId, deleteCrewCompanyById, getResolvesByOrderId, getAllConsultantsList,
   getEmailList, fetchAttendanceByRoom, updateVerificationStatus, updateCrewVerificationStatus, setApiVettingTrue, setCompanyApiVettingTrue,
   FailedCrewCompanyById, getContactSubmissions,
-  updateMissingNfscore} from '../controllers/adminController';
+  updateMissingNfscore,
+  getSingleContactSubmission,
+  replyToContactSubmission} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -116,6 +118,10 @@ router.patch("/company/apiVetting/:userId", setCompanyApiVettingTrue); // Set ap
 router.patch("/company/verify/:userId", updateVerificationStatus); // Update verification status
 
 router.get('/contact-submissions', getContactSubmissions);
+
+router.get('/contact-submissions/:id', getSingleContactSubmission);
+
+router.post('/contact-submissions/:id/reply', replyToContactSubmission);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

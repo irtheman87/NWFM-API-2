@@ -4929,7 +4929,6 @@ export const generateBadge = async (
 
 export const getContactSubmissions = async (req: Request, res: Response): Promise<Response> => {
   try {
-
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
@@ -4954,7 +4953,7 @@ export const getContactSubmissions = async (req: Request, res: Response): Promis
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    
+
     // Extract page and limit from query, provide default values
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -4965,21 +4964,145 @@ export const getContactSubmissions = async (req: Request, res: Response): Promis
 
     // Fetch paginated submissions
     const submissions = await ContactFormSubmission.find()
-      .sort({ createdAt: -1 })
+      .sort({ submittedAt: -1 }) 
       .skip(skip)
       .limit(limit);
+
+    // Truncate each message field (e.g., to 100 characters max)
+    const truncatedSubmissions = submissions.map((submission) => ({
+      ...submission.toObject(),
+      message: submission.message.length > 25
+        ? `${submission.message.slice(0, 25)}...`
+        : submission.message,
+    }));
 
     return res.status(200).json({
       message: 'Contact submissions fetched successfully',
       currentPage: page,
       totalPages: Math.ceil(totalSubmissions / limit),
       totalSubmissions,
-      submissions,
+      submissions: truncatedSubmissions,
     });
+
   } catch (error) {
     console.error('Error fetching contact submissions:', error);
     return res.status(500).json({
       message: 'Failed to fetch submissions',
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const getSingleContactSubmission = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const { id } = req.params;
+
+    const submission = await ContactFormSubmission.findById(id);
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    submission.read = true;
+    await submission.save();
+
+    return res.status(200).json({
+      message: 'Contact submission fetched successfully',
+      submission,
+    });
+
+  } catch (error) {
+    console.error('Error fetching single contact submission:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch submission',
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const replyToContactSubmission = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const { id } = req.params;
+    const { subject, replyMessage } = req.body;
+
+    if (!subject || !replyMessage) {
+      return res.status(400).json({ message: 'Subject and reply message are required.' });
+    }
+
+    const submission = await ContactFormSubmission.findById(id);
+    if (!submission) {
+      return res.status(404).json({ message: 'Contact form submission not found.' });
+    }
+
+    const fullName = `${submission.firstName} ${submission.lastName}`;
+    const replyContent = `
+      <p>Hi ${fullName},</p>
+      <p>${replyMessage}</p>
+      <br/>
+      <p>Best Regards,<br/>Nollywood Filmmaker  Support Team</p>
+    `;
+
+    await sendEmail({
+      to: submission.email,
+      subject,
+      text: replyMessage,
+      html: replyContent,
+    });
+
+    return res.status(200).json({
+      message: 'Reply sent successfully.',
+      email: submission.email,
+    });
+
+  } catch (error) {
+    console.error('Error replying to submission:', error);
+    return res.status(500).json({
+      message: 'Failed to send reply.',
       error: (error as Error).message,
     });
   }

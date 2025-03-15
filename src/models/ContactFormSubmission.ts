@@ -8,6 +8,7 @@ export interface IContactFormSubmission extends Document {
   message: string;
   agreedToPrivacyPolicy: boolean;
   submittedAt: Date;
+  read: boolean;
 }
 
 const ContactFormSchema: Schema = new Schema({
@@ -17,7 +18,8 @@ const ContactFormSchema: Schema = new Schema({
   phone:     { type: String, required: false }, // Optional, but you can make it required
   message:   { type: String, required: true },
   agreedToPrivacyPolicy: { type: Boolean, required: true },
-  submittedAt: { type: Date, default: Date.now }
+  submittedAt: { type: Date, default: Date.now },
+  read: { type: Boolean, default: false }
 });
 
 export default mongoose.model<IContactFormSubmission>('ContactFormSubmission', ContactFormSchema);
