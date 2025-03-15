@@ -31,6 +31,11 @@ type startpop = {
   date: string;
 };
 
+type links = {
+  urls: string;
+};
+
+
 type characterlockdate = {
   date: string[];
   name: string;
@@ -52,6 +57,7 @@ export interface IRequest extends Document {
   script?: string;
   concerns?: string;
   link?: string;
+  links?: string[];
   socialTarget?: string;
   oohTarget?: string;
   budget?: number;
@@ -135,6 +141,10 @@ const startpopSchema = new Schema<startpop>({
   date: { type: String, required: true },
 });
 
+const linksSchema = new Schema<links>({
+  urls: { type: String, required: true },
+});
+
 const characterlockdateSchema = new Schema<characterlockdate>({
   date: [{ type: String, required: true }],
   name: { type: String, required: true },
@@ -157,6 +167,7 @@ const requestSchema = new Schema<IRequest>(
     script: { type: String },
     concerns: { type: String },
     link: { type: String },
+    links: { type: [linksSchema], default: [] },
     socialTarget: { type: String },
     oohTarget: { type: String },
     budget: { type: Number },

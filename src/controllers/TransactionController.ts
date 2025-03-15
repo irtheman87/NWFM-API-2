@@ -335,6 +335,11 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
+    let alink;
+    if (typeof link === 'string') {
+      alink = JSON.parse(link);
+   }
+
     // const files = req.files as Express.MulterS3.File[] | undefined;
     // const fileUrls = files ? files.map(file => file.location) : [];
 
@@ -352,7 +357,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       stattusof: 'pending',
       type,
       nameofservice: title,
-      link,
+      links: alink,
       genre,
       platform,
       concerns,
