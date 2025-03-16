@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails, updateProfilePicture, updateCompanyProfilePicture, addEmailToList } from '../controllers/joinController';
+import { createCrewMember, createCompany, createCrewCompany, loginCrewCompany, getCrewById, getCompanyById, updateCompanyDetails, updateCrewDetails, updateProfilePicture, updateCompanyProfilePicture, addEmailToList, requestPasswordReset, resetPassword } from '../controllers/joinController';
 import { uploads } from '../utils/UtilityFunctions';
 
 const router = express.Router();
@@ -17,6 +17,8 @@ router.post('/company', uploads,  createCompany);
  router.post('/update-company-picture', updateCompanyProfilePicture);
  router.post('/update-profile-picture', updateProfilePicture);
  router.post("/email-list", addEmailToList);
+ router.post('/forgotpassword', requestPasswordReset);
+ router.post('/resetpassword/:token', resetPassword);
 
 
 module.exports = router;
