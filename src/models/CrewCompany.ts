@@ -5,6 +5,7 @@ export interface ICrewCompany extends Document {
   username: string;
   email: string;
   password: string;
+  verificationToken?: string;
 }
 
 // Schema for CrewCompany
@@ -29,6 +30,9 @@ const CrewCompanySchema: Schema = new Schema<ICrewCompany>(
       required: true,
       minlength: 6,
     },
+    verificationToken: {
+      type: String
+    }
   },
   {
     timestamps: true, // Automatically add createdAt and updatedAt fields

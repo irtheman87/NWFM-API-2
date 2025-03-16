@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 import mongoose from "mongoose";
 import sendEmail from "../utils/sendEmail";
 import EmailList from "../models/EmailList";
+import * as crypto from 'crypto';
 
 // Initialize S3 client
 // Create an S3 Client with Transfer Acceleration Enabled
@@ -1378,5 +1379,74 @@ export const addEmailToList = async (req: Request, res: Response) => {
     }
 
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    // Find user by email
+    const user = await CrewCompany.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User with this email does not exist.' });
+    }
+
+    // Generate a unique token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Store a hashed version of the token in the user's document for verification
+    user.verificationToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    await user.save();
+
+    // Generate the password reset URL
+    // const resetUrl = `${req.protocol}://${req.get('host')}/api/users/resetpassword/${resetToken}`;
+    const resetUrl = `https://nollywoodfilmmaker.com/auth/fmd/reset-password?token=${resetToken}`;
+    console.log(resetUrl);
+    
+    await sendEmail({
+      to: user.email,
+      subject: 'Password Reset Request',
+      text: `You requested a password reset. Click the following link to reset your password: ${resetUrl}. If you did not request this, please ignore this email.`,
+      html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p><p>If you did not request this, please ignore this email.</p>`,
+    });    
+
+    res.status(200).json({ message: 'Password reset link has been sent to your email.' });
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    res.status(500).json({ message: 'Server error, please try again later.' });
+  }
+};
+
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    // Check if token is provided
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required.' });
+    }
+
+    // Hash the token and find the user
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await CrewCompany.findOne({
+      verificationToken: hashedToken,
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    // Update user's password and clear the token
+    user.password = await bcrypt.hash(newPassword, 10); // Ensure this is hashed as needed
+    user.verificationToken = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Server error, please try again later.' });
   }
 };
