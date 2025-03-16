@@ -891,7 +891,7 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
           status: 'completed', // Ensure the transaction is completed
         });
 
-        const cid = AppointmentModel.findOne({ orderId: request.orderId }, 'cid');
+        // const cid = AppointmentModel.findOne({ orderId: request.orderId }, 'cid');
 
         if (!transaction) {
           return null; // Skip requests without a valid completed transaction
@@ -908,7 +908,6 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
 
         return {
           ...request.toObject(),
-          cid,
           startTime,
         };
       })
