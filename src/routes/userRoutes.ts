@@ -196,7 +196,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         Price: ${result.price}
         Date Booked: ${request.createdAt}
         Time for Chat: ${request.booktime}
-        
+        OrderId: ${request.orderId}
+
         Add to Google Calendar: ${googleCalendarUrl}
         
         Here are some of our other services:
@@ -209,6 +210,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
                  <p><strong>Price:</strong> ${result.price}</p>
                  <p><strong>Date Booked:</strong> ${request.createdAt}</p>
                  <p><strong>Time for Chat:</strong> ${request.booktime}</p>
+                 <p><strong>OrderId:</strong> ${request.orderId}</p>
                  <p>
                    <a href="${googleCalendarUrl}" target="_blank" style="color: #1a73e8; text-decoration: none;">
                      Add to Google Calendar
@@ -243,6 +245,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           Service Booked: ${request.nameofservice}
           Price: ${result.price}
           Date Booked: ${request.createdAt}
+          OrderId: ${request.orderId}
 
           Here are some of our other services:
           - Service 1: https://example.com/service1
@@ -253,6 +256,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
                   <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
                   <p><strong>Price:</strong> ${result.price}</p>
                   <p><strong>Date Booked:</strong> ${request.createdAt}</p>
+                  <p><strong>OrderId:</strong> ${request.orderId}</p>
                   <p>Here are some of our other services:</p>
                   <ul>
                     <li><a href="https://example.com/service1">Service 1</a></li>
