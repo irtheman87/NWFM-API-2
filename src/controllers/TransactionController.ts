@@ -1344,7 +1344,13 @@ export const updateRequestTime = async (req: Request, res: Response) => {
     }
 
     const parsedDate = new Date(date);
-    const booktime = getTimeFromDated(date);
+    const result = getTimeFromDated(date);
+
+    const booktime = {
+      "hours": result.hours,
+      "minutes": result.minutes,
+      "seconds": result.seconds
+    }
 
     const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
     const endTimeDate = add(parsedDate, { hours: 1 });
@@ -1354,9 +1360,9 @@ export const updateRequestTime = async (req: Request, res: Response) => {
       { orderId },
       {
         $set: {
-          booktime: parsedDate.toISOString(),
+          usebooktimed: date,
           time: booktime,
-          endTime: formattedEndTime,
+          useendTimed: formattedEndTime,
           continued: true
         },
         $inc: { continueCount: 1 }

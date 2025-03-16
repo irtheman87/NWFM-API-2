@@ -106,6 +106,8 @@ export interface IRequest extends Document {
   keyArtCreated?: string[];
   continued?: boolean;
   continueCount?: number;
+  usebooktimed?: string;
+  useendTimed?: string;
   
 }
 
@@ -216,6 +218,8 @@ const requestSchema = new Schema<IRequest>(
     keyArtCreated: {type: [String] },
     continued: { type: Boolean },
     continueCount: { type: Number },
+    usebooktimed: { type: String },
+    useendTimed: { type: String },
 
   },
   { timestamps: true }

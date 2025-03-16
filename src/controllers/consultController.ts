@@ -1038,6 +1038,7 @@ export const fetchAssignmentsAndRequests = async (req: Request, res: Response): 
 
       return {
         ...request.toObject(),
+        cid, // Add consultant ID
         startTime, // Add formatted start time
       };
     });

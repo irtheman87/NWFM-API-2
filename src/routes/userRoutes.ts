@@ -148,10 +148,22 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           throw new Error("Book time is missing from the request");
         }
 
-        if(request.continued === true){
+        let chatStartDate: Date;
+
+        if (request.continued === true) {
+          // Defensive checks before assigning to Date constructor
+          if (!request.usebooktimed || !request.useendTimed) {
+            throw new Error("Missing continuation timing details (usebooktimed or useendTimed).");
+          }
+
           request.stattusof = "ongoing";
+          chatStartDate = new Date(request.usebooktimed); // Make sure it's defined now
+          request.booktime = request.usebooktimed;
+          request.endTime = request.useendTimed;
           request.continued = false;
           await request.save();
+        } else {
+          chatStartDate = new Date(request.booktime); // Safe to assign now
         }
         
         // Helper function to format a Date for Google Calendar (YYYYMMDDTHHmmssZ)
@@ -159,8 +171,9 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         }
         
+        
         // Parse the chat start time (now safe to assume it's defined)
-        const chatStart = new Date(request.booktime);
+        const chatStart = new Date(chatStartDate);
         // Adjust the time if it's always coming in 1hr behind your expected time:
         const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
         
