@@ -877,8 +877,10 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
     // Fetch matching requests sorted by `booktime` (newest first)
     const requests = await RequestModel.find(
       filter,
-      'chat_title stattusof time orderId nameofservice date createdAt booktime endTime'
+      'chat_title stattusof time orderId nameofservice date createdAt booktime endTime continueCount'
     ).sort({ booktime: -1 });
+
+   
 
     // Map and validate each request
     const processedRequests = await Promise.all(
@@ -888,6 +890,8 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
           orderId: request.orderId,
           status: 'completed', // Ensure the transaction is completed
         });
+
+        const cid = AppointmentModel.findOne({ orderId: request.orderId }, 'cid');
 
         if (!transaction) {
           return null; // Skip requests without a valid completed transaction
@@ -904,6 +908,7 @@ export const fetchUserRequests = async (req: Request, res: Response): Promise<Re
 
         return {
           ...request.toObject(),
+          cid,
           startTime,
         };
       })
@@ -1011,7 +1016,7 @@ export const fetchSingleRequest = async (req: Request, res: Response): Promise<R
     // Fetch the request by orderId, selecting specific fields
     const request = await RequestModel.findOne(
       { orderId },
-      'chat_title stattusof time userId orderId nameofservice date createdAt booktime endTime'
+      'chat_title stattusof time userId orderId nameofservice date createdAt booktime endTime continueCount'
     );
 
     // If request is not found
