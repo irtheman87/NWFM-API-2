@@ -1652,8 +1652,7 @@ export const getServiceChatMessages = async (req: Request, res: Response): Promi
     }
 
     const scid = serviceChat._id;
-
-    if (!scid || typeof scid !== 'string') {
+    if (!scid) {
       return res.status(400).json({ message: "Service Chat ID (scid) is required." });
     }
     
