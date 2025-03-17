@@ -2881,7 +2881,15 @@ export const sendConsultantMessage = async (req: Request, res: Response): Promis
 export const getServiceChatMessages = async (req: Request, res: Response): Promise<Response> => {
   try {
     // Get Service Chat ID from query parameters
-    const { scid } = req.query;
+    const { orderId } = req.query;
+
+    const serviceChat = await ServiceChat.findOne({ orderId});
+    if (!serviceChat) {
+      return res.status(404).json({ message: 'Service Chat not found' });
+    }
+
+    const scid = serviceChat._id;
+    
     if (!scid || typeof scid !== 'string') {
       return res.status(400).json({ message: "Service Chat ID (scid) is required." });
     }
