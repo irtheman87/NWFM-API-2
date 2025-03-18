@@ -1258,18 +1258,25 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
           subject: "Chat Completed",
           text: `Thanks ${user.fname} ${user.lname} for using our chat service.
 
-        Here are some of our other services:
-        - Service 1: https://example.com/service1
-        - Service 2: https://example.com/service2
-        - Service 3: https://example.com/service3
+        <p>Hope you had a great session with your consultant. If you wish to continue chatting with the same consultant, 
+        click on the continue chat button on your next request.</p>
+
+        <p>If you had any issues regarding your last chat, open chat click on the action dropdown and click make a report.</p>
+
+        <p>Looking forward to your next chat request.</p>
         `,
-          html: `<p>Thanks <strong> ${user.fname} ${user.lname}</strong> for using our chat service.</p>
-                <p>Here are some of our other services:</p>
-                <ul>
-                  <li><a href="https://example.com/service1">Service 1</a></li>
-                  <li><a href="https://example.com/service2">Service 2</a></li>
-                  <li><a href="https://example.com/service3">Service 3</a></li>
-                </ul>`,
+          html: `
+           <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+
+<p>Hope you had a great session with your consultant. If you wish to continue chatting with the same consultant, 
+        click on the continue chat button on your next request.</p>
+
+        <p>If you had any issues regarding your last chat, open chat click on the action dropdown and click make a report.</p>
+
+        <p>Looking forward to your next chat request.</p>`,
         });
 
 
@@ -2881,8 +2888,15 @@ export const sendConsultantMessage = async (req: Request, res: Response): Promis
 export const getServiceChatMessages = async (req: Request, res: Response): Promise<Response> => {
   try {
     // Get Service Chat ID from query parameters
-    const { scid } = req.query;
-    if (!scid || typeof scid !== 'string') {
+    const { orderId } = req.query;
+
+    const serviceChat = await ServiceChat.findOne({ orderId});
+    if (!serviceChat) {
+      return res.status(404).json({ message: 'Service Chat not found' });
+    }
+
+    const scid = serviceChat._id;
+    if (!scid) {
       return res.status(400).json({ message: "Service Chat ID (scid) is required." });
     }
     

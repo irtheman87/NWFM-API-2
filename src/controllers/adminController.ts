@@ -557,16 +557,22 @@ if (existingAppointmentsCount >= 3) {
     // User Notification Created
     createNotification(uid.toString(), cid.toString(), 'user', 'Chat', orderId.toString(), 'Chat Assigned', 'Your Chat Request Has Been Assigned to a Consultant');
 
+
+    const user = await User.findById(uid);
+    if (!user) {
+      throw new Error("User not found"); // Handle case where user is not found
+    }
+
     const email = await fetchConsultantEmail(cid);
     if (email) {
       (async () => {
         try {
           await sendEmail({
             to: email,
-            subject: 'New Order',
+            subject: 'New Chat Request',
             text: `Hello ${consultant.fname} ${consultant.lname},
           
-          You have a new order. Details below:
+          You have a new chat request from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
           Date Booked: ${request.createdAt}
@@ -576,8 +582,14 @@ if (existingAppointmentsCount >= 3) {
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
           `,
             html: `
+            <div class="header">
+            <a href="https://nollywoodfilmmaker.com">
+              <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+                  alt="Nollywood Filmmaker Database">
+            </a>
+            </div>
               <h1>Hello ${consultant.fname} ${consultant.lname},</h1>
-              <p>You have a new order. Details below:</p>
+              <p>You have a new chat request from ${user.fname} ${user.lname}. Details below:</p>
               <ul>
                 <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
                 <li><strong>Date Booked:</strong> ${request.createdAt}</li>

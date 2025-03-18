@@ -1644,9 +1644,16 @@ export const sendUserMessage = async (req: Request, res: Response): Promise<Resp
 export const getServiceChatMessages = async (req: Request, res: Response): Promise<Response> => {
   try {
     // Get Service Chat ID from query parameters
-    const { scid } = req.query;
-    if (!scid || typeof scid !== 'string') {
-      return res.status(400).json({ message: "Service Chat ID (scid) is required." });
+    const { orderId } = req.query;
+
+    const serviceChat = await ServiceChat.findOne({ orderId});
+    if (!serviceChat) {
+      return res.status(404).json({ message: 'Service Chat not found' });
+    }
+
+    const scid = serviceChat._id;
+    if (!scid) {
+      return res.status(400).json({ message: "Service Chat ID retwrtertwer(scid) is required." });
     }
     
     // Optional pagination parameters
