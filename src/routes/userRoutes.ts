@@ -189,7 +189,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         
         await sendEmail({
           to: user.email,
-          subject: 'Order Confirmed',
+          subject: 'Chat Request Confirmed',
           text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
         
         Service Booked: ${request.nameofservice}
@@ -200,10 +200,14 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
 
         Add to Google Calendar: ${googleCalendarUrl}
         
-        Here are some of our other services:
-        - Service 1: https://example.com/service1
-        - Service 2: https://example.com/service2
-        - Service 3: https://example.com/service3
+        Did you know you can also access more film related services on our platform?
+        - <a href="https://nollywoodfilmmaker.com/services/read-my-script">Read My Script and Advice</a>
+        - <a href="https://nollywoodfilmmaker.com/services/watch-final-cut">Watch a Cut of my film and advice</a>
+        - <a href="https://nollywoodfilmmaker.com/services/create-pitch-deck">Create my Pitch-Deck</a>
+        - <a href="https://nollywoodfilmmaker.com/services/production-budget">Create my Production Budget</a>
+        - <a href="https://nollywoodfilmmaker.com/services/marketing-budget">Create my Marketing Plan and Budget</a>
+        - <a href="https://nollywoodfilmmaker.com/services/create-legal">Create my Legal Documents</a>
+        - <a href="https://nollywoodfilmmaker.com/services/chat">Chat with a Consultant</a>
         `,
           html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
