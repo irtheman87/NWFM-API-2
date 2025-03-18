@@ -1266,17 +1266,66 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
         <p>Looking forward to your next chat request.</p>
         `,
           html: `
-           <a href="https://nollywoodfilmmaker.com">
+            <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
       <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
            alt="Nollywood Filmmaker Database">
     </a>
+  </div>
 
 <p>Hope you had a great session with your consultant. If you wish to continue chatting with the same consultant, 
         click on the continue chat button on your next request.</p>
 
         <p>If you had any issues regarding your last chat, open chat click on the action dropdown and click make a report.</p>
 
-        <p>Looking forward to your next chat request.</p>`,
+        <p>Looking forward to your next chat request.</p>
+        </div>
+        </body>
+        </html>`,
         });
 
 

@@ -199,6 +199,10 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         OrderId: ${request.orderId}
 
         Add to Google Calendar: ${googleCalendarUrl}
+
+        <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+          Watch Tutorials here
+        </a>
         
         Did you know you can also access more film related services on our platform?
         - <a href="https://nollywoodfilmmaker.com/services/read-my-script">Read My Script and Advice</a>
@@ -206,10 +210,61 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         - <a href="https://nollywoodfilmmaker.com/services/create-pitch-deck">Create my Pitch-Deck</a>
         - <a href="https://nollywoodfilmmaker.com/services/production-budget">Create my Production Budget</a>
         - <a href="https://nollywoodfilmmaker.com/services/marketing-budget">Create my Marketing Plan and Budget</a>
-        - <a href="https://nollywoodfilmmaker.com/services/create-legal">Create my Legal Documents</a>
-        - <a href="https://nollywoodfilmmaker.com/services/chat">Chat with a Consultant</a>
+        - <a href="https://nollywoodfilmmaker.com/services/create-movie-schedule">Create my Legal Documents</a>
+        - <a href="https://nollywoodfilmmaker.com/services/create-legal">Draft my Legal Documents</a>
         `,
-          html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
+          html: `  <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+  
+  <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
                  <p><strong>Price:</strong> ${result.price}</p>
                  <p><strong>Date Booked:</strong> ${request.createdAt}</p>
@@ -220,12 +275,26 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
                      Add to Google Calendar
                    </a>
                  </p>
+                 <p>
+                 <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+          Watch Tutorials here
+        </a>
+                 </p>
                  <p>Here are some of our other services:</p>
                  <ul>
-                   <li><a href="https://example.com/service1">Service 1</a></li>
-                   <li><a href="https://example.com/service2">Service 2</a></li>
-                   <li><a href="https://example.com/service3">Service 3</a></li>
-                 </ul>`,
+        <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Read My Script and Advice</a></li>
+        <li><a href="https://nollywoodfilmmaker.com/services/watch-final-cut">Watch a Cut of my film and advice</a></li>
+        <li><a href="https://nollywoodfilmmaker.com/services/create-pitch-deck">Create my Pitch-Deck</a></li>
+        <li><a href="https://nollywoodfilmmaker.com/services/production-budget">Create my Production Budget</a></li>
+        <li><a href="https://nollywoodfilmmaker.com/services/marketing-budget">Create my Marketing Plan and Budget</a></li>
+        <li><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule">Create my Legal Documents</a></li>
+        <li><a href="https://nollywoodfilmmaker.com/services/create-legal">Draft my Legal Documents</li>
+            </ul>
+            
+            </div>
+
+</body>
+</html>`,
         });              
  
       }else if(result?.type == "request"){
