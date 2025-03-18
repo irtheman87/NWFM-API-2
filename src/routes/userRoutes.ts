@@ -193,7 +193,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
         
         Service Booked: ${request.nameofservice}
-        Price: ${result.price}
+        Price: ${(Number(result.price) / 100).toLocaleString()}
         Date Booked: ${request.createdAt}
         Time for Chat: ${request.booktime}
         OrderId: ${request.orderId}
@@ -266,7 +266,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   
   <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
-                 <p><strong>Price:</strong> ${result.price}</p>
+                 <p><strong>Price:</strong> ${(Number(result.price) / 100).toLocaleString()}</p>
                  <p><strong>Date Booked:</strong> ${request.createdAt}</p>
                  <p><strong>Time for Chat:</strong> ${request.booktime}</p>
                  <p><strong>OrderId:</strong> ${request.orderId}</p>
