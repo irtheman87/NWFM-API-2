@@ -187,7 +187,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           `Date Booked: ${request.createdAt}`
         )}`;
 
-        const price = Number(result.price) / 100;
+        const price = (Number(result.price) / 100).toLocaleString();
         console.log(`Price: ${price}`);
         console.log(`Chat Start: ${chatStart}`);
         console.log(`Chat End: ${chatEnd}`);
