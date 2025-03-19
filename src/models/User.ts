@@ -20,6 +20,7 @@ export interface IUser extends Document {
     city?: string;
     postalcode?: string;
   };
+  timezone?: string;
   createdAt?: Date; // Add createdAt field
 }
 
@@ -49,6 +50,7 @@ const userSchema = new Schema<IUser>(
       city: { type: String },
       postalcode: { type: String },
     },
+    timezone: {type: String},
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

@@ -24,6 +24,7 @@ import WeeklySchedule from '../models/Availability';
 import ContactFormSubmission from '../models/ContactFormSubmission';
 import ServiceChatThread from '../models/ServiceChatThread';
 import ServiceChat from '../models/ServiceChat';
+import geoip from 'geoip-lite';
 
 
 // Define the storage engine
@@ -212,6 +213,21 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+        // Extract IP address
+        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress;
+    
+        // Lookup timezone
+        const geo = geoip.lookup(ip || '');
+        const timezone = geo?.timezone || 'UTC'; // fallback if not found
+    
+        // Save timezone to consultant if not already saved or different
+        if (!user.timezone || user.timezone !== timezone) {
+          user.timezone = timezone;
+          await user.save();
+        }
+
+        console.log(ip);
+        console.log(timezone);
     // Generate tokens
     const token = jwt.sign(
       { userId: user._id, role: user.role },

@@ -18,6 +18,7 @@ export interface IConsultant extends Document {
     city?: string;
     postalcode?: string;
   };
+  timezone?: string;
   verificationToken?: string;
   createdAt?: Date; // Add createdAt field
 
@@ -35,8 +36,8 @@ const consultSchema = new Schema<IConsultant>(
     expertise: {
       type: [String],
       validate: [
-        (val: string[]) => val.length <= 10,
-        'Expertise array cannot exceed 10 items',
+        (val: string[]) => val.length <= 11,
+        'Expertise array cannot exceed 11 items',
       ],
     },    
     profilepics: { type: String },
@@ -48,6 +49,7 @@ const consultSchema = new Schema<IConsultant>(
       city: { type: String },
       postalcode: { type: String },
     },
+    timezone: {type: String},
     verificationToken: { type: String }
   },
   {

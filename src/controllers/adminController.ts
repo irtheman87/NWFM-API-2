@@ -38,6 +38,8 @@ const axios =  require('axios');
 import { S3Client, PutObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
 import WeeklySchedule from '../models/Availability';
 import ContactFormSubmission from '../models/ContactFormSubmission';
+import { DateTime } from 'luxon';
+
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -66,6 +68,12 @@ const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => 
     console.error('S3 Upload Error:', error);
     throw new Error('Failed to upload image to S3');
   }
+};
+
+export const convertTimeToUserTimezone = (date: string | Date, userTimezone: string): string => {
+  return DateTime.fromISO(new Date(date).toISOString())
+    .setZone(userTimezone)
+    .toFormat('yyyy-LL-dd HH:mm:ss ZZZZ'); // You can change the format as needed
 };
 
 registerFont('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', { family: 'DejaVuSans' });
@@ -563,6 +571,24 @@ if (existingAppointmentsCount >= 3) {
       throw new Error("User not found"); // Handle case where user is not found
     }
 
+    let userTimeZoneCreated;
+    let userTimeZoneBookTime;
+
+    if (request.createdAt && consultant.timezone) {
+      userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt, consultant.timezone);
+      // Use userTimeZone...
+    } else {
+      console.log("createdAt is missing in request");
+    }
+
+    if (request.booktime && consultant.timezone) {
+      userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime, consultant.timezone);
+      // Use userTimeZone...
+    } else {
+      console.log("Booked Time is missing in request");
+    }
+
+
     const email = await fetchConsultantEmail(cid);
     if (email) {
       (async () => {
@@ -575,8 +601,8 @@ if (existingAppointmentsCount >= 3) {
           You have a new chat request from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
-          Date Booked: ${request.createdAt}
-          Time for Chat: ${request.booktime}
+          Date Booked: ${userTimeZoneCreated}
+          Time for Chat: ${userTimeZoneBookTime}
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
@@ -636,8 +662,8 @@ if (existingAppointmentsCount >= 3) {
               <p>You have a new chat request from ${user.fname} ${user.lname}. Details below:</p>
               <ul>
                 <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
-                <li><strong>Date Booked:</strong> ${request.createdAt}</li>
-                <li><strong>Time for Chat:</strong> ${request.booktime}</li>
+                <li><strong>Date Booked:</strong> ${userTimeZoneCreated}</li>
+                <li><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</li>
                 <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
               </ul>
               <p>
@@ -2811,6 +2837,10 @@ export const completeDebit = async (req: Request, res: Response): Promise<Respon
   }
 };
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export const fetchDataByType = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authHeader = req.headers.authorization;
@@ -2871,7 +2901,8 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
     }
 
     if (type === "company" && typeFilter) {
-      query.type = { $regex: typeFilter as string, $options: "i" };
+      const escapedTypeFilter = escapeRegex(typeFilter as string);
+      query.type = { $regex: escapedTypeFilter, $options: "i" };
     }
 
     if (location) {

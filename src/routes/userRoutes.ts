@@ -26,6 +26,7 @@ import sendEmail from '../utils/sendEmail';
 import RequestModel from '../models/Request';
 import UserModel from '../models/UserModel';
 import { uploadCharacterBible, uploadLocalFiles } from '../utils/moreUtils';
+import { convertTimeToUserTimezone } from '../controllers/adminController';
 
  const crypto = require('crypto');
 
@@ -191,6 +192,24 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         console.log(`Price: ${price}`);
         console.log(`Chat Start: ${chatStart}`);
         console.log(`Chat End: ${chatEnd}`);
+
+        let userTimeZoneCreated;
+    let userTimeZoneBookTime;
+
+    if (request.createdAt && user.timezone) {
+      userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt, user.timezone);
+      // Use userTimeZone...
+    } else {
+      console.log("createdAt is missing in request");
+    }
+
+    if (request.booktime && user.timezone) {
+      userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime, user.timezone);
+      // Use userTimeZone...
+    } else {
+      console.log("Booked Time is missing in request");
+    }
+
         
         await sendEmail({
           to: user.email,
@@ -199,8 +218,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         
         Service Booked: ${request.nameofservice}
         Price: ${price}
-        Date Booked: ${request.createdAt}
-        Time for Chat: ${request.booktime}
+        Date Booked: ${userTimeZoneCreated}
+        Time for Chat: ${userTimeZoneBookTime}
         OrderId: ${request.orderId}
 
         Add to Google Calendar: ${googleCalendarUrl}
@@ -272,8 +291,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
                  <p><strong>Price:</strong> ${price}</p>
-                 <p><strong>Date Booked:</strong> ${request.createdAt}</p>
-                 <p><strong>Time for Chat:</strong> ${request.booktime}</p>
+                 <p><strong>Date Booked:</strong> ${userTimeZoneCreated}</p>
+                 <p><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</p>
                  <p><strong>OrderId:</strong> ${request.orderId}</p>
                  <p>
                    <a href="${googleCalendarUrl}" target="_blank" style="color: #1a73e8; text-decoration: none;">

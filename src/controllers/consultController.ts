@@ -39,7 +39,7 @@ import task from '../models/task';
 import ChatSettingsModel from '../models/chatSettingsModel';
 import ServiceChatThread from '../models/ServiceChatThread';
 import ServiceChat from '../models/ServiceChat';
-
+import geoip from 'geoip-lite';
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -159,6 +159,22 @@ export const loginConsult = async (req: Request, res: Response) => {
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    // Extract IP address
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress;
+
+    // Lookup timezone
+    const geo = geoip.lookup(ip || '');
+    const timezone = geo?.timezone || 'UTC'; // fallback if not found
+
+    // Save timezone to consultant if not already saved or different
+    if (!consult.timezone || consult.timezone !== timezone) {
+      consult.timezone = timezone;
+      await consult.save();
+    }
+
+    console.log(ip);
+    console.log(timezone);
     
     const accessToken = generateAccessToken(String(consult._id), consult.role);
     const refreshToken = generateRefreshToken(String(consult._id));
