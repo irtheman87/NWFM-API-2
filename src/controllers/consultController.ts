@@ -1449,7 +1449,7 @@ export const getTasksByConsultant = async (req: Request, res: Response): Promise
     }
 
     // Fetch tasks associated with the given cid
-    const tasks = await Task.find({ cid, status: 'pending' });
+    const tasks = await Task.find({ cid, status: 'pending' }).sort({ creationDate: -1 });
 
     if (!tasks.length) {
       return res.status(404).json({ message: 'No tasks found for the specified consultant.' });

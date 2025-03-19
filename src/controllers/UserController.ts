@@ -1370,6 +1370,13 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
     // Parse `time` string into `Time` object
     const [hours, minutes, seconds] = time.split(':').map(Number);
 
+    let endTime: string | null = null;
+    
+    const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
+    const endDateTime = add(new Date(time), { hours: 1 });
+    endTime = moment(endDateTime).utcOffset('+01:00').format(gmtPlusOneFormat);
+    
+
     // Create a new appointment
     const newAppointment = new AppointmentModel({
       date,
@@ -1383,11 +1390,11 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
     const savedAppointment = await newAppointment.save();
 
         // Update `stattusof` to "ongoing"
-        const updatedRequest = await RequestModel.findOneAndUpdate(
-          { orderId },
-          { stattusof: 'ongoing' },
-          { new: true }
-        );
+    const updatedRequest = await RequestModel.findOneAndUpdate(
+      { orderId },
+      { stattusof: 'ongoing', booktime: date, endTime: endTime},
+      { new: true },
+    );
     
         // Handle potential null value for `updatedRequest`
         if (!updatedRequest) {
