@@ -335,14 +335,20 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
-    console.log(link);
+    let alink: string[] = [];
 
-    let alink;
     if (typeof link === 'string') {
-      alink = JSON.parse(link);
-   }
-
-   console.log(alink);
+      try {
+        alink = JSON.parse(link); // parse stringified array
+      } catch (err) {
+        console.error('Failed to parse link string', err);
+        alink = [];
+      }
+    } else if (Array.isArray(link)) {
+      alink = link;
+    }
+    
+    console.log(alink); // now it's always an array
 
     // const files = req.files as Express.MulterS3.File[] | undefined;
     // const fileUrls = files ? files.map(file => file.location) : [];
