@@ -1967,7 +1967,7 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
       try {
         await sendEmail({
           to: userDetails?.email,
-          subject: 'New Chat Request',
+          subject: 'Your Files Are Ready',
           text: `Hello ${userDetails.fname} ${userDetails.lname},
         
         Congratulations your files are ready for download.
