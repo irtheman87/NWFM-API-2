@@ -339,7 +339,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
 
     if (typeof link === 'string') {
       try {
-        alink = JSON.parse(link); // parse stringified array
+        alink = JSON.parse(link);
       } catch (err) {
         console.error('Failed to parse link string', err);
         alink = [];
@@ -348,6 +348,10 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       alink = link;
     }
     
+    console.log('Final alink:', alink);  // Array of strings
+    
+    const formattedLinks = alink.map(url => ({ urls: url }));
+
     console.log(alink); // now it's always an array
 
     // const files = req.files as Express.MulterS3.File[] | undefined;
@@ -367,7 +371,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       stattusof: 'pending',
       type,
       nameofservice: title,
-      links: alink,
+      links: formattedLinks,
       genre,
       platform,
       concerns,
