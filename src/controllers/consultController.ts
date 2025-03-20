@@ -1606,6 +1606,19 @@ async function chatTransaction(
     const email = await fetchConsultantEmail(cid);
     const useremail = await fetchUserEmail(userId);
 
+    const consultantdetails = await Consultant.findById(cid).select('fname lname email');
+    const userDetails = await User
+      .findById(userId)
+      .select('fname lname email');
+
+    if (!userDetails) {
+      throw new Error('User not found');
+    }
+
+    if (!consultantdetails) {
+      throw new Error('Consultant not found'); 
+    }
+
     // const dated = newRequest.date.split('T')[0];
     const dated = new Date(newRequest.date).toISOString().split('T')[0];
     const timed = `${newRequest.time?.hours}:${newRequest.time?.minutes}`;
@@ -1613,14 +1626,109 @@ async function chatTransaction(
     console.log('My Date', dated);
     console.log('My Time', timed);
 
+    function formatDateForGoogleCalendar(date: Date): string {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    }
+    
+    // Parse the chat start time (now safe to assume it's defined)
+    const chatStart = new Date(newRequest.booktime ?? Date.now());
+    // Adjust the time if it's always coming in 1hr behind your expected time:
+    const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
+    
+    // Set the event duration to 1 hour (adjust as needed)
+    const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
+    
+    // Generate the Google Calendar URL with pre-filled event details.
+    const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      newRequest.nameofservice!
+    )}&dates=${formatDateForGoogleCalendar(adjustedChatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+      `Date Booked: ${newRequest.createdAt}`
+    )}`;
+
     if (email) {
       try {
         await sendEmail({
           to: email,
-          subject: 'New Order',
-          text: 'You have a new order.',
-          html: `<p><strong>You have a new order.</strong></p>
-                 <p>Please check your dashboard for more details.</p>`,
+          subject: 'New Chat Session Assigned',
+          text: `Hello ${consultantdetails.fname} ${consultantdetails.lname},
+          
+          You have a new chat request from ${userDetails.fname} ${userDetails.lname}. Details below:
+          
+          Service Booked: ${newRequest.nameofservice}
+          Date Booked: ${newRequest.createdAt}
+          Time for Chat: ${newRequest.booktime}
+          Add to Google Calendar: ${googleCalendarUrl}
+          
+          View Order: https://nollywoodfilmmaker.com/consultants/dashboard
+          `,
+            html: `
+            <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+              <h1>Hello ${consultantdetails.fname} ${consultantdetails.lname},</h1>
+              <p>You have a new chat request from ${userDetails.fname} ${userDetails.lname}. Details below:</p>
+              <ul>
+                <li><strong>Service Booked:</strong> ${newRequest.nameofservice}</li>
+                <li><strong>Date Booked:</strong> ${newRequest.createdAt}</li>
+                <li><strong>Time for Chat:</strong> ${newRequest.booktime}</li>
+                <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
+              </ul>
+              <p>
+                <a href="https://nollywoodfilmmaker.com/consultants/dashboard" 
+                   style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">
+                  View Order
+                </a>
+              </p>
+</div>
+</body>
+</html>`,
         });        
         console.log('Email sent successfully.');
       } catch (error) {
@@ -1634,11 +1742,68 @@ async function chatTransaction(
       try {
         await sendEmail({
           to: useremail,
-          subject: 'New Chat Assigned',
+          subject: 'New Chat Session Assigned',
           text: `Select your desired date and time to book a chat here: https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}`,
-          html: `<p><strong>New Chat Assigned</strong></p>
-                 <p>Select your desired date and time to book a chat:</p>
-                 <p><a href="https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}" target="_blank">Click here to book your chat</a></p>`,
+          html: `
+          <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+          <p><strong>Congratulations!</strong></p>
+    <p>Your script has been reviewed, and we are ready to discuss it with you. A chat session has been scheduled as follows:</p>
+    <p><strong>Date & Time:</strong> [Insert Date & Time]</p>
+    <p>Please click <strong>"Save"</strong> to confirm your availability for this session. If you are unable to attend at this time, you can reschedule for a more convenient date and time and then click <strong>"Save"</strong> to confirm the new session.</p>
+    <p><a href="https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}" target="_blank">Click Here</a></p>
+    </div>
+</body>
+</html>
+    `,
         });        
         console.log('Email sent successfully.');
       } catch (error) {
