@@ -335,6 +335,8 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
+    console.log(link);
+
     let alink;
     if (typeof link === 'string') {
       alink = JSON.parse(link);
