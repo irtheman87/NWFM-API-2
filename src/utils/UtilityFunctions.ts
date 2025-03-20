@@ -386,7 +386,7 @@ const storage = multerS3({
 });
 
 export const uploads = multer({ storage }).fields([
-  { name: 'files', maxCount: 1 },
+  { name: 'files', maxCount: 10 },
   { name: 'file', maxCount: 1 },
   { name: 'doc', maxCount: 1 },
   { name: 'additionalFile', maxCount: 5 },
