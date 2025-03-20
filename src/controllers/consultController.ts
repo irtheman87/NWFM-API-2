@@ -1951,6 +1951,95 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
       "You received new files for your request service"
     );
 
+    const myrequest = await RequestModel.findOne({orderId});
+    
+    if(!myrequest){
+      return res.status(404).json({ message: "No Request found for the given orderId" });
+    }
+
+    const userDetails = await User.findById(myrequest.userId);
+
+    if(!userDetails){
+      return res.status(404).json({ message: "No User Was found" });
+    }
+
+    (async () => {
+      try {
+        await sendEmail({
+          to: userDetails?.email,
+          subject: 'New Chat Request',
+          text: `Hello ${userDetails.fname} ${userDetails.lname},
+        
+        Congratulations your files are ready for download.
+        
+        View Order: https://nollywoodfilmmaker.com/user/dashboard/order-details/${orderId}
+        `,
+          html: `
+          <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+.container {
+  max-width: 600px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+.header img {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 8px;
+}
+h1 {
+  color: #333;
+}
+p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.footer {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #777;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="header">
+  <a href="https://nollywoodfilmmaker.com">
+    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+         alt="Nollywood Filmmaker Database">
+  </a>
+</div>
+            <h1>Hello ${userDetails.fname} ${userDetails.lname},</h1>
+            <p>Congratulation your files are ready for download:</p>
+            <p><strong>View Order:</strong> <a href="https://nollywoodfilmmaker.com/user/dashboard/order-details/${orderId}">Here</a><p>
+
+</div>
+</body>
+</html>
+          `,
+        });              
+        console.log('Email sent successfully.');
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+    })();
+
     return res.status(200).json({
       message: "Files uploaded and records created successfully",
       resolve: resolveRecords,
