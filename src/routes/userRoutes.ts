@@ -228,14 +228,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           Watch Tutorials here
         </a>
         
-        Did you know you can also access more film related services on our platform?
-        - <a href="https://nollywoodfilmmaker.com/services/read-my-script">Read My Script and Advice</a>
-        - <a href="https://nollywoodfilmmaker.com/services/watch-final-cut">Watch a Cut of my film and advice</a>
-        - <a href="https://nollywoodfilmmaker.com/services/create-pitch-deck">Create my Pitch-Deck</a>
-        - <a href="https://nollywoodfilmmaker.com/services/production-budget">Create my Production Budget</a>
-        - <a href="https://nollywoodfilmmaker.com/services/marketing-budget">Create my Marketing Plan and Budget</a>
-        - <a href="https://nollywoodfilmmaker.com/services/create-movie-schedule">Create my Legal Documents</a>
-        - <a href="https://nollywoodfilmmaker.com/services/create-legal">Draft my Legal Documents</a>
+        <a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a>
         `,
           html: `  <!DOCTYPE html>
 <html>
@@ -306,13 +299,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
                  </p>
                  <p>Here are some of our other services:</p>
                  <ul>
-        <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Read My Script and Advice</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/watch-final-cut">Watch a Cut of my film and advice</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/create-pitch-deck">Create my Pitch-Deck</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/production-budget">Create my Production Budget</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/marketing-budget">Create my Marketing Plan and Budget</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule">Create my Legal Documents</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/create-legal">Draft my Legal Documents</li>
+        <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a></li>
             </ul>
             
             </div>
@@ -345,6 +332,12 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         Price: ${price}
         Date Booked: ${request.createdAt}
         OrderId: ${request.orderId}
+
+        <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+          Watch Tutorials here
+        </a>
+        
+        <a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a>
         `,
             html: `<!DOCTYPE html>
 <html>
@@ -398,7 +391,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   </div>
   
                  <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. 
-                 your <b>READ MY SCRIPT AND ADVICE</b> order has been recieved. Our team will throughly analyze your 
+                 Your <b>READ MY SCRIPT AND ADVICE</b> order has been recieved. Our team will throughly analyze your 
                  script and you will be sent a link to a chat session soon:</p>
 
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
@@ -412,13 +405,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
                  </p>
                  <p>Here are some of our other services:</p>
                  <ul>
-        <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Read My Script and Advice</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/watch-final-cut">Watch a Cut of my film and advice</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/create-pitch-deck">Create my Pitch-Deck</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/production-budget">Create my Production Budget</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/marketing-budget">Create my Marketing Plan and Budget</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule">Create my Legal Documents</a></li>
-        <li><a href="https://nollywoodfilmmaker.com/services/create-legal">Draft my Legal Documents</li>
+                <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a></li>
             </ul>
             
             </div>

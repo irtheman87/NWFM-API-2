@@ -849,6 +849,8 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
 
       customSubject =`You have recieved a new ${toAllCaps(nameofservice)} request with orderId: ${orderId}`;
 
+      CustomTextMessage = `You have a new task with orderId: ${orderId} and the service is "Read my Script and advice"`;
+
       CustomMessage = `You have a new task with orderId: ${orderId} and the service is "Read my Script and advice"`;
 
     } else if(nameofservice === "Write my Script") {
