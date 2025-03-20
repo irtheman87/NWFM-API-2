@@ -1705,25 +1705,28 @@ export const handleChatTransaction = async (req: Request, res: Response) => {
 };
 
 
-
 export const uploadConsultantFiles = async (req: Request, res: Response): Promise<Response> => {
   try {
     // Handle file upload with multer
     const files = await new Promise<Express.MulterS3.File[]>((resolve, reject) => {
       uploads(req, res, (err) => {
         if (err instanceof multer.MulterError) {
-          console.error('Multer Error:', err.message);
+          console.error("Multer Error:", err.message);
           return reject(new Error(`Multer error: ${err.message}`));
         } else if (err) {
-          console.error('Upload Error:', err.message);
+          console.error("Upload Error:", err.message);
           return reject(new Error(`File upload failed: ${err.message}`));
         }
 
-        if (!req.files || !(req.files instanceof Array)) {
-          return reject(new Error('No files uploaded'));
+        // Check if files under the 'files' field were uploaded
+        const allFiles = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+        const uploadedFiles = allFiles['files'];
+
+        if (!uploadedFiles || uploadedFiles.length === 0) {
+          return reject(new Error("No files uploaded"));
         }
 
-        resolve(req.files as Express.MulterS3.File[]);
+        resolve(uploadedFiles);
       });
     });
 
@@ -1731,7 +1734,7 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
     const { orderId } = req.body;
 
     if (!orderId) {
-      return res.status(400).json({ message: 'Order ID is required' });
+      return res.status(400).json({ message: "Order ID is required" });
     }
 
     // Insert each file as a separate Resolve record
@@ -1747,34 +1750,45 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
 
     // Update the related request status to "ready"
     await RequestModel.findOneAndUpdate(
-      { orderId }, // Match the orderId
-      { stattusof: 'ready' }, // Update the stattusof field to "ready"
-      { new: true } // Return the updated document
+      { orderId },
+      { stattusof: "ready" },
+      { new: true }
     );
 
+    // Fetch related tasks
     const tasks = await Task.find({ orderId: orderId }).exec();
 
     if (!tasks || tasks.length === 0) {
       return res.status(404).json({ message: "No task found for the given orderId" });
     }
 
-// Assuming you expect only one task per orderId, take the first task
+    // Assuming one task per orderId
     const task = tasks[0];
 
-    createNotification(task.uid.toString(), task.cid.toString(), 'user', 'Files', orderId.toString(), 'New Files', 'You Recieved New Files for Your Request Service');
+    // Create notification
+    createNotification(
+      task.uid.toString(),
+      task.cid.toString(),
+      "user",
+      "Files",
+      orderId.toString(),
+      "New Files",
+      "You received new files for your request service"
+    );
 
     return res.status(200).json({
-      message: 'Files uploaded and records created successfully',
+      message: "Files uploaded and records created successfully",
       resolve: resolveRecords,
     });
   } catch (error) {
-    console.error('Error uploading files:', error);
+    console.error("Error uploading files:", error);
     return res.status(500).json({
-      message: 'Failed to upload files and create records',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: "Failed to upload files and create records",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
+
 
 export const fetchResolveFiles = async (req: Request, res: Response): Promise<Response> => {
   try {
