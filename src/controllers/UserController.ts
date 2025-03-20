@@ -1371,14 +1371,16 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
 
     // Calculate end time (1 hour later)
     const endDateTime = combinedDateTime.clone().add(1, 'hour');
+    const startDateTime = combinedDateTime.clone().add(-1, 'hour');
     const formattedEndTime = endDateTime.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const formattedStartTime = startDateTime.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
     // Parse time to object for Appointment schema
     const [hours, minutes, seconds] = time.split(':').map(Number);
 
     // Create new appointment
     const newAppointment = new AppointmentModel({
-      date: combinedDateTime.toDate(), // Full datetime
+      date: formattedStartTime, // Full datetime
       time: { hours, minutes, seconds }, // Optional if schema requires this format
       uid: existingRequest.userId,
       cid: existingRequest.cid,
@@ -1393,7 +1395,7 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
       { orderId },
       {
         stattusof: 'ongoing',
-        booktime: combinedDateTime.toDate(),
+        booktime: formattedStartTime,
         endTime: formattedEndTime,
       },
       { new: true }
