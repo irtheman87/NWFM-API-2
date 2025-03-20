@@ -1458,7 +1458,7 @@ export const getTasksByConsultant = async (req: Request, res: Response): Promise
     // Enhance tasks with movie_title and user info
     const enhancedTasks = await Promise.all(
       tasks.map(async (task) => {
-        const relatedRequest = await RequestModel.findOne({ orderId: task.orderId }).select('movie_title');
+        const relatedRequest = await RequestModel.findOne({ orderId: task.orderId }).select('movie_title stattusof');
         const relatedUser = await User.findById(task.uid).select('-password -verificationToken -isVerified');
 
         return {
