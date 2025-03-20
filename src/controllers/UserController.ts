@@ -145,6 +145,12 @@ export const registerUser = async (req: Request, res: Response) => {
       expertise : newUser.expertise
     }
 
+    
+      const capitalize = (str: string) => 
+        str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+      
+      const firstNameCap = capitalize(newUser.fname);
+      const lastNameCap = capitalize(newUser.lname);
     // Send a verification email
     
     const verificationLink = `https://nollywoodfilmmaker.com/auth/verify?vtoken=${verificationToken}`;
@@ -156,8 +162,72 @@ export const registerUser = async (req: Request, res: Response) => {
         await sendEmail({
           to: email,
           subject: 'Verify your Account',
-          text: `Click here to verify your email: ${verificationLink}`, // Plain text fallback
-          html: `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`, // HTML version
+          text: `
+          Thank you for signin up to nollywoodfilmmaker.com one more step and you are good to go
+          Click here to verify your email: ${verificationLink}`, // Plain text fallback
+          html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Nollywood Filmmaker Database</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    .header img {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <a href="https://nollywoodfilmmaker.com">
+        <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+             alt="Nollywood Filmmaker Database">
+      </a>
+    </div>
+
+    <h1>Hello ${firstNameCap} ${lastNameCap},</h1>
+
+    <p>Thank you for signin up to nollywoodfilmmaker.com one more step and you are good to go</p>
+
+    <p>Click here to verify your email: ${verificationLink}</p>
+
+    <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+  </div>
+
+</body>
+</html>
+`, // HTML version
         });        
         console.log('Email sent successfully.');
       } catch (error) {
@@ -184,6 +254,13 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    const capitalize = (str: string) => 
+      str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+    
+    const firstNameCap = capitalize(user.fname);
+    const lastNameCap = capitalize(user.lname);
+  // Send a verification email
+
     // Ensure the user is verified
     if (!user.isVerified) {
 
@@ -195,9 +272,73 @@ export const loginUser = async (req: Request, res: Response) => {
           await sendEmail({
             to: email,
             subject: 'Verify your Account',
-            text: `Click here to verify your email: ${verificationLink}`, // Plain text fallback
-            html: `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`, // HTML version
-          });          
+            text: `
+            Thank you for signin up to nollywoodfilmmaker.com one more step and you are good to go
+            Click here to verify your email: ${verificationLink}`, // Plain text fallback
+            html: `<!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Nollywood Filmmaker Database</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+  
+    <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker Database">
+        </a>
+      </div>
+  
+      <h1>Hello ${firstNameCap} ${lastNameCap},</h1>
+  
+      <p>Thank you for signin up to nollywoodfilmmaker.com one more step and you are good to go</p>
+  
+      <p>Click here to verify your email: ${verificationLink}</p>
+  
+      <p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+    </div>
+  
+  </body>
+  </html>
+  `, // HTML version
+          });              
           console.log('Email sent successfully.');
         } catch (error) {
           console.error('Failed to send email:', error);
