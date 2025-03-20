@@ -332,7 +332,13 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         }else if(request.nameofservice == "Watch the Final cut of my film and advice"){
           tagMsg = "movie";
         }else{
-    
+          tagMsg = `Our team has started working on your request, your document will be available for download on your <a href="https://nollywoodfilmmaker.com/user/dashboard/order-details/${request.orderId}" style="color: #1a73e8; text-decoration: none;">
+         dashboard
+        </a> soon .
+
+        <p>
+        <b style='color:red'>Note</b>: You may be contacted by our consultant while processing your documents.
+        </p>`
         }
 
           if (!request) {
@@ -415,8 +421,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   </div>
   
                  <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. 
-                 Your <b>${toAllCaps(request.nameofservice ||  "")}</b> order has been recieved. Our team will throughly analyze your 
-                 ${tagMsg} and you will be sent a link to a chat session soon:</p>
+                 Your <b>${toAllCaps(request.nameofservice ||  "")}</b> order has been recieved. ${tagMsg} </p>                 
 
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
                  <p><strong>Price:</strong> ${price}</p>
