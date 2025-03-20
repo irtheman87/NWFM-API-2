@@ -342,6 +342,8 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
       alink = JSON.parse(link);
    }
 
+   console.log(alink);
+
     // const files = req.files as Express.MulterS3.File[] | undefined;
     // const fileUrls = files ? files.map(file => file.location) : [];
 
