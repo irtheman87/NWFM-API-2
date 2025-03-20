@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin';
@@ -834,7 +834,38 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
     });
 
     // Save the task to the database
+    let customSubject;
+    let CustomTextMessage = `You have a new task with orderId: ${orderId}`;
+    let CustomMessage = `You have a new task with orderId: ${orderId}`;
+
+    function toAllCaps(text: string): string {
+      return text.toUpperCase();
+    }
+    
+
     const savedTask = await task.save();
+
+    if(nameofservice === "Read my Script and advice") {
+
+      customSubject =`You have recieved a new ${toAllCaps(nameofservice)} request with orderId: ${orderId}`;
+
+      CustomMessage = `You have a new task with orderId: ${orderId} and the service is "Read my Script and advice"`;
+
+    } else if(nameofservice === "Write my Script") {
+
+    }else if(nameofservice === "Edit my Script") {
+
+    } else if(nameofservice === "Proofread my Script") {
+
+    } else if(nameofservice === "Consultation") {
+
+    } else if(nameofservice === "Others") {
+
+    }else if(nameofservice === "Life Hacks") {
+
+    }
+
+
     // Consultant Notification Created
     createNotification(cid.toString(), uid.toString(), 'consultant', 'Request', orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
@@ -845,11 +876,11 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
         try {
           await sendEmail({
             to: email,
-            subject: 'New Order',
+            subject: `${customSubject}`,
             text: `You Have A New Order. Please check your dashboard for details.
             <a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a>
             `,
-            html: `
+            html: `You Have A New Order. Please check your dashboard for details.
               <h1>New Order Received</h1>
               <p>You have a new order. Please check your dashboard for details.</p>
               <p><a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
