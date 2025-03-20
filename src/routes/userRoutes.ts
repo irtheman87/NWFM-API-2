@@ -85,6 +85,11 @@ router.get('/user/pending-request', validateUserRequest, (req, res) => {
   res.json({ message: 'Pending request found', request });
 });
 
+function toAllCaps(text: string): string {
+  return text.toUpperCase();
+}
+
+
 // const secret = process.env.SECRET_KEY;
 // Using Express
 router.post('/webhook/url', async (req: Request, res: Response) => {
@@ -117,6 +122,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         { new: true }
       );
 
+
+  
      
 
       if(result?.type == "Chat"){
@@ -209,6 +216,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
     } else {
       console.log("Booked Time is missing in request");
     }
+
+
 
         
         await sendEmail({
@@ -309,7 +318,22 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         });              
  
       }else if(result?.type == "request"){
+        
         const request = await RequestModel.findOne({ orderId: result.orderId });
+
+        if(!request){
+          throw new Error("Request not found");
+        }
+
+        let tagMsg;
+
+        if(request.nameofservice == "RRead my Script and advice"){
+          tagMsg = "script";
+        }else if(request.nameofservice == "Watch the Final cut of my film and advice"){
+          tagMsg = "movie";
+        }else{
+    
+        }
 
           if (!request) {
             throw new Error("Request not found"); // Handle case where request is not found
@@ -391,8 +415,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   </div>
   
                  <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. 
-                 Your <b>READ MY SCRIPT AND ADVICE</b> order has been recieved. Our team will throughly analyze your 
-                 script and you will be sent a link to a chat session soon:</p>
+                 Your <b>${toAllCaps(request.nameofservice ||  "")}</b> order has been recieved. Our team will throughly analyze your 
+                 ${tagMsg} and you will be sent a link to a chat session soon:</p>
 
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
                  <p><strong>Price:</strong> ${price}</p>

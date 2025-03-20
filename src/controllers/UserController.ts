@@ -1531,6 +1531,14 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
 
     const savedAppointment = await newAppointment.save();
 
+    const request = await RequestModel.findOne({ orderId
+    });
+
+    if(!request) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+
     // Update the Request status
     const updatedRequest = await RequestModel.findOneAndUpdate(
       { orderId },
@@ -1567,15 +1575,71 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
       'Your Chat Request Has Been Assigned to a Consultant'
     );
 
-    // Send Email
-    const email = await fetchConsultantEmail(cid);
+    const requestBookTime = moment(request.booktime);
+    if (!requestBookTime.isSame(combinedDateTime)) {
+      // Do something when appointment time has changed
+      console.log('Appointment time has changed');
+      const email = await fetchConsultantEmail(cid);
     if (email) {
       try {
         await sendEmail({
           to: email,
-          subject: 'New Order',
-          text: `You Have A New Order.`,
-          html: `<p>You have a new order.</p>`,
+          subject: 'Chat Session Changed by Client',
+          text: `This is to notify you that the client prefares a different date and time for the chat session with OrderId: ${orderId}.`,
+          html: `            <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+  <p>This is to notify you that the client prefares a different date and time for the chat session with OrderId: ${orderId}.</p>
+          </div>
+</body>
+</html>`,
         });
         console.log('Email sent successfully.');
       } catch (error) {
@@ -1584,7 +1648,79 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
     } else {
       console.log('Consultant not found');
     }
+    }else{
+      console.log('Appointment time has not changed');
+      const email = await fetchConsultantEmail(cid);
+    if (email) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Chat Session Confirmed',
+          text: `Your Chat Session with OrderId ${orderId} Confirmed.`,
+          html: `
+                      <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
 
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+  <p>Your Chat Session with OrderId ${orderId} Confirmed.</p>
+            </div>
+</body>
+</html>`,
+        });
+        console.log('Email sent successfully.');
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+    } else {
+      console.log('Consultant not found');
+    }
+    }
     return res.status(200).json({
       message: 'Request updated to ongoing, and appointment created successfully',
       updatedRequest,
