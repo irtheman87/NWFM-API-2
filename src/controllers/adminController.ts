@@ -846,11 +846,13 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
           await sendEmail({
             to: email,
             subject: 'New Order',
-            text: `You Have A New Order. Please check your dashboard for details.`,
+            text: `You Have A New Order. Please check your dashboard for details.
+            <a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a>
+            `,
             html: `
               <h1>New Order Received</h1>
               <p>You have a new order. Please check your dashboard for details.</p>
-              <p><a href="https://nollywoodfilmmaker.com/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
+              <p><a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
             `,
           });          
           console.log('Email sent successfully.');
