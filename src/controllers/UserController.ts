@@ -1575,7 +1575,13 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
       'Your Chat Request Has Been Assigned to a Consultant'
     );
 
-    const requestBookTime = moment(request.booktime);
+    const booktime = new Date(request.booktime ?? '');
+
+    const datePart = booktime.toISOString().split('T')[0].toString(); // '2025-03-14'
+    const timePart = booktime.toTimeString().split(' ')[0].toString(); // '14:00:00'
+
+    const requestBookTime = moment(`${datePart} ${timePart}`, 'YYYY-MM-DD HH:mm:ss');
+
     if (!requestBookTime.isSame(combinedDateTime)) {
       // Do something when appointment time has changed
       console.log('Appointment time has changed');

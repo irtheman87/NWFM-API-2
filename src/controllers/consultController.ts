@@ -1739,6 +1739,16 @@ async function chatTransaction(
     }
 
     if (useremail) {
+      let tagMsg;
+
+      if(newRequest.nameofservice == "RRead my Script and advice"){
+        tagMsg = "script";
+      }else if(newRequest.nameofservice == "Watch the Final cut of my film and advice"){
+        tagMsg = "movie";
+      }else{
+        tagMsg = "request";
+      }
+
       try {
         await sendEmail({
           to: useremail,
@@ -1796,7 +1806,7 @@ async function chatTransaction(
     </a>
   </div>
           <p><strong>Congratulations!</strong></p>
-    <p>Your script has been reviewed, and we are ready to discuss it with you. A chat session has been scheduled as follows:</p>
+    <p>Your ${tagMsg} has been reviewed, and we are ready to discuss it with you. A chat session has been scheduled as follows:</p>
     <p><strong>Date & Time:</strong> [${newRequest.booktime}]</p>
     <p>Please click <strong>"Save"</strong> to confirm your availability for this session. If you are unable to attend at this time, you can reschedule for a more convenient date and time and then click <strong>"Save"</strong> to confirm the new session.</p>
     <p><a href="https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}" target="_blank" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">Save</a></p>
