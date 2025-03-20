@@ -355,7 +355,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
 
           await sendEmail({
             to: user.email,
-            subject: 'Order Confirmed',
+            subject: `${toAllCaps(request.nameofservice ||  "")} Order Confirmed`,
             text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
             
         Service Booked: ${request.nameofservice}
