@@ -586,17 +586,17 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
     
     if (showtype === "Yes") {
       if(episodes < 6){
-        transprice = 250000 * episodes;
+        transprice = 25000000;
       }else if(episodes >= 6 && episodes < 11){
-        transprice = 350000 * episodes;
+        transprice = 35000000;
       }else if(episodes >= 11 && episodes < 16){  
-        transprice = 450000 * episodes; 
+        transprice = 45000000; 
       }else if(episodes >= 16 && episodes < 21){  
-        transprice = 500000 * episodes; 
+        transprice = 55000000; 
       }else if(episodes >= 21 && episodes < 26){
-        transprice = 500000 * episodes;
+        transprice = 65000000;
       }else if(episodes >= 26 && episodes < 31){
-        transprice = 600000 * episodes;  
+        transprice = 75000000;  
       }
       
     } else {
