@@ -1336,27 +1336,28 @@ export const getDailyAvailability = async (
 };
 
 export const updateRequestAndCreateAppointment = async (req: Request, res: Response): Promise<Response> => {
-  const { cid } = req.params; // Consultant ID
-  const { time, date, orderId } = req.body; // Time, date, and order ID
+  const { cid } = req.params;
+  const { time, date, orderId } = req.body;
 
   try {
     // Validate input
     if (!mongoose.Types.ObjectId.isValid(cid)) {
       return res.status(400).json({ message: 'Invalid consultant ID' });
     }
+
     if (!orderId) {
       return res.status(400).json({ message: 'Order ID is required' });
     }
+
     if (!time || !moment(time, 'HH:mm:ss', true).isValid()) {
       return res.status(400).json({ message: 'Invalid time format. Use HH:mm:ss.' });
     }
+
     if (!date || !moment(date, 'YYYY-MM-DD', true).isValid()) {
       return res.status(400).json({ message: 'Invalid date format. Use YYYY-MM-DD.' });
     }
 
-    // Check if the request is ongoing
     const existingRequest = await RequestModel.findOne({ orderId });
-
     if (!existingRequest) {
       return res.status(404).json({ message: 'Request not found' });
     }
@@ -1365,22 +1366,20 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
       return res.status(400).json({ message: 'Request is already ongoing' });
     }
 
-    console.log('Consultant_Submitted', cid);
+    // Combine date and time into one DateTime
+    const combinedDateTime = moment(`${date} ${time}`, 'YYYY-MM-DD HH:mm:ss');
 
-    // Parse `time` string into `Time` object
+    // Calculate end time (1 hour later)
+    const endDateTime = combinedDateTime.clone().add(1, 'hour');
+    const formattedEndTime = endDateTime.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
+    // Parse time to object for Appointment schema
     const [hours, minutes, seconds] = time.split(':').map(Number);
 
-    let endTime: string | null = null;
-    
-    const gmtPlusOneFormat = 'YYYY-MM-DDTHH:mm:ss.SSS+01:00';
-    const endDateTime = add(new Date(time), { hours: 1 });
-    endTime = moment(endDateTime).utcOffset('+01:00').format(gmtPlusOneFormat);
-    
-
-    // Create a new appointment
+    // Create new appointment
     const newAppointment = new AppointmentModel({
-      date,
-      time: { hours, minutes, seconds }, // Convert time to an object matching the schema
+      date: combinedDateTime.toDate(), // Full datetime
+      time: { hours, minutes, seconds }, // Optional if schema requires this format
       uid: existingRequest.userId,
       cid: existingRequest.cid,
       orderId,
@@ -1389,22 +1388,43 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
 
     const savedAppointment = await newAppointment.save();
 
-        // Update `stattusof` to "ongoing"
+    // Update the Request status
     const updatedRequest = await RequestModel.findOneAndUpdate(
       { orderId },
-      { stattusof: 'ongoing', booktime: date, endTime: endTime},
-      { new: true },
+      {
+        stattusof: 'ongoing',
+        booktime: combinedDateTime.toDate(),
+        endTime: formattedEndTime,
+      },
+      { new: true }
     );
-    
-        // Handle potential null value for `updatedRequest`
-        if (!updatedRequest) {
-          return res.status(500).json({ message: 'Failed to update the request status' });
-      }
 
-    // Send notifications and email
-    createNotification(newAppointment.cid.toString(), newAppointment.uid.toString(), 'consultant', 'Chat', orderId.toString(), 'New Order', 'You have a New Order Match');
-    createNotification(newAppointment.uid.toString(), newAppointment.cid.toString(), 'user', 'Chat', orderId.toString(), 'Chat Assigned', 'Your Chat Request Has Been Assigned to a Consultant');
+    if (!updatedRequest) {
+      return res.status(500).json({ message: 'Failed to update the request status' });
+    }
 
+    // Send Notifications
+    createNotification(
+      newAppointment.cid.toString(),
+      newAppointment.uid.toString(),
+      'consultant',
+      'Chat',
+      orderId.toString(),
+      'New Order',
+      'You have a New Order Match'
+    );
+
+    createNotification(
+      newAppointment.uid.toString(),
+      newAppointment.cid.toString(),
+      'user',
+      'Chat',
+      orderId.toString(),
+      'Chat Assigned',
+      'Your Chat Request Has Been Assigned to a Consultant'
+    );
+
+    // Send Email
     const email = await fetchConsultantEmail(cid);
     if (email) {
       try {
@@ -1413,7 +1433,7 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
           subject: 'New Order',
           text: `You Have A New Order.`,
           html: `<p>You have a new order.</p>`,
-        });        
+        });
         console.log('Email sent successfully.');
       } catch (error) {
         console.error('Failed to send email:', error);
@@ -1427,6 +1447,7 @@ export const updateRequestAndCreateAppointment = async (req: Request, res: Respo
       updatedRequest,
       appointment: savedAppointment,
     });
+
   } catch (error) {
     console.error('Error processing request and creating appointment:', error);
     return res.status(500).json({ message: 'Failed to process request', error });
