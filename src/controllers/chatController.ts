@@ -359,7 +359,7 @@ export const registerFeedback = async (req: Request, res: Response): Promise<Res
 
 
     // Validate required fields
-    if (!orderId || !userId || quality === undefined || speed === undefined) {
+    if (!orderId || !userId || quality === undefined) {
       return res.status(400).json({ message: 'orderId, userId, quality, and speed are required' });
     }
 
@@ -368,7 +368,6 @@ export const registerFeedback = async (req: Request, res: Response): Promise<Res
       orderId,
       userId: objectIdUid,
       quality,
-      speed,
       reason,
     });
 

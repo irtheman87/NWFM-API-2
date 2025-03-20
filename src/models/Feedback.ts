@@ -17,7 +17,7 @@ const FeedbackSchema: Schema = new Schema(
     orderId: { type: String, required: true },   // Order ID reference
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },    // User ID reference
     quality: { type: Number, required: true },   // Quality rating
-    speed: { type: Number, required: true },     // Speed rating
+    speed: { type: Number, required: false },     // Speed rating
     reason: { type: String, required: false },   // Optional feedback text
   },
   { timestamps: true } // Automatically adds `createdAt` and `updatedAt`

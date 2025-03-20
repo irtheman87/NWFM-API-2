@@ -31,9 +31,9 @@ type startpop = {
   date: string;
 };
 
-type links = {
-  urls: string;
-};
+// type links = {
+//   urls: string;
+// };
 
 
 type characterlockdate = {
@@ -143,9 +143,9 @@ const startpopSchema = new Schema<startpop>({
   date: { type: String, required: true },
 });
 
-const linksSchema = new Schema<links>({
-  urls: { type: String, required: true },
-});
+// const linksSchema = new Schema<links>({
+//   urls: { type: String, required: true },
+// });
 
 const characterlockdateSchema = new Schema<characterlockdate>({
   date: [{ type: String, required: true }],
@@ -169,7 +169,7 @@ const requestSchema = new Schema<IRequest>(
     script: { type: String },
     concerns: { type: String },
     link: { type: String },
-    links: { type: [linksSchema], default: [] },
+    links: { type: [String], default: [] },
     socialTarget: { type: String },
     oohTarget: { type: String },
     budget: { type: Number },
