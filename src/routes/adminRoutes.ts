@@ -11,7 +11,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   FailedCrewCompanyById, getContactSubmissions,
   updateMissingNfscore,
   getSingleContactSubmission,
-  replyToContactSubmission} from '../controllers/adminController';
+  replyToContactSubmission,
+  deleteAllChatRequests} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -122,6 +123,8 @@ router.get('/contact-submissions', getContactSubmissions);
 router.get('/contact-submissions/:id', getSingleContactSubmission);
 
 router.post('/contact-submissions/:id/reply', replyToContactSubmission);
+
+router.delete('/requests/chat/delete-all', deleteAllChatRequests);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware

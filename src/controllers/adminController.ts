@@ -5317,3 +5317,19 @@ export const updateMissingNfscore = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteAllChatRequests = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const result = await RequestModel.deleteMany({ type: 'Chat' });
+
+    return res.status(200).json({
+      message: `Successfully deleted ${result.deletedCount} request(s) of type 'Chat'.`,
+    });
+  } catch (error) {
+    console.error('Error deleting Chat requests:', error);
+    return res.status(500).json({
+      message: 'An error occurred while deleting Chat requests.',
+      error,
+    });
+  }
+};
