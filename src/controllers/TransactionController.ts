@@ -1099,6 +1099,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
       fundingtype,
       files: fileUrls,
       keyArtCreated: keyartfileUrls,
+      expertise: 'Director',
     });
 
     await newRequest.save();

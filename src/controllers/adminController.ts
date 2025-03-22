@@ -601,8 +601,7 @@ if (existingAppointmentsCount >= 3) {
           You have a new chat request from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
-          Date Booked: ${userTimeZoneCreated}
-          Time for Chat: ${userTimeZoneBookTime}
+          Time for Chat: ${request.booktime}
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
@@ -662,8 +661,7 @@ if (existingAppointmentsCount >= 3) {
               <p>You have a new chat request from ${user.fname} ${user.lname}. Details below:</p>
               <ul>
                 <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
-                <li><strong>Date Booked:</strong> ${userTimeZoneCreated}</li>
-                <li><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</li>
+                <li><strong>Time for Chat:</strong> ${request.booktime}</li>
                 <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
               </ul>
               <p>

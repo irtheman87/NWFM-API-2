@@ -38,18 +38,75 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
         subject: 'Chat Completed',
         text: `Thanks ${user.fname} ${user.lname} for using our chat service.
 
-Here are some of our other services:
-- Service 1: https://example.com/service1
-- Service 2: https://example.com/service2
-- Service 3: https://example.com/service3
-`,
-        html: `<p>Thanks <strong>${user.fname} ${user.lname}</strong> for using our chat service.</p>
-               <p>Here are some of our other services:</p>
-               <ul>
-                 <li><a href="https://example.com/service1">Service 1</a></li>
-                 <li><a href="https://example.com/service2">Service 2</a></li>
-                 <li><a href="https://example.com/service3">Service 3</a></li>
-               </ul>`,
+        <p>Hope you had a great session with your consultant. If you wish to continue chatting with the same consultant, 
+        click on the continue chat button on your next request.</p>
+
+        <p>If you had any issues regarding your last chat, open chat click on the action dropdown and click make a report.</p>
+
+        <p>Looking forward to your next chat request.</p>
+        `,
+          html: `
+            <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+  <p>Thanks ${user.fname} ${user.lname} for using our chat service.</p>
+
+<p>Hope you had a great session with your consultant. If you wish to continue chatting with the same consultant, 
+        click on the continue chat button on your next request.</p>
+
+        <p>If you had any issues regarding your last chat, open chat click on the action dropdown and click make a report.</p>
+
+        <p>Looking forward to your next chat request.</p>
+        </div>
+        </body>
+        </html>`,
       });
 
       console.log(`Email sent to ${user.email} for request ID: ${request._id}`);
