@@ -7,6 +7,8 @@ export interface INotification extends Document {
   type: string;                      // Type of notification (e.g., 'alert', 'reminder')
   relatedId: string; // The ID associated with this notification (e.g., order ID, task ID)
   title: string;                     // Notification title or summary
+  chat_title?: string;               // Optional field for chat title
+  movie_title?: string;              // Optional field for movie title  
   message?: string;                  // Optional detailed message for the notification
   isRead?: boolean;                  // Optional field to track if the notification has been read
   createdAt?: Date;

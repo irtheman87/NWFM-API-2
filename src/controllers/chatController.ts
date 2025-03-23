@@ -593,14 +593,10 @@ export const createIssueThread = async (req: Request, res: Response): Promise<Re
 
     if (role !== 'admin') {
       // Create notification for the admin
-      createNotification(
-        uid.toString(),
-        userpostId.toString(),
-        role,
-        'Reply',
-        isid.toString(),
-        'User Replied',
-        'User just responded to your issue'
+      createAdminNotification(
+        'Issue',
+        issue.orderId,
+        'Reply'
       );
     }
 

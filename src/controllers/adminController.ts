@@ -563,7 +563,7 @@ if (existingAppointmentsCount >= 3) {
     // Consultant Notification Created
     createNotification(cid.toString(), uid.toString(), 'consultant', 'Chat', orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(uid.toString(), cid.toString(), 'user', 'Chat', orderId.toString(), 'Chat Assigned', 'Your Chat Request Has Been Assigned to a Consultant');
+    createNotification(uid.toString(), cid.toString(), 'user', 'Chat', orderId.toString(), 'Chat Assigned', 'Your Chat Request Has Been Assigned to a Consultant', `+${request.chat_title}+`);
 
 
     const user = await User.findById(uid);
@@ -831,6 +831,9 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
       type: type || 'request', // Default to 'request' if type is not provided
     });
 
+    const request = await RequestModel.findOne({ orderId
+    });
+
     // Save the task to the database
     let customSubject;
     let CustomTextMessage = `You have a new task with orderId: ${orderId}`;
@@ -869,7 +872,7 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
     // Consultant Notification Created
     createNotification(cid.toString(), uid.toString(), 'consultant', 'Request', orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(uid.toString(),cid.toString(), 'user', 'Request', orderId.toString(), 'Request Assigned', 'Your Request Has Been Assigned to a Consultant');
+    createNotification(uid.toString(),cid.toString(), 'user', 'Request', orderId.toString(), 'Request Assigned', 'Your Request Has Been Assigned to a Consultant', '', `+${request?.movie_title}+`);
     const email = await fetchConsultantEmail(cid);
     if (email) {
       (async () => {

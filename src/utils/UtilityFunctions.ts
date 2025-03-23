@@ -162,7 +162,9 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
     type: string, 
     relatedId: string, 
     title: string, 
-    message: string
+    message: string,
+    chat_title?: string,
+    movie_title?: string
   ): Promise<void> => {
     try {
       const notification = new Notification({
@@ -173,6 +175,8 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
         relatedId,
         title,
         message,
+        chat_title,
+        movie_title,
       });
   
       await notification.save();

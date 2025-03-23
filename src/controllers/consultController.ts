@@ -1598,10 +1598,16 @@ async function chatTransaction(
       }
     }
 
+    const request = await RequestModel.findOne({ orderId: originalOrderId });
+
+    if (!request) {
+      throw new Error("Request not found");
+    }
+
     // Consultant Notification Created
-    createNotification(cid.toString(), userId.toString(), 'consultant', 'Chat', newTransaction.orderId.toString(), 'New Order', 'You have a New Order Match');
+    createNotification(cid.toString(), userId.toString(), 'consultant', 'Request', newTransaction.orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(userId.toString(), cid.toString(), 'user', 'Chat', newTransaction.orderId.toString(), 'Set Your Chat Date', 'An Email Has Been Sent to you with Link to Set or Accept New Chat Date');
+    createNotification(userId.toString(), cid.toString(), 'user', 'Request', newTransaction.orderId.toString(), 'A Chat date has been set for Request ', 'An Email Has Been Sent to you with Link to Set or Accept New Chat Date', '', `+${request.movie_title}+`);
 
     const email = await fetchConsultantEmail(cid);
     const useremail = await fetchUserEmail(userId);
@@ -1933,6 +1939,8 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
     // Fetch related tasks
     const tasks = await Task.find({ orderId: orderId }).exec();
 
+    const request = await RequestModel.findOne({ orderId});
+
     if (!tasks || tasks.length === 0) {
       return res.status(404).json({ message: "No task found for the given orderId" });
     }
@@ -1948,7 +1956,9 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
       "Files",
       orderId.toString(),
       "New Files",
-      "You received new files for your request service"
+      "You received new files for your request service",
+      '',
+      `+${request?.movie_title}+`
     );
 
     const myrequest = await RequestModel.findOne({orderId});
