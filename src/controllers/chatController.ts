@@ -470,23 +470,25 @@ export const fetchIssuesWithUsers = async (req: Request, res: Response): Promise
   const { status } = req.query; // Optional filter for issue status
 
   try {
-      const query = status ? { status } : {}; // Filter issues by status if provided
+    const query = status ? { status } : {}; // Filter issues by status if provided
 
-      // Fetch issues and populate user details based on `uid`
-      const issues = await Issue.find(query).populate({
-          path: 'uid',
-          model: User, // Link to the User model
-          select: 'fname lname email phone role profilepics', // Select specific user fields to return
+    // Fetch issues, sort by updatedAt descending, and populate user details based on `uid`
+    const issues = await Issue.find(query)
+      .sort({ updatedAt: -1 })
+      .populate({
+        path: 'uid',
+        model: User, // Link to the User model
+        select: 'fname lname email phone role profilepics', // Select specific user fields to return
       });
 
-      if (!issues || issues.length === 0) {
-          return res.status(404).json({ message: 'No issues found' });
-      }
+    if (!issues || issues.length === 0) {
+      return res.status(404).json({ message: 'No issues found' });
+    }
 
-      return res.status(200).json({ message: 'Issues retrieved successfully', issues });
+    return res.status(200).json({ message: 'Issues retrieved successfully', issues });
   } catch (error) {
-      console.error('Error fetching issues with users:', error);
-      return res.status(500).json({ message: 'Failed to fetch issues with users', error });
+    console.error('Error fetching issues with users:', error);
+    return res.status(500).json({ message: 'Failed to fetch issues with users', error });
   }
 };
 

@@ -289,7 +289,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
 
     // Fetch paginated and sorted requests
     const requests = await RequestModel.find(filter)
-      .sort({ [sort as string]: order === 'desc' ? -1 : 1 })
+      .sort({ updatedAt: order === 'desc' ? -1 : 1 })
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize);
 

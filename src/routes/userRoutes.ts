@@ -27,6 +27,8 @@ import RequestModel from '../models/Request';
 import UserModel from '../models/UserModel';
 import { uploadCharacterBible, uploadLocalFiles } from '../utils/moreUtils';
 import { convertTimeToUserTimezone } from '../controllers/adminController';
+import AppointmentModel from '../models/Appointment';
+import Consultant from '../models/consultant';
 
  const crypto = require('crypto');
 
@@ -135,6 +137,127 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
 
         if(result.originalOrderIdFromChat){
           request = await RequestModel.findOne({ orderId: result.originalOrderIdFromChat });
+          if (!request) {
+            throw new Error("Request not found"); // Handle case where request is not found
+          }
+
+          const appointment = await AppointmentModel.findOne({ orderId: result.originalOrderIdFromChat });
+
+          if(!appointment){
+            throw new Error("Appointment not found");
+          }
+
+          const consultant = await Consultant.findById(appointment.cid);
+          if (!consultant) {
+            throw new Error("Consultant not found"); // Handle case where consultant is not found
+          }
+
+          const user = await User.findById(request.userId);
+          if (!user) {
+            throw new Error("User not found"); // Handle case where user is not found
+          }
+
+          function formatDateForGoogleCalendar(date: Date): string {
+            return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+          }  
+
+          const chatStart = new Date(request.booktime ?? Date.now());
+          // Adjust the time if it's always coming in 1hr behind your expected time:
+          const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
+          
+          // Set the event duration to 1 hour (adjust as needed)
+          const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
+          
+          // Generate the Google Calendar URL with pre-filled event details.
+          const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+            request.nameofservice!
+          )}&dates=${formatDateForGoogleCalendar(adjustedChatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+            `Date Booked: ${request.createdAt}`
+          )}`;
+
+          await sendEmail({
+            to: consultant.email,
+            subject: 'New Chat Request',
+            text: `Hello ${consultant.fname} ${consultant.lname},
+          
+          You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:
+          
+          Service Booked: ${request.nameofservice}
+          Time for Chat: ${request.booktime}
+          Add to Google Calendar: ${googleCalendarUrl}
+          
+          View Order: https://nollywoodfilmmaker.com/consultants/dashboard
+          `,
+            html: `
+            <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+              <h1>Hello ${consultant.fname} ${consultant.lname},</h1>
+              <p>You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:</p>
+              <ul>
+                <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
+                <li><strong>Time for Chat:</strong> ${request.booktime}</li>
+                <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
+              </ul>
+              <p>
+                <a href="https://nollywoodfilmmaker.com/consultants/dashboard" 
+                   style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">
+                  View Order
+                </a>
+              </p>
+</div>
+</body>
+</html>
+            `,
+          });       
+
           if (!request) {
             throw new Error("Request not found"); // Handle case where request is not found
           }
