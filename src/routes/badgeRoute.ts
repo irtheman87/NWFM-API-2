@@ -73,7 +73,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
           <!-- Header with Image -->
          <tr>
   <td align="center" style="height:200px; width:700px; padding-bottom:10px; background-image: url('https://ideaafricabucket.s3.eu-north-1.amazonaws.com/email_header3.jpg'); background-size: cover; background-position: center;">
-    <div style="margin-top: 150px; margin-left:130px;"> <!-- Adjust margin as needed -->
+    <div style="margin-top: 150px;"> <!-- Adjust margin as needed -->
       <a href="https://nollywoodfilmmaker.com/get-started" style="display: inline-block; background-color: #ffd700; color: #000; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 10px;">Get Started</a>
       <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" style="display: inline-block; background-color: #ffd700; color: #000; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: bold;">Watch Tutorials</a>
     </div>
