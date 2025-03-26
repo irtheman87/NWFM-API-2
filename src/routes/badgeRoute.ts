@@ -55,7 +55,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                         subject: "Your Custom Badge",
                         text: `Hello ${userName}, your badge has been created!`,
                         html: `
-                        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -151,14 +151,12 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
           </tr>
 
           <!-- Badge Section -->
-          <tr>
-            <td align="center" style="padding: 20px;">
-              <p><strong>SAVE AND SHARE THESE WORDS OF AFFIRMATION</strong></p>
-              <img src="https://media.discordapp.net/attachments/1056957903254327397/1354204594053578895/manuyie_a_handsome_black_dude_wearing_cool_glasses_posing_with__c4ff40b5-def8-4f7f-9201-02ba16a2309f.png" alt="Badge" width="250">
-              <p><strong>Get your own badge:</strong></p>
-              <a href="https://nollywoodfilmmaker.com/get-badge" style="display: inline-block; background-color: #ffd700; color: #000; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Generate My Badge</a>
-            </td>
-          </tr>
+ <div class="badge-section">
+      <div class="badge-box">
+        <p><strong><a href="${badgeUrl}">SAVE AND SHARE THESE WORDS OF AFFIRMATION</a></strong></p>
+        <img src="${badgeUrl}" alt="Cool Badge" />
+      </div>
+    </div>
 
         </table>
       </td>
@@ -166,9 +164,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
   </table>
 
 </body>
-</html>
-
-`,
+</html>`,
                     });
 
                     delivered++;
