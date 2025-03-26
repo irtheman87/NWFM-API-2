@@ -41,4 +41,4 @@ router.post("/generate-badge", async (req: Request, res: Response) => {
   }
 });
 
-export default router;
+module.exports = router;
