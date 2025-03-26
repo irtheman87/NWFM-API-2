@@ -8,7 +8,13 @@ import path from "path";
 import csvParser from "csv-parser";
 import dotenv from "dotenv";
 
-const upload = multer({ dest: "uploads/" }); // ✅ Define Multer here
+const uploadDir = path.join(__dirname, "..", "..", "uploads");
+
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const upload = multer({ dest: uploadDir }); 
 
 let totalSent = 0;
 let delivered = 0;
@@ -16,49 +22,12 @@ let failed = 0;
 
 const router = express.Router();
 
-// Route to generate a user badge
-router.post("/generate-badge", async (req: Request, res: Response) => {
-  try {
-    const { userName, email } = req.body;
-
-    if (!userName) {
-      return res.status(400).json({ message: "User name is required" });
-    }
-
-    if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Invalid email format" });
-    }
-
-    // Generate badge and upload to S3
-    const badgeUrl = await generateUserBadge(userName);
-
-    // Send email with badge
-    await sendEmail({
-        to : email,
-        subject: "Badge Generated",
-        text: "Your badge has been generated successfully",
-        html: `<img src="${badgeUrl}" alt="User Badge" />`,
-    });
-
-    return res.status(200).json({ message: "Badge created successfully", badgeUrl });
-  } catch (error) {
-    console.error("Error generating badge:", error);
-    return res.status(500).json({ message: "Failed to generate badge" });
-  }
-});
-
-// Upload CSV and process emails
 router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res: Response) => {
     if (!req.file) {
         return res.status(400).json({ message: "CSV file is required" });
     }
 
-    const filePath = path.join(__dirname, req.file.path);
+    const filePath = req.file.path;
     const users: { userName: string; email: string }[] = [];
 
     fs.createReadStream(filePath)
@@ -103,6 +72,45 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
             res.json({ message: "Emails sent successfully", totalSent, delivered, failed });
         });
 });
+
+
+// Route to generate a user badge
+router.post("/generate-badge", async (req: Request, res: Response) => {
+  try {
+    const { userName, email } = req.body;
+
+    if (!userName) {
+      return res.status(400).json({ message: "User name is required" });
+    }
+
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    // Generate badge and upload to S3
+    const badgeUrl = await generateUserBadge(userName);
+
+    // Send email with badge
+    await sendEmail({
+        to : email,
+        subject: "Badge Generated",
+        text: "Your badge has been generated successfully",
+        html: `<img src="${badgeUrl}" alt="User Badge" />`,
+    });
+
+    return res.status(200).json({ message: "Badge created successfully", badgeUrl });
+  } catch (error) {
+    console.error("Error generating badge:", error);
+    return res.status(500).json({ message: "Failed to generate badge" });
+  }
+});
+
+// Upload CSV and process emails
 
 // API to get real-time stats
 router.get("/email-stats", (req: Request, res: Response) => {
