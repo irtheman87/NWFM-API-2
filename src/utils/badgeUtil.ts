@@ -4,7 +4,6 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import axios from "axios";
-import fetch from "node-fetch";
 
 dotenv.config();
 
