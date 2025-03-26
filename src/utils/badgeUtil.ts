@@ -26,8 +26,8 @@ async function loadImageFromUrl(url: string) {
   });
 
 export const generateUserBadge = async (userName: string): Promise<string> => {
-  const width = 1080;
-  const height = 1350;
+  const width = 1080 * 0.75;
+  const height = 1350 * 0.75;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
