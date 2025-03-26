@@ -123,12 +123,12 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                   <td style="padding: 15px; background-color: #E6F4D4;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+film+budget.png" alt="Film Distribution" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/services/production-budget" style="color: #000; text-decoration: underline;">Create my Film Budget</a></strong></p>
-                    <p>Find the right channels for your film.</p>
+                    <p>Get a detailed, flexible and realistic budget tailored to your film’s scope and resources.</p>
                   </td>
                   <td style="padding: 15px; background-color: #F0D4E6;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+trailer.png" alt="Legal Contracts" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/services/trailers" style="color: #000; text-decoration: underline;">Create my Film Trailers</a></strong></p>
-                    <p>Get professionally drafted contracts.</p>
+                    <p>Create an amazing Teaser and Trailer suitable for all social media platforms and displays.</p>
                   </td>
                 </tr>
 
@@ -153,13 +153,15 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
       </td>
     </tr>
   </table>
-          <!-- Badge Section -->
- <div class="badge-section" style="align-items: center; display: flex; justify-content: center; padding: 20px;">
-      <div class="badge-box">
-        <p><strong><a href="${badgeUrl}">SAVE AND SHARE THESE WORDS OF AFFIRMATION</a></strong></p>
-        <img src="${badgeUrl}" alt="Cool Badge" />
-      </div>
-    </div>
+<!-- Badge Section -->
+<div class="badge-section" style="display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;">
+  <div class="badge-box">
+    <p><strong><a href="https://your-hardcoded-badge-url.com/badge.jpg" style="color: #000; text-decoration: underline;">
+      SAVE AND SHARE THESE WORDS OF AFFIRMATION
+    </a></strong></p>
+    <img src="https://your-hardcoded-badge-url.com/badge.jpg" alt="Cool Badge" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
+  </div>
+</div>
 </body>
 </html>`,
                     });
