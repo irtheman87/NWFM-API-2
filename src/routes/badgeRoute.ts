@@ -207,8 +207,6 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
       </div>
     </div>
 
-    <h1 style="text-align: center; margin-top: 1rem;">Hello ${userName},</h1>
-
     <div class="grid">
       <div class="card" style="background-color: #FAE6D4">
         <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png"></div>
@@ -270,13 +268,14 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
 
     <div class="badge-section">
       <div class="badge-box">
-        <p><strong><a href="${badgeUrl}">SAVE AND SHARE THESE WORDS OF AFFIRMATION</a></strong></p>
-        <img src="${badgeUrl}" alt="Cool Badge" />
+        <p><strong>SAVE AND SHARE THESE WORDS OF AFFIRMATION</strong></p>
+        <img src="https://media.discordapp.net/attachments/1056957903254327397/1354204594053578895/manuyie_a_handsome_black_dude_wearing_cool_glasses_posing_with__c4ff40b5-def8-4f7f-9201-02ba16a2309f.png?ex=67e470cf&amp;is=67e31f4f&amp;hm=35f571bd309f4efb440debb70dea9815a99911ce0e016d2eec3e4909d643b17a" alt="Cool Badge" />
       </div>
     </div>
   </div>
 </body>
-</html>`,
+</html>
+`,
                     });
 
                     delivered++;
