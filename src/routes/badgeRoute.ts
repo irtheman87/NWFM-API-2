@@ -156,10 +156,10 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
 <!-- Badge Section -->
 <div class="badge-section" style="display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;">
   <div class="badge-box">
-    <p><strong><a href="https://your-hardcoded-badge-url.com/badge.jpg" style="color: #000; text-decoration: underline;">
+    <p><strong><a href="${badgeUrl}" style="color: #000; text-decoration: underline;">
       SAVE AND SHARE THESE WORDS OF AFFIRMATION
     </a></strong></p>
-    <img src="https://your-hardcoded-badge-url.com/badge.jpg" alt="Cool Badge" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
+    <img src="${badgeUrl}" alt="Cool Badge" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
   </div>
 </div>
 </body>
