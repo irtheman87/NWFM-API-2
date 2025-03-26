@@ -207,6 +207,8 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
       </div>
     </div>
 
+    <h1 style="text-align: center; margin-top: 1rem;">Hello ${userName},</h1>
+
     <div class="grid">
       <div class="card" style="background-color: #FAE6D4">
         <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png"></div>
