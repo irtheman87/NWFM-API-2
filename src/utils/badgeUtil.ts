@@ -38,7 +38,7 @@ export const generateUserBadge = async (userName: string): Promise<string> => {
   ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   // Draw text on the badge
-  let fontSize = userName.length > 13 ? 90 : 110;
+  let fontSize = userName.length > 13 ? 95 : 110;
   ctx.font = `italic bold ${fontSize}px Avenir Black`;
   ctx.fillStyle = "#ffffff";
   ctx.fillText(`${userName}`, 120, 400);
