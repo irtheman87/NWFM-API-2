@@ -161,9 +161,9 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
             return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
           }  
 
-          const chatStart = new Date(request.booktime ?? Date.now());
+          const chatStart = new Date(request.usebooktimed ?? Date.now());
           // Adjust the time if it's always coming in 1hr behind your expected time:
-          const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
+          const adjustedChatStart = new Date(chatStart.getTime());
           
           // Set the event duration to 1 hour (adjust as needed)
           const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
@@ -183,7 +183,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
-          Time for Chat: ${request.booktime}
+          Time for Chat: ${request.usebooktimed}
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
@@ -243,7 +243,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
               <p>You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:</p>
               <ul>
                 <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
-                <li><strong>Time for Chat:</strong> ${request.booktime}</li>
+                <li><strong>Time for Chat:</strong> ${request.usebooktimed}</li>
                 <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
               </ul>
               <p>
@@ -306,7 +306,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         // Parse the chat start time (now safe to assume it's defined)
         const chatStart = new Date(chatStartDate);
         // Adjust the time if it's always coming in 1hr behind your expected time:
-        const adjustedChatStart = new Date(chatStart.getTime() + 60 * 60 * 1000);
+        const adjustedChatStart = new Date(chatStart.getTime());
         
         // Set the event duration to 1 hour (adjust as needed)
         const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
@@ -350,7 +350,6 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         
         Service Booked: ${request.nameofservice}
         Price: ${price}
-        Date Booked: ${userTimeZoneCreated}
         Time for Chat: ${userTimeZoneBookTime}
         OrderId: ${request.orderId}
 
@@ -416,7 +415,6 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
                  <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
                  <p><strong>Price:</strong> ${price}</p>
-                 <p><strong>Date Booked:</strong> ${userTimeZoneCreated}</p>
                  <p><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</p>
                  <p><strong>OrderId:</strong> ${request.orderId}</p>
                  <p>
