@@ -71,16 +71,29 @@ const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => 
 };
 
 export const convertTimeToUserTimezone = (date: string | Date, userTimezone: string): string => {
-  const dt = DateTime.fromISO(typeof date === "string" ? date : date.toISOString()).setZone(userTimezone);
+  // Ensure date is parsed correctly
+  const dt = DateTime.fromISO(typeof date === "string" ? date : date.toISOString(), { setZone: true }).setZone(userTimezone);
+
+  // Function to get ordinal suffix (st, nd, rd, th)
+  const getOrdinalSuffix = (day: number): string => {
+    if (day >= 11 && day <= 13) return "th"; // Special case for 11th, 12th, 13th
+    switch (day % 10) {
+      case 1:
+        return "st";
+      case 2:
+        return "nd";
+      case 3:
+        return "rd";
+      default:
+        return "th";
+    }
+  };
 
   const day = dt.day;
-  const suffix = ["th", "st", "nd", "rd"][
-    day % 10 > 3 || [11, 12, 13].includes(day % 100) ? 0 : day % 10
-  ];
+  const ordinalSuffix = getOrdinalSuffix(day);
 
-  return dt.toFormat(`d'${suffix}' of LLL yyyy h:mma`);
+  return dt.toFormat(`d'${ordinalSuffix}' 'of' LLL yyyy h:mma`);
 };
-
 
 registerFont('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', { family: 'DejaVuSans' });
 // Generate Access Token
