@@ -71,51 +71,165 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
         <table role="presentation" width="700" cellspacing="0" cellpadding="0" border="0" style="max-width: 700px; width: 100%; border: 1px solid #ccc;">
           
           <!-- Header with Image -->
-          <tr>
-            <td align="center" style="background-color: #000;">
-              <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/email_header2.jpg" alt="Header Image" width="700" style="display: block; max-width: 100%; height: auto;">
-            </td>
-          </tr>
+         <tr>
+  <td align="center" style="height:200px; width:700px; padding-bottom:10px; background-image: url('https://ideaafricabucket.s3.eu-north-1.amazonaws.com/email_header2.jpg'); background-size: cover; background-position: center;">
+    <div style="margin-top: 150px;"> <!-- Adjust margin as needed -->
+      <a href="https://nollywoodfilmmaker.com/get-started" style="display: inline-block; background-color: #ffd700; color: #000; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 10px;">Get Started</a>
+      <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" style="display: inline-block; background-color: #ffd700; color: #000; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: bold;">Watch Tutorials</a>
+    </div>
+  </td>
+</tr>
+
 
           <!-- Header Buttons -->
           <tr>
             <td align="center" style="padding: 15px;">
-              <a href="https://nollywoodfilmmaker.com/get-started" style="display: inline-block; background-color: #ffd700; color: #000; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 10px;">Get Started</a>
-              <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" style="display: inline-block; background-color: #ffd700; color: #000; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Watch Tutorials</a>
+             
             </td>
           </tr>
 
-          <!-- Service Cards (8 Cards) -->
+          <!-- Service Cards (Stacked) -->
           <tr>
             <td align="center" style="padding: 10px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="table-layout: fixed;">
-                
-                <!-- Service Rows -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+
+                <!-- Card 1 -->
                 <tr>
-                  <td width="50%" style="padding: 15px; background-color: #FAE6D4; text-align: center;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png" alt="Chat with a Pro" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/get-started/chat" style="color: #000; text-decoration: underline;">Chat with a Professional</a></strong></p>
-                    <p>Book a one-on-one session with an industry expert to get guidance, access verified crew, or troubleshoot any part of your filmmaking process.</p>
-                  </td>
-                  <td width="50%" style="padding: 15px; background-color: #E6DDF1; text-align: center;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png" alt="Read my Script" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script</a></strong></p>
-                    <p>Get professional feedback on your script to improve story, structure, and production readiness.</p>
+                  <td style="padding: 15px; background-color: #FAE6D4; text-align: left;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="80" style="padding-right: 10px;">
+                          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png" alt="Chat with a Pro" width="60">
+                        </td>
+                        <td>
+                          <p><strong><a href="https://nollywoodfilmmaker.com/get-started/chat" style="color: #000; text-decoration: underline;">Chat with a Professional</a></strong></p>
+                          <p>Book a one-on-one session with an industry expert to get guidance, access verified crew, or troubleshoot any part of your filmmaking process.</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
 
+                <!-- Card 2 -->
                 <tr>
-                  <td width="50%" style="padding: 15px; background-color: #D4F0F4; text-align: center;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/watch+my+film.png" alt="Prepare for Funding" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/watch-final-cut" style="color: #000; text-decoration: underline;">Watch my Film and Advise</a></strong></p>
-                    <p>Receive expert notes on your film edit at different stages, from pacing to clarity and overall impact.</p>
-                  </td>
-                  <td width="50%" style="padding: 15px; background-color: #F4E6D4; text-align: center;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+pitch+deck.png" alt="Verified Crew" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/create-pitch-deckt" style="color: #000; text-decoration: underline;">Create my Pitch Deck</a></strong></p>
-                    <p>Let professionals craft a compelling pitch deck to present your project to investors or collaborators.</p>
+                  <td style="padding: 15px; background-color: #E6DDF1; text-align: left;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="80" style="padding-right: 10px;">
+                          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png" alt="Read my Script" width="60">
+                        </td>
+                        <td>
+                          <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script</a></strong></p>
+                          <p>Get professional feedback on your script to improve story, structure, and production readiness.</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
+
+                <!-- Card 3 -->
+                <tr>
+                  <td style="padding: 15px; background-color: #D4F0F4; text-align: left;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="80" style="padding-right: 10px;">
+                          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/watch+my+film.png" alt="Prepare for Funding" width="60">
+                        </td>
+                        <td>
+                          <p><strong><a href="https://nollywoodfilmmaker.com/services/watch-final-cut" style="color: #000; text-decoration: underline;">Watch my Film and Advise</a></strong></p>
+                          <p>Receive expert notes on your film edit at different stages, from pacing to clarity and overall impact.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Card 4 -->
+                <tr>
+                  <td style="padding: 15px; background-color: #F4E6D4; text-align: left;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="80" style="padding-right: 10px;">
+                          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+pitch+deck.png" alt="Verified Crew" width="60">
+                        </td>
+                        <td>
+                          <p><strong><a href="https://nollywoodfilmmaker.com/services/create-pitch-deckt" style="color: #000; text-decoration: underline;">Create my Pitch Deck</a></strong></p>
+                          <p>Let professionals craft a compelling pitch deck to present your project to investors or collaborators.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Card 1 -->
+<tr>
+  <td style="padding: 15px; background-color: #E6F4D4; text-align: left;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td width="80" style="padding-right: 10px;">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+film+budget.png" alt="Film Distribution" width="60">
+        </td>
+        <td>
+          <p><strong><a href="https://nollywoodfilmmaker.com/services/production-budget" style="color: #000; text-decoration: underline;">Create my Film Budget</a></strong></p>
+          <p>Get a detailed, flexible, and realistic budget tailored to your film’s scope and resources.</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- Card 2 -->
+<tr>
+  <td style="padding: 15px; background-color: #F0D4E6; text-align: left;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td width="80" style="padding-right: 10px;">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+trailer.png" alt="Legal Contracts" width="60">
+        </td>
+        <td>
+          <p><strong><a href="https://nollywoodfilmmaker.com/services/trailers" style="color: #000; text-decoration: underline;">Create my Film Trailers</a></strong></p>
+          <p>Create an amazing teaser and trailer suitable for all social media platforms and displays.</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- Card 3 -->
+<tr>
+  <td style="padding: 15px; background-color: #D4E6F4; text-align: left;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td width="80" style="padding-right: 10px;">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+schedule.png" alt="Script Breakdown" width="60">
+        </td>
+        <td>
+          <p><strong><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule" style="color: #000; text-decoration: underline;">Create my Film Schedule</a></strong></p>
+          <p>Receive a professional shooting schedule that keeps your production organized and on track.</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- Card 4 -->
+<tr>
+  <td style="padding: 15px; background-color: #F4D4E6; text-align: left;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td width="80" style="padding-right: 10px;">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+legal.png" alt="Budgeting & Scheduling" width="60">
+        </td>
+        <td>
+          <p><strong><a href="https://nollywoodfilmmaker.com/services/draft-legal-documents" style="color: #000; text-decoration: underline;">Create my Legal Docs</a></strong></p>
+          <p>Access essential legal documents—customized for your film project—to protect your work and team.</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+
               </table>
             </td>
           </tr>
