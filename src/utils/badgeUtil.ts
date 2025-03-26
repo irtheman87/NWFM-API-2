@@ -1,4 +1,4 @@
-import { createCanvas, loadImage } from "canvas";
+import { createCanvas, loadImage, registerFont } from "canvas";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import path from "path";
@@ -21,22 +21,26 @@ async function loadImageFromUrl(url: string) {
     return await loadImage(Buffer.from(buffer));
   }
 
+  registerFont(path.join(__dirname, "fonts/Avenir-Black.ttf"), {
+    family: "Avenir Black",
+  });
+
 export const generateUserBadge = async (userName: string): Promise<string> => {
-  const width = 400;
-  const height = 200;
+  const width = 1080;
+  const height = 1350;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
   // Load a background image (Optional)
-  const backgroundImageURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/badge-template.png';
+  const backgroundImageURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+waitlist+badge+without+name.jpg';
 //   const verificationIcon = await loadImage(verificationIconURL);
   const backgroundImage = await loadImage(backgroundImageURL);
   ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   // Draw text on the badge
-  ctx.font = "bold 24px Arial";
+  ctx.font = "bold 24px Avenir Black";
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(`User: ${userName}`, 50, 120);
+  ctx.fillText(`${userName}`, 50, 120);
 
   // Save the badge as a file
   const filePath = path.join(__dirname, `${userName}-badge.png`);
