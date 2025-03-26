@@ -67,6 +67,7 @@ app.use('/api/admin-services', require('./routes/adminServiceRoutes'));
 app.use('/api/chat', require('./routes/chatRoute'));
 app.use('/api/join', require('./routes/joinRoute'));
 app.use('/api/cronjobs', require('./routes/cronRoute'));
+app.use('/api/userbadge', require('./routes/badgeRoute'));
 
 export { io, users };
 
