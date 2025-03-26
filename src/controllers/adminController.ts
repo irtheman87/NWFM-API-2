@@ -70,9 +70,9 @@ const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => 
   }
 };
 
-export const convertTimeToUserTimezone = (date: string | Date, userTimezone: string): string => {
+export const convertTimeToUserTimezone = (date: string | Date): string => {
   // Ensure date is parsed correctly
-  const dt = DateTime.fromISO(typeof date === "string" ? date : date.toISOString(), { setZone: true }).setZone(userTimezone);
+  const dt = DateTime.fromISO(typeof date === "string" ? date : date.toISOString(), { setZone: true }).setZone('Africa/Lagos');
 
   // Function to get ordinal suffix (st, nd, rd, th)
   const getOrdinalSuffix = (day: number): string => {
@@ -594,14 +594,14 @@ if (existingAppointmentsCount >= 3) {
     let userTimeZoneBookTime;
 
     if (request.createdAt && consultant.timezone) {
-      userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt, consultant.timezone);
+      userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt);
       // Use userTimeZone...
     } else {
       console.log("createdAt is missing in request");
     }
 
     if (request.booktime && consultant.timezone) {
-      userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime, consultant.timezone);
+      userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime);
       // Use userTimeZone...
     } else {
       console.log("Booked Time is missing in request");
@@ -620,7 +620,7 @@ if (existingAppointmentsCount >= 3) {
           You have a new chat request from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
-          Time for Chat: ${request.booktime}
+          Time for Chat: ${userTimeZoneBookTime}
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
@@ -680,7 +680,7 @@ if (existingAppointmentsCount >= 3) {
               <p>You have a new chat request from ${user.fname} ${user.lname}. Details below:</p>
               <ul>
                 <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
-                <li><strong>Time for Chat:</strong> ${request.booktime}</li>
+                <li><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</li>
                 <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
               </ul>
               <p>

@@ -175,6 +175,27 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
             `Date Booked: ${request.createdAt}`
           )}`;
 
+          
+        let userTimeZoneCreated;
+        let userTimeZoneBookTime;
+    
+        if (request.createdAt && user.timezone) {
+          userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt);
+          // Use userTimeZone...
+        } else {
+          console.log("createdAt is missing in request");
+        }
+
+
+    
+        if (request.booktime && user.timezone) {
+          userTimeZoneBookTime = convertTimeToUserTimezone(request.usebooktimed ?? new Date());
+
+          // Use userTimeZone...
+        } else {
+          console.log("Booked Time is missing in request");
+        }
+
           await sendEmail({
             to: consultant.email,
             subject: 'New Chat Request',
@@ -183,7 +204,7 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
           You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
-          Time for Chat: ${request.usebooktimed}
+          Time for Chat: ${userTimeZoneBookTime}
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
@@ -327,14 +348,14 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
     let userTimeZoneBookTime;
 
     if (request.createdAt && user.timezone) {
-      userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt, user.timezone);
+      userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt);
       // Use userTimeZone...
     } else {
       console.log("createdAt is missing in request");
     }
 
     if (request.booktime && user.timezone) {
-      userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime, user.timezone);
+      userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime);
       // Use userTimeZone...
     } else {
       console.log("Booked Time is missing in request");
