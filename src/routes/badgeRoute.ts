@@ -149,7 +149,10 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
               </table>
             </td>
           </tr>
-
+        </table>
+      </td>
+    </tr>
+  </table>
           <!-- Badge Section -->
  <div class="badge-section">
       <div class="badge-box">
@@ -157,12 +160,6 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
         <img src="${badgeUrl}" alt="Cool Badge" />
       </div>
     </div>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-
 </body>
 </html>`,
                     });
