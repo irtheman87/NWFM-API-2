@@ -50,7 +50,7 @@ export const generateUserBadge = async (userName: string): Promise<string> => {
         // Upload to S3
         const fileStream = fs.createReadStream(filePath);
         const uploadParams = {
-          Bucket: process.env.AWS_S3_BUCKET!,
+          Bucket: process.env.AWS_S3_BUCKET_NAME!,
           Key: `badges/${userName}-badge.png`,
           Body: fileStream,
           ContentType: "image/png",
