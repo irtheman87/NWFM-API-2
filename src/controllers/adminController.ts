@@ -71,10 +71,16 @@ const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => 
 };
 
 export const convertTimeToUserTimezone = (date: string | Date, userTimezone: string): string => {
-  return DateTime.fromISO(new Date(date).toISOString())
-    .setZone(userTimezone)
-    .toFormat('yyyy-LL-dd HH:mm:ss ZZZZ'); // You can change the format as needed
+  const dt = DateTime.fromISO(new Date(date).toISOString()).setZone(userTimezone);
+
+  const day = dt.day;
+  const suffix = ["th", "st", "nd", "rd"][
+    day % 10 > 3 || [11, 12, 13].includes(day % 100) ? 0 : day % 10
+  ];
+
+  return dt.toFormat(`d'${suffix}' of LLL yyyy h:mma`);
 };
+
 
 registerFont('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', { family: 'DejaVuSans' });
 // Generate Access Token
