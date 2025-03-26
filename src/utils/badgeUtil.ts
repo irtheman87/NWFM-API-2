@@ -29,7 +29,7 @@ export const generateUserBadge = async (userName: string): Promise<string> => {
   const ctx = canvas.getContext("2d");
 
   // Load a background image (Optional)
-  const backgroundImage = await loadImageFromUrl("https://ideaafricabucket.s3.eu-north-1.amazonaws.com/badge-template.png");
+  const backgroundImage = await loadImage("https://ideaafricabucket.s3.eu-north-1.amazonaws.com/badge-template.png");
   ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   // Draw text on the badge
