@@ -28,7 +28,9 @@ export const generateUserBadge = async (userName: string): Promise<string> => {
   const ctx = canvas.getContext("2d");
 
   // Load a background image (Optional)
-  const backgroundImage = await loadImage("https://ideaafricabucket.s3.eu-north-1.amazonaws.com/badge-template.png");
+  const backgroundImageURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/badge-template.png';
+//   const verificationIcon = await loadImage(verificationIconURL);
+  const backgroundImage = await loadImage(backgroundImageURL);
   ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   // Draw text on the badge
