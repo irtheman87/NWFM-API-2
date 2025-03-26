@@ -95,39 +95,39 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                   <td style="padding: 15px; background-color: #FAE6D4;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png" alt="Chat with a Pro" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/get-started/chat" style="color: #000; text-decoration: underline;">Chat with a Professional</a></strong></p>
-                    <p>Book a one-on-one session with an industry expert.</p>
+                    <p>Book a one-on-one session with an industry expert to get guidance, access verified crew, or troubleshoot any part of your filmmaking process.</p>
                   </td>
                   <td style="padding: 15px; background-color: #E6DDF1;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png" alt="Read my Script" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script</a></strong></p>
-                    <p>Get expert feedback to improve your script.</p>
+                    <p>Get professional feedback on your script to improve story, structure, and production readiness.</p>
                   </td>
                 </tr>
 
                 <!-- Row 2 -->
                 <tr>
                   <td style="padding: 15px; background-color: #D4F0F4;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/prepare+for+funding.png" alt="Prepare for Funding" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/funding" style="color: #000; text-decoration: underline;">Prepare for Funding</a></strong></p>
-                    <p>Package your film for funding success.</p>
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/watch+my+film.png" alt="Prepare for Funding" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/watch-final-cut" style="color: #000; text-decoration: underline;">Watch my Film and advise</a></strong></p>
+                    <p>Receive expert notes on your film edit at different stages, from pacing to clarity and overall impact.</p>
                   </td>
                   <td style="padding: 15px; background-color: #F4E6D4;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/verified+crew.png" alt="Verified Crew" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/verified-crew" style="color: #000; text-decoration: underline;">Verified Crew</a></strong></p>
-                    <p>Hire top professionals for your project.</p>
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+pitch+deck.png" alt="Verified Crew" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/create-pitch-deckt" style="color: #000; text-decoration: underline;">Create my Pitch Deck</a></strong></p>
+                    <p>Let professionals craft a compelling pitch deck to present your project to investors or collaborators.</p>
                   </td>
                 </tr>
 
                 <!-- Row 3 -->
                 <tr>
                   <td style="padding: 15px; background-color: #E6F4D4;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/film+distribution.png" alt="Film Distribution" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/distribution" style="color: #000; text-decoration: underline;">Film Distribution</a></strong></p>
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+film+budget.png" alt="Film Distribution" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/production-budget" style="color: #000; text-decoration: underline;">Create my Film Budget</a></strong></p>
                     <p>Find the right channels for your film.</p>
                   </td>
                   <td style="padding: 15px; background-color: #F0D4E6;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/legal+contracts.png" alt="Legal Contracts" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/legal-contracts" style="color: #000; text-decoration: underline;">Legal Contracts</a></strong></p>
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+trailer.png" alt="Legal Contracts" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/trailers" style="color: #000; text-decoration: underline;">Create my Film Trailers</a></strong></p>
                     <p>Get professionally drafted contracts.</p>
                   </td>
                 </tr>
@@ -135,14 +135,14 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                 <!-- Row 4 -->
                 <tr>
                   <td style="padding: 15px; background-color: #D4E6F4;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/script+breakdown.png" alt="Script Breakdown" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/script-breakdown" style="color: #000; text-decoration: underline;">Script Breakdown</a></strong></p>
-                    <p>Plan every scene with precision.</p>
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+schedule.png" alt="Script Breakdown" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule" style="color: #000; text-decoration: underline;">Create my Film Schedule</a></strong></p>
+                    <p>Receive a professional shooting schedule that keeps your production organized and on track.</p>
                   </td>
                   <td style="padding: 15px; background-color: #F4D4E6;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/budgeting+and+scheduling.png" alt="Budgeting & Scheduling" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/budgeting" style="color: #000; text-decoration: underline;">Budgeting & Scheduling</a></strong></p>
-                    <p>Stay on track and on budget.</p>
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+legal.png" alt="Budgeting & Scheduling" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/draft-legal-documents" style="color: #000; text-decoration: underline;">Create my Legal Docs</a></strong></p>
+                    <p>Access essential legal documents—customized for your film project—to protect your work and team.</p>
                   </td>
                 </tr>
 
@@ -154,7 +154,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
     </tr>
   </table>
           <!-- Badge Section -->
- <div class="badge-section">
+ <div class="badge-section" style="align-items: center; display: flex; justify-content: center; padding: 20px;">
       <div class="badge-box">
         <p><strong><a href="${badgeUrl}">SAVE AND SHARE THESE WORDS OF AFFIRMATION</a></strong></p>
         <img src="${badgeUrl}" alt="Cool Badge" />
