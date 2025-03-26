@@ -26,20 +26,20 @@ async function loadImageFromUrl(url: string) {
   });
 
 export const generateUserBadge = async (userName: string): Promise<string> => {
-  const width = 1080 * 0.75;
-  const height = 1350 * 0.75;
+  const width = 1080;
+  const height = 1350;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
   // Load a background image (Optional)
-  const backgroundImageURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+waitlist+badge+without+name.jpg';
+  const backgroundImageURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+waitlist+badge+without+name2.jpg';
 //   const verificationIcon = await loadImage(verificationIconURL);
   const backgroundImage = await loadImage(backgroundImageURL);
   ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   // Draw text on the badge
   ctx.font = "bold 110px Avenir Black";
-  ctx.fillStyle = "#ffc000";
+  ctx.fillStyle = "#ffffff";
   ctx.fillText(`${userName}`, 120, 400);
 
   // Save the badge as a file
