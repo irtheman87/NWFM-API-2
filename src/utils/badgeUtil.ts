@@ -58,7 +58,7 @@ export const generateUserBadge = async (userName: string): Promise<string> => {
         await s3.send(new PutObjectCommand(uploadParams));
 
         // Get S3 file URL
-        const s3Url = `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/badges/${userName}-badge.png`;
+        const s3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/badges/${userName}-badge.png`;
 
         // Delete local file after upload
         fs.unlinkSync(filePath);
