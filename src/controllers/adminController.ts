@@ -71,7 +71,7 @@ const uploadToS3 = async (buffer: Buffer, filename: string): Promise<string> => 
 };
 
 export const convertTimeToUserTimezone = (date: string | Date, userTimezone: string): string => {
-  const dt = DateTime.fromISO(new Date(date).toISOString()).setZone(userTimezone);
+  const dt = DateTime.fromISO(typeof date === "string" ? date : date.toISOString()).setZone(userTimezone);
 
   const day = dt.day;
   const suffix = ["th", "st", "nd", "rd"][
