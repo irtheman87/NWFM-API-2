@@ -38,9 +38,9 @@ export const generateUserBadge = async (userName: string): Promise<string> => {
   ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   // Draw text on the badge
-  ctx.font = "bold 120px Avenir Black";
+  ctx.font = "bold 110px Avenir Black";
   ctx.fillStyle = "#ffc000";
-  ctx.fillText(`${userName}`, 140, 410);
+  ctx.fillText(`${userName}`, 120, 400);
 
   // Save the badge as a file
   const filePath = path.join(__dirname, `${userName}-badge.png`);
