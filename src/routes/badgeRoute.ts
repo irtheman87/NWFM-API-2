@@ -88,82 +88,62 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
           <!-- Service Cards (8 Cards) -->
           <tr>
             <td align="center" style="padding: 10px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="table-layout: fixed;">
                 
-                <!-- Row 1 -->
+                <!-- Service Rows -->
                 <tr>
-                  <td style="padding: 15px; background-color: #FAE6D4;">
+                  <td width="50%" style="padding: 15px; background-color: #FAE6D4; text-align: center;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png" alt="Chat with a Pro" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/get-started/chat" style="color: #000; text-decoration: underline;">Chat with a Professional</a></strong></p>
                     <p>Book a one-on-one session with an industry expert to get guidance, access verified crew, or troubleshoot any part of your filmmaking process.</p>
                   </td>
-                  <td style="padding: 15px; background-color: #E6DDF1;">
+                  <td width="50%" style="padding: 15px; background-color: #E6DDF1; text-align: center;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png" alt="Read my Script" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script</a></strong></p>
                     <p>Get professional feedback on your script to improve story, structure, and production readiness.</p>
                   </td>
                 </tr>
 
-                <!-- Row 2 -->
                 <tr>
-                  <td style="padding: 15px; background-color: #D4F0F4;">
+                  <td width="50%" style="padding: 15px; background-color: #D4F0F4; text-align: center;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/watch+my+film.png" alt="Prepare for Funding" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/watch-final-cut" style="color: #000; text-decoration: underline;">Watch my Film and advise</a></strong></p>
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/watch-final-cut" style="color: #000; text-decoration: underline;">Watch my Film and Advise</a></strong></p>
                     <p>Receive expert notes on your film edit at different stages, from pacing to clarity and overall impact.</p>
                   </td>
-                  <td style="padding: 15px; background-color: #F4E6D4;">
+                  <td width="50%" style="padding: 15px; background-color: #F4E6D4; text-align: center;">
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+pitch+deck.png" alt="Verified Crew" width="60">
                     <p><strong><a href="https://nollywoodfilmmaker.com/services/create-pitch-deckt" style="color: #000; text-decoration: underline;">Create my Pitch Deck</a></strong></p>
                     <p>Let professionals craft a compelling pitch deck to present your project to investors or collaborators.</p>
                   </td>
                 </tr>
-
-                <!-- Row 3 -->
-                <tr>
-                  <td style="padding: 15px; background-color: #E6F4D4;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+film+budget.png" alt="Film Distribution" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/production-budget" style="color: #000; text-decoration: underline;">Create my Film Budget</a></strong></p>
-                    <p>Get a detailed, flexible and realistic budget tailored to your film’s scope and resources.</p>
-                  </td>
-                  <td style="padding: 15px; background-color: #F0D4E6;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+trailer.png" alt="Legal Contracts" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/trailers" style="color: #000; text-decoration: underline;">Create my Film Trailers</a></strong></p>
-                    <p>Create an amazing Teaser and Trailer suitable for all social media platforms and displays.</p>
-                  </td>
-                </tr>
-
-                <!-- Row 4 -->
-                <tr>
-                  <td style="padding: 15px; background-color: #D4E6F4;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+schedule.png" alt="Script Breakdown" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule" style="color: #000; text-decoration: underline;">Create my Film Schedule</a></strong></p>
-                    <p>Receive a professional shooting schedule that keeps your production organized and on track.</p>
-                  </td>
-                  <td style="padding: 15px; background-color: #F4D4E6;">
-                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+legal.png" alt="Budgeting & Scheduling" width="60">
-                    <p><strong><a href="https://nollywoodfilmmaker.com/services/draft-legal-documents" style="color: #000; text-decoration: underline;">Create my Legal Docs</a></strong></p>
-                    <p>Access essential legal documents—customized for your film project—to protect your work and team.</p>
-                  </td>
-                </tr>
-
               </table>
             </td>
           </tr>
+
+          <!-- Badge Section -->
+          <tr>
+            <td align="center" style="padding: 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center">
+                    <p><strong><a href="${badgeUrl}" style="color: #000; text-decoration: underline;">
+                      SAVE AND SHARE THESE WORDS OF AFFIRMATION
+                    </a></strong></p>
+                    <img src="${badgeUrl}" alt="Cool Badge" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
         </table>
       </td>
     </tr>
   </table>
-<!-- Badge Section -->
-<div class="badge-section" style="display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;">
-  <div class="badge-box">
-    <p><strong><a href="${badgeUrl}" style="color: #000; text-decoration: underline;">
-      SAVE AND SHARE THESE WORDS OF AFFIRMATION
-    </a></strong></p>
-    <img src="${badgeUrl}" alt="Cool Badge" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
-  </div>
-</div>
+
 </body>
-</html>`,
+</html>
+`,
                     });
 
                     delivered++;
