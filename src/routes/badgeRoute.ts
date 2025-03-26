@@ -61,220 +61,113 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>One Strip Email</title>
-  <style>
-    /* Reset margins and prevent horizontal scroll */
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #ffffff;
-      color: #000000;
-    }
-    .container {
-      width: 100%;
-      max-width: 700px;
-      margin: 0 auto;
-      border: 1px solid #ccc;
-    }
-    .header {
-      background-image: url('https://ideaafricabucket.s3.eu-north-1.amazonaws.com/email_header2.jpg?auto=format&fit=crop&w=1400&q=80');
-      background-size: cover;
-      background-position: center;
-      position: relative;
-      height: 14rem;
-      color: #ffffff;
-      padding: 0;
-    }
-    /* Mobile adjustment for header background */
-    @media (max-width: 600px) {
-      .header {
-        /* Use contain to ensure the full image is visible */
-        background-size: contain;
-        background-repeat: no-repeat;
-        height: auto;
-        min-height: 14rem; /* Ensures header remains visible */
-      }
-    }
-    .header .title {
-      font-size: 2rem;
-      font-weight: bold;
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-    }
-    .header-buttons {
-      position: absolute;
-      bottom: 1rem;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-wrap: nowrap; /* force buttons to remain on one line */
-      justify-content: space-between;
-      gap: 0.5rem;
-      width: 90%;  /* adjust container width as needed */
-      max-width: 500px;
-    }
-    .header-buttons a {
-      background-color: #ffd700;
-      color: #000;
-      padding: 0.6rem 1rem;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-      text-align: center;
-      flex: 1;
-      min-width: 120px;
-    }
-    /* For desktop, increase button min-width so text stays on one line */
-    @media (min-width: 601px) {
-      .header-buttons a {
-        min-width: 200px;
-      }
-    }
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 0;
-      margin-bottom: 0; /* Remove extra margin at bottom of grid */
-    }
-    .card {
-      width: 100%;
-      max-width: 320px;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
-      box-sizing: border-box;
-      display: flex;
-      align-items: flex-start;
-      border-radius: 8px;
-    }
-    .thumb-img {
-      width: 30%;
-      height: 60px;
-      margin-right: 1rem;
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-    }
-    .card-text {
-      width: 70%;
-    }
-    .card-title {
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-    }
-    .card-body {
-      font-size: 0.9rem;
-      line-height: 1.4;
-    }
-    .badge-section {
-      width: 100%;
-      text-align: center;
-      margin-top: 0; /* Remove extra space above badge-section */
-    }
-    .badge-box {
-      width: 100%;
-      color: #000000;
-      font-size: 1.1rem;
-    }
-    /* Ensure images fit within their containers */
-    img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 0 auto;
-    }
-    .badge-box img {
-      width: auto;
-      height: auto;
-      max-width: 100%;
-    }
-  </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="title"></div>
-      <div class="header-buttons">
-        <a href="https://nollywoodfilmmaker.com/get-started">Get Started</a>
-        <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp">Watch Tutorials</a>
-      </div>
-    </div>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff; color: #000000;">
 
-    <div class="grid">
-      <div class="card" style="background-color: #FAE6D4">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png"></div>
-        <div class="card-text">
-          <div class="card-title"><a href="https://nollywoodfilmmaker.com/get-started/chat" style="color: inherit; text-decoration: underline;">Chat with a Professional</a></div>
-          <div class="card-body">Book a one-on-one session with an industry expert to get guidance, access verified crew, or troubleshoot any part of your filmmaking process.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #E6DDF1">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: inherit; text-decoration: underline;">Read my Script and advise</a></div>
-          <div class="card-body">Get professional feedback on your script to improve story, structure, and production readiness.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #DCE8F6">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/watch+my+film.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/watch-final-cut" style="color: inherit; text-decoration: underline;">Watch my Film and advise</a></div>
-          <div class="card-body">Receive expert notes on your film edit at different stages, from pacing to clarity and overall impact.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #FFF7D4">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+pitch+deck.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/create-pitch-deckt" style="color: inherit; text-decoration: underline;">Create my Pitch Deck</a></div>
-          <div class="card-body">Let professionals craft a compelling pitch deck to present your project to investors or collaborators.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #E9F6D0">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+film+budget.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/production-budget" style="color: inherit; text-decoration: underline;">Create my Film Budget</a></div>
-          <div class="card-body">Get a detailed, flexible and realistic budget tailored to your film’s scope and resources.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #e5f8fc">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+trailer.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/trailers" style="color: inherit; text-decoration: underline;">Create my Film Trailers</a></div>
-          <div class="card-body">Create an amazing Teaser and Trailer suitable for all social media platforms and displays.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #EFE2F9">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+schedule.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/create-movie-schedule" style="color: inherit; text-decoration: underline;">Create my Film Schedule</a></div>
-          <div class="card-body">Receive a professional shooting schedule that keeps your production organized and on track.</div>
-        </div>
-      </div>
-      <div class="card" style="background-color: #FFE9D6">
-        <div class="thumb-img"><img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+legal.png"></div>
-        <div class="card-text">
-            <div class="card-title"><a href="https://nollywoodfilmmaker.com/services/draft-legal-documents" style="color: inherit; text-decoration: underline;">Create my Legal Docs</a></div>
-          <div class="card-body">Access essential legal documents—customized for your film project—to protect your work and team.</div>
-        </div>
-      </div>
-    </div>
+  <!-- Main Container -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="700" cellspacing="0" cellpadding="0" border="0" style="max-width: 700px; width: 100%; border: 1px solid #ccc;">
+          
+          <!-- Header with Image -->
+          <tr>
+            <td align="center" style="background-color: #000;">
+              <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/email_header2.jpg" alt="Header Image" width="700" style="display: block; max-width: 100%; height: auto;">
+            </td>
+          </tr>
 
-    <div class="badge-section">
-      <div class="badge-box">
-        <p><strong>SAVE AND SHARE THESE WORDS OF AFFIRMATION</strong></p>
-        <img src="https://media.discordapp.net/attachments/1056957903254327397/1354204594053578895/manuyie_a_handsome_black_dude_wearing_cool_glasses_posing_with__c4ff40b5-def8-4f7f-9201-02ba16a2309f.png?ex=67e470cf&amp;is=67e31f4f&amp;hm=35f571bd309f4efb440debb70dea9815a99911ce0e016d2eec3e4909d643b17a" alt="Cool Badge" />
-      </div>
-    </div>
-  </div>
+          <!-- Header Buttons -->
+          <tr>
+            <td align="center" style="padding: 15px;">
+              <a href="https://nollywoodfilmmaker.com/get-started" style="display: inline-block; background-color: #ffd700; color: #000; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 10px;">Get Started</a>
+              <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" style="display: inline-block; background-color: #ffd700; color: #000; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Watch Tutorials</a>
+            </td>
+          </tr>
+
+          <!-- Service Cards (8 Cards) -->
+          <tr>
+            <td align="center" style="padding: 10px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                
+                <!-- Row 1 -->
+                <tr>
+                  <td style="padding: 15px; background-color: #FAE6D4;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/chat+with+a+pro.png" alt="Chat with a Pro" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/get-started/chat" style="color: #000; text-decoration: underline;">Chat with a Professional</a></strong></p>
+                    <p>Book a one-on-one session with an industry expert.</p>
+                  </td>
+                  <td style="padding: 15px; background-color: #E6DDF1;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png" alt="Read my Script" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script</a></strong></p>
+                    <p>Get expert feedback to improve your script.</p>
+                  </td>
+                </tr>
+
+                <!-- Row 2 -->
+                <tr>
+                  <td style="padding: 15px; background-color: #D4F0F4;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/prepare+for+funding.png" alt="Prepare for Funding" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/funding" style="color: #000; text-decoration: underline;">Prepare for Funding</a></strong></p>
+                    <p>Package your film for funding success.</p>
+                  </td>
+                  <td style="padding: 15px; background-color: #F4E6D4;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/verified+crew.png" alt="Verified Crew" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/verified-crew" style="color: #000; text-decoration: underline;">Verified Crew</a></strong></p>
+                    <p>Hire top professionals for your project.</p>
+                  </td>
+                </tr>
+
+                <!-- Row 3 -->
+                <tr>
+                  <td style="padding: 15px; background-color: #E6F4D4;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/film+distribution.png" alt="Film Distribution" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/distribution" style="color: #000; text-decoration: underline;">Film Distribution</a></strong></p>
+                    <p>Find the right channels for your film.</p>
+                  </td>
+                  <td style="padding: 15px; background-color: #F0D4E6;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/legal+contracts.png" alt="Legal Contracts" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/legal-contracts" style="color: #000; text-decoration: underline;">Legal Contracts</a></strong></p>
+                    <p>Get professionally drafted contracts.</p>
+                  </td>
+                </tr>
+
+                <!-- Row 4 -->
+                <tr>
+                  <td style="padding: 15px; background-color: #D4E6F4;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/script+breakdown.png" alt="Script Breakdown" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/script-breakdown" style="color: #000; text-decoration: underline;">Script Breakdown</a></strong></p>
+                    <p>Plan every scene with precision.</p>
+                  </td>
+                  <td style="padding: 15px; background-color: #F4D4E6;">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/budgeting+and+scheduling.png" alt="Budgeting & Scheduling" width="60">
+                    <p><strong><a href="https://nollywoodfilmmaker.com/services/budgeting" style="color: #000; text-decoration: underline;">Budgeting & Scheduling</a></strong></p>
+                    <p>Stay on track and on budget.</p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- Badge Section -->
+          <tr>
+            <td align="center" style="padding: 20px;">
+              <p><strong>SAVE AND SHARE THESE WORDS OF AFFIRMATION</strong></p>
+              <img src="https://media.discordapp.net/attachments/1056957903254327397/1354204594053578895/manuyie_a_handsome_black_dude_wearing_cool_glasses_posing_with__c4ff40b5-def8-4f7f-9201-02ba16a2309f.png" alt="Badge" width="250">
+              <p><strong>Get your own badge:</strong></p>
+              <a href="https://nollywoodfilmmaker.com/get-badge" style="display: inline-block; background-color: #ffd700; color: #000; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Generate My Badge</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
 </body>
 </html>
+
 `,
                     });
 
