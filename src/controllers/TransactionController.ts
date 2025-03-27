@@ -1405,7 +1405,6 @@ export const updateRequestTime = async (req: Request, res: Response) => {
         amount: 5000000,
         id: newTransaction.id,
         reference: orderId,
-        callback_url: 'https://nollywoodfilmmaker.com/',
       },
     };
 
@@ -1446,6 +1445,7 @@ async function handlePaymentInitialization(req: any, res?: any) {
       Authorization: 'Bearer sk_test_2f1a19c514fba8e9c6984fb5f94384023e21e8b1', // Replace with your actual key
       'Content-Type': 'application/json',
     },
+    callback_url: 'https://nollywoodfilmmaker.com/',
   };
 
   try {
