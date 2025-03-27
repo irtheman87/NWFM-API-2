@@ -1403,7 +1403,9 @@ export const updateRequestTime = async (req: Request, res: Response) => {
       body: {
         email: userEmail,
         amount: 5000000,
-        id: newTransaction.id
+        id: newTransaction.id,
+        reference: orderId,
+        callback_url: 'https://nollywoodfilmmaker.com/',
       },
     };
 
@@ -1437,7 +1439,6 @@ async function handlePaymentInitialization(req: any, res?: any) {
 
   const options = {
     hostname: 'api.paystack.co',
-    callback_url: 'https://nollywoodfilmmaker.com/',
     port: 443,
     path: '/transaction/initialize',
     method: 'POST',
