@@ -60,7 +60,6 @@ export interface IDraft extends Document {
   productionCompany?: string;
   contactInfo?: string;
   days?: string;
-  orderId: string;
   time?: Time;
   date: Date;
   createdAt?: Date;
@@ -160,7 +159,6 @@ const draftSchema = new Schema<IDraft>(
     productionCompany: { type: String },
     contactInfo: { type: String },
     days: { type: String },
-    orderId: { type: String, required: true },
     time: timeSchema,
     date: { type: Date, required: true, default: Date.now },
     createdAt: { type: Date, default: Date.now },
