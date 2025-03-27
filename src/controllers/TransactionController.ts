@@ -1404,8 +1404,7 @@ export const updateRequestTime = async (req: Request, res: Response) => {
         email: userEmail,
         amount: 5000000,
         id: newTransaction.id,
-        reference: orderId,
-        callback_url: 'https://nollywoodfilmmaker.com/',
+        reference: orderId
       },
     };
 

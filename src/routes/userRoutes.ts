@@ -5,7 +5,10 @@ import { registerUser, loginUser, refreshToken, updateUserById, updateUserPasswo
   fetchSingleRequest, fetchAwaitingRequests,
   submitContactForm,
   sendUserMessage,
-  getServiceChatMessages} from '../controllers/UserController';
+  getServiceChatMessages,
+  getDraftsByUserId,
+  createDraft,
+  getTransactionByReference} from '../controllers/UserController';
 import { isnotAdmin } from '../middleware/authMiddleware';
 import { fetchServicesByType } from '../controllers/ServicesController';
 import Transaction from '../models/SetTransaction';
@@ -75,6 +78,9 @@ router.post('/contacted', submitContactForm);
 router.post('/servicechat/user', sendUserMessage);
 router.get('/servicechat/messages', getServiceChatMessages);
 router.put('/continue-chat', verifyUserToken, updateRequestTime);
+router.get("/drafts/:userId", verifyUserToken, getDraftsByUserId);
+router.post("/drafts", verifyUserToken, createDraft);
+router.get("/transactions/:reference", verifyUserToken, getTransactionByReference);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {

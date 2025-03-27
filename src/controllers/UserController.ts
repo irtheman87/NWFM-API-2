@@ -25,6 +25,7 @@ import ContactFormSubmission from '../models/ContactFormSubmission';
 import ServiceChatThread from '../models/ServiceChatThread';
 import ServiceChat from '../models/ServiceChat';
 import geoip from 'geoip-lite';
+import DraftModel from '../models/DraftModel';
 
 
 // Define the storage engine
@@ -2014,5 +2015,80 @@ export const getServiceChatMessages = async (req: Request, res: Response): Promi
       message: "Failed to fetch messages",
       error: error.message,
     });
+  }
+};
+
+export const createDraft = async (req: Request, res: Response) => {
+  try {
+    // Extract only the allowed fields from the request body
+    const draftData = Object.keys(req.body).reduce((acc, key) => {
+      if (req.body[key] !== undefined) {
+        acc[key] = req.body[key];
+      }
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Ensure orderId and date are present (since orderId is required)
+    if (!draftData.orderId) {
+      return res.status(400).json({ message: "orderId is required" });
+    }
+
+    if (!draftData.date) {
+      draftData.date = new Date();
+    }
+
+    // Create and save the draft
+    const newDraft = new DraftModel(draftData);
+    await newDraft.save();
+
+    res.status(201).json({ message: "Draft created successfully", draft: newDraft });
+  } catch (error) {
+    console.error("Error creating draft:", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export const getDraftsByUserId = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const drafts = await DraftModel.find({ userId }).sort({ createdAt: -1 });
+
+    if (!drafts.length) {
+      return res.status(404).json({ message: "No drafts found for this user" });
+    }
+
+    res.status(200).json({ message: "Drafts fetched successfully", drafts });
+  } catch (error) {
+    console.error("Error fetching drafts:", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+
+export const getTransactionByReference = async (req: Request, res: Response) => {
+  try {
+    const { reference } = req.params;
+
+    // Ensure reference is provided
+    if (!reference) {
+      return res.status(400).json({ message: "Reference is required" });
+    }
+
+    // Fetch the transaction using the reference
+    const transaction = await Transaction.findOne({ reference }).select("orderId type");
+
+    if (!transaction) {
+      return res.status(404).json({ message: "Transaction not found" });
+    }
+
+    res.status(200).json(transaction);
+  } catch (error) {
+    console.error("Error fetching transaction:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
