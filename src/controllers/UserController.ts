@@ -2029,9 +2029,6 @@ export const createDraft = async (req: Request, res: Response) => {
     }, {} as Record<string, any>);
 
     // Ensure orderId and date are present (since orderId is required)
-    if (!draftData.orderId) {
-      return res.status(400).json({ message: "orderId is required" });
-    }
 
     if (!draftData.date) {
       draftData.date = new Date();
