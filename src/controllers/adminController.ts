@@ -623,7 +623,7 @@ if (existingAppointmentsCount >= 3) {
           Time for Chat: ${userTimeZoneBookTime}
           Add to Google Calendar: ${googleCalendarUrl}
           
-          View Order: https://nollywoodfilmmaker.com/consultants/dashboard
+          View Order: https://nollywoodfilmmaker.com/consultants/dashboard/${request.orderId}/order-details
           `,
             html: `
             <!DOCTYPE html>
