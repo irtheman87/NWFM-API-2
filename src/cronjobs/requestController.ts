@@ -39,7 +39,7 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
         text: `Thanks ${user.fname} ${user.lname} for using our chat service.
 
         <p>Hope you had a great session with your consultant. If you wish to continue chatting with the same consultant, 
-        click on the continue chat button on your next request.</p>
+        click on the continue existing chat button on your next request.</p>
 
         <p>If you had any issues regarding your last chat, open chat click on the action dropdown and click make a report.</p>
 

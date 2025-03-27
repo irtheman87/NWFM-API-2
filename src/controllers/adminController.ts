@@ -620,7 +620,7 @@ if (existingAppointmentsCount >= 3) {
           You have a new chat request from ${user.fname} ${user.lname}. Details below:
           
           Service Booked: ${request.nameofservice}
-          Time for Chat: ${userTimeZoneBookTime}
+          Time for Chat: ${userTimeZoneBookTime} WEST AFRICAN TIME (WAT)
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard/${request.orderId}/order-details
@@ -680,11 +680,11 @@ if (existingAppointmentsCount >= 3) {
               <p>You have a new chat request from ${user.fname} ${user.lname}. Details below:</p>
               <ul>
                 <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
-                <li><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</li>
+                <li><strong>Time for Chat:</strong> ${userTimeZoneBookTime} WEST AFRICAN TIME (WAT)</li>
                 <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
               </ul>
               <p>
-                <a href="https://nollywoodfilmmaker.com/consultants/dashboard" 
+                <a href="https://nollywoodfilmmaker.com/consultants/dashboard/${request.orderId}/order-details" 
                    style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">
                   View Order
                 </a>

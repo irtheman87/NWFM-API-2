@@ -1661,8 +1661,7 @@ async function chatTransaction(
           You have a new chat request from ${userDetails.fname} ${userDetails.lname}. Details below:
           
           Service Booked: ${newRequest.nameofservice}
-          Date Booked: ${newRequest.createdAt}
-          Time for Chat: ${newRequest.booktime}
+          Time for Chat: ${newRequest.booktime} WEST AFRICAN TIME (WAT) 
           Add to Google Calendar: ${googleCalendarUrl}
           
           View Order: https://nollywoodfilmmaker.com/consultants/dashboard
@@ -1747,7 +1746,7 @@ async function chatTransaction(
     if (useremail) {
       let tagMsg;
 
-      if(newRequest.nameofservice == "RRead my Script and advice"){
+      if(newRequest.nameofservice == "Read my Script and advice"){
         tagMsg = "script";
       }else if(newRequest.nameofservice == "Watch the Final cut of my film and advice"){
         tagMsg = "movie";
@@ -1813,7 +1812,7 @@ async function chatTransaction(
   </div>
           <p><strong>Congratulations!</strong></p>
     <p>Your ${tagMsg} has been reviewed, and we are ready to discuss it with you. A chat session has been scheduled as follows:</p>
-    <p><strong>Date & Time:</strong> [${newRequest.booktime}]</p>
+    <p><strong>Date & Time:</strong> [${newRequest.booktime} WEST AFRICAN TIME (WAT)]</p>
     <p>Please click <strong>"Save"</strong> to confirm your availability for this session. If you are unable to attend at this time, you can reschedule for a more convenient date and time and then click <strong>"Save"</strong> to confirm the new session.</p>
     <p><a href="https://nollywoodfilmmaker.com/user/dashboard?orderId=${newTransaction.orderId}&cid=${newRequest.cid}&date=${dated}&time=${timed}" target="_blank" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">Save</a></p>
     </div>
