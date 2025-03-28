@@ -498,6 +498,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
       originalScoreLink: wantsOriginalScore === "Yes" ? musicLink : "",
       hasTitleGraphic,
       titleGraphicUpload: hasTitleGraphic === "Yes" ? titleGraphicUpload : "",
+      wantsVerticalFormat,
       posterUpload,
       productionCompanyLogos,
       keyCastNames: keyCastNames ? keyCastNames.map((name: string) => ({ name, role: "" })) : [],
