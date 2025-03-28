@@ -458,9 +458,13 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     concerns,
   } = req.body;
 
+  console.log('Request userId:', req.body.userId);
+
   try {
     // Fetch user email
     const userEmail = await fetchUserEmailById(userId);
+
+    console.log('Request Email:', userEmail);
 
     // Base fee
     let totalPrice = 50000000;
