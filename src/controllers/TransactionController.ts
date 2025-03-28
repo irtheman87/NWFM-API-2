@@ -463,12 +463,12 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     const userEmail = await fetchUserEmailById(userId);
 
     // Base fee
-    let totalPrice = 500000;
+    let totalPrice = 50000000;
 
     // Add additional costs
-    if (wantsOriginalScore === "Yes") totalPrice += 300000;
-    if (hasTitleGraphic === "Yes") totalPrice += 100000;
-    if (wantsVerticalFormat === "Yes") totalPrice += 100000;
+    if (wantsOriginalScore === "Yes") totalPrice += 30000000;
+    if (hasTitleGraphic === "Yes") totalPrice += 10000000;
+    if (wantsVerticalFormat === "Yes") totalPrice += 10000000;
 
     // Generate transaction
     const newTransaction = new Transaction({
