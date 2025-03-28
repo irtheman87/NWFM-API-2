@@ -468,12 +468,12 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     console.log('Request Email:', userEmail);
 
     // Base fee
-    let totalPrice = 5000000;
+    let totalPrice = 50000000;
 
     // Add additional costs
-    if (wantsOriginalScore === "Yes") totalPrice += 3000000;
-    if (hasTitleGraphic === "Yes") totalPrice += 1000000;
-    if (wantsVerticalFormat === "Yes") totalPrice += 1000000;
+    if (wantsOriginalScore === "Yes") totalPrice += 30000000;
+    if (hasTitleGraphic === "Yes") totalPrice += 10000000;
+    if (wantsVerticalFormat === "Yes") totalPrice += 10000000;
 
     // Generate transaction
     const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
