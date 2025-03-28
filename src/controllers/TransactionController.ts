@@ -475,15 +475,9 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     if (wantsVerticalFormat === "Yes") totalPrice += 1000000;
 
     // Generate transaction
-    const newTransaction = new Transaction({
-      title,
-      userId,
-      type,
-      orderId: generateOrderId(),
-      price: totalPrice.toString(),
-      reference: "",
-      status: "processing",
-    });
+    const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
+    await newTransaction.save();
+
 
     await newTransaction.save();
 
