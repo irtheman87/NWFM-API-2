@@ -113,6 +113,7 @@ export interface IRequest extends Document {
   hasMusic?: string;
   musicLink?: string;
   wantsOriginalScore?: string;
+  originalScoreLink?: string;
   hasTitleGraphic?: string;
   titleGraphicUpload?: string;
   posterUpload?: string;
@@ -121,7 +122,6 @@ export interface IRequest extends Document {
   directorName?: string;
   fromTheMakersOf?: string;
   releaseDate?: string;
-  
 }
 
 const timeSchema = new Schema<Time>({
@@ -238,6 +238,7 @@ const requestSchema = new Schema<IRequest>(
     hasMusic: { type: String },
     musicLink: { type: String },
     wantsOriginalScore: { type: String },
+    originalScoreLink: { type: String },
     hasTitleGraphic: { type: String },
     titleGraphicUpload: { type: String },
     posterUpload: { type: String },
