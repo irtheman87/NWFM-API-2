@@ -502,6 +502,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
       fromTheMakersOf,
       releaseDate,
       concerns,
+      expertise: 'Director',
     });
 
     await newRequest.save();
