@@ -495,6 +495,8 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
             throw new Error("Request not found"); // Handle case where request is not found
           }
 
+          console.log(`Request: ${request}`);
+
           const user = await User.findById(request.userId);
 
           if (!user) {
