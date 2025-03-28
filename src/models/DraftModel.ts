@@ -60,6 +60,7 @@ export interface IDraft extends Document {
   productionCompany?: string;
   contactInfo?: string;
   days?: string;
+  orderId: string;
   time?: Time;
   date: Date;
   createdAt?: Date;
@@ -80,7 +81,7 @@ export interface IDraft extends Document {
   loginline?: string;
   keycharacters?: KeyCharacter[];
   keycrew?: KeyCrew[];
-  teamMembers?: TeamMember[];
+  teamMenber?: TeamMember[];
   estimatedBudget?: string;
   putinfestivals?: string;
   fundingtype?: string;
@@ -96,6 +97,21 @@ export interface IDraft extends Document {
   continueCount?: number;
   usebooktimed?: string;
   useendTimed?: string;
+  
+  // New optional fields for film trailer transaction:
+  filmUpload?: string;
+  dialogueTrack?: string;
+  hasMusic?: string;
+  musicLink?: string;
+  wantsOriginalScore?: string;
+  hasTitleGraphic?: string;
+  titleGraphicUpload?: string;
+  posterUpload?: string;
+  productionCompanyLogos?: string;
+  keyCastNames?: { name: string; role: string }[];
+  directorName?: string;
+  fromTheMakersOf?: string;
+  releaseDate?: string;
 }
 
 const timeSchema = new Schema<Time>({
@@ -114,7 +130,7 @@ const keyCrewSchema = new Schema<KeyCrew>({
   role: { type: String, required: true },
 });
 
-const teamMemberSchema = new Schema<TeamMember>({
+const teamMenberSchema = new Schema<TeamMember>({
   name: { type: String, required: true },
   bio: { type: String, required: true },
 });
@@ -159,6 +175,7 @@ const draftSchema = new Schema<IDraft>(
     productionCompany: { type: String },
     contactInfo: { type: String },
     days: { type: String },
+    orderId: { type: String, required: true },
     time: timeSchema,
     date: { type: Date, required: true, default: Date.now },
     createdAt: { type: Date, default: Date.now },
@@ -179,7 +196,7 @@ const draftSchema = new Schema<IDraft>(
     loginline: { type: String },
     keycharacters: { type: [keyCharacterSchema], default: [] },
     keycrew: { type: [keyCrewSchema], default: [] },
-    teamMembers: { type: [teamMemberSchema], default: [] },
+    teamMenber: { type: [teamMenberSchema], default: [] },
     estimatedBudget: { type: String },
     putinfestivals: { type: String },
     fundingtype: { type: String },
@@ -190,11 +207,27 @@ const draftSchema = new Schema<IDraft>(
     characterlockdate: { type: [characterlockdateSchema], default: [] },
     locationlockeddate: { type: [locationlockeddateSchema], default: [] },
     characterbible: { type: String },
-    keyArtCreated: { type: [String] },
+    keyArtCreated: {type: [String] },
     continued: { type: Boolean },
     continueCount: { type: Number },
     usebooktimed: { type: String },
     useendTimed: { type: String },
+    filmUpload: { type: String },
+    dialogueTrack: { type: String },
+    hasMusic: { type: String },
+    musicLink: { type: String },
+    wantsOriginalScore: { type: String },
+    hasTitleGraphic: { type: String },
+    titleGraphicUpload: { type: String },
+    posterUpload: { type: String },
+    productionCompanyLogos: { type: [String], default: [] },
+    keyCastNames: {
+      type: [{ name: { type: String }, role: { type: String, default: "" } }],
+      default: [],
+    },
+    directorName: { type: String },
+    fromTheMakersOf: { type: String },
+    releaseDate: { type: String },
   },
   { timestamps: true }
 );

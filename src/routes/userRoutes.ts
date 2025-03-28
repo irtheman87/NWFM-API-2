@@ -15,7 +15,8 @@ import Transaction from '../models/SetTransaction';
 import User, { IUser } from '../models/User';
 import { ReadScriptTransaction, WatchFinalCutTransaction, BudgetTransaction, CreateBudgetTransaction, CreateMarketBudgetTransaction, createAPitch, createLegal, chatTransaction,
   getParameterHandler, uploadFiles, ExtendMyTime, createPitchDeckRequest,
-  updateRequestTime
+  updateRequestTime,
+  CreateFilmTrailerTransaction
  } from '../controllers/TransactionController';
 import { validateUserRequest, verifyUserToken } from '../middleware/TokenValidator';
 import { verifyUserEmail } from '../controllers/utilityroute';
@@ -81,6 +82,7 @@ router.put('/continue-chat', verifyUserToken, updateRequestTime);
 router.get("/drafts/:userId", verifyUserToken, getDraftsByUserId);
 router.post("/drafts", verifyUserToken, createDraft);
 router.get("/transactions/:reference", verifyUserToken, getTransactionByReference);
+router.post("/film-trailer", verifyUserToken, CreateFilmTrailerTransaction);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {

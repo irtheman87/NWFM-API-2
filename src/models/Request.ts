@@ -108,6 +108,19 @@ export interface IRequest extends Document {
   continueCount?: number;
   usebooktimed?: string;
   useendTimed?: string;
+  filmUpload?: string;
+  dialogueTrack?: string;
+  hasMusic?: string;
+  musicLink?: string;
+  wantsOriginalScore?: string;
+  hasTitleGraphic?: string;
+  titleGraphicUpload?: string;
+  posterUpload?: string;
+  productionCompanyLogos?: string[];
+  keyCastNames?: { name: string; role: string }[];
+  directorName?: string;
+  fromTheMakersOf?: string;
+  releaseDate?: string;
   
 }
 
@@ -220,7 +233,22 @@ const requestSchema = new Schema<IRequest>(
     continueCount: { type: Number },
     usebooktimed: { type: String },
     useendTimed: { type: String },
-
+    filmUpload: { type: String },
+    dialogueTrack: { type: String },
+    hasMusic: { type: String },
+    musicLink: { type: String },
+    wantsOriginalScore: { type: String },
+    hasTitleGraphic: { type: String },
+    titleGraphicUpload: { type: String },
+    posterUpload: { type: String },
+    productionCompanyLogos: { type: [String], default: [] },
+    keyCastNames: {
+      type: [{ name: { type: String }, role: { type: String, default: "" } }],
+      default: [],
+    },
+    directorName: { type: String },
+    fromTheMakersOf: { type: String },
+    releaseDate: { type: String },
   },
   { timestamps: true }
 );

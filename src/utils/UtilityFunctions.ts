@@ -212,7 +212,6 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
       // const userSocketId = users[userId];
      
       io.emit('adminNotification', notification);
-
       console.log('Admin Notification created:', notification);
     } catch (error) {
       console.error('Error creating notification:', error);

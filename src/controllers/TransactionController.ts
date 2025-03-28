@@ -435,7 +435,101 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
   }
 };
 
-  
+export const CreateFilmTrailerTransaction = async (req: Request, res: Response) => {
+  const {
+    userId,
+    title,
+    type,
+    workingTitle,
+    filmUpload, // Google link
+    dialogueTrack, // Google link
+    hasMusic, // Yes/No
+    musicLink, // Google link (if hasMusic is Yes)
+    wantsOriginalScore, // Yes/No (adds 300k)
+    hasTitleGraphic, // Yes/No (adds 100k)
+    titleGraphicUpload, // Google link (if hasTitleGraphic is Yes)
+    posterUpload, // Google link
+    wantsVerticalFormat, // Yes/No (adds 100k)
+    productionCompanyLogos, // Google link
+    keyCastNames,
+    directorName,
+    fromTheMakersOf,
+    releaseDate,
+    concerns,
+  } = req.body;
+
+  try {
+    // Fetch user email
+    const userEmail = await fetchUserEmailById(userId);
+
+    // Base fee
+    let totalPrice = 500000;
+
+    // Add additional costs
+    if (wantsOriginalScore === "Yes") totalPrice += 300000;
+    if (hasTitleGraphic === "Yes") totalPrice += 100000;
+    if (wantsVerticalFormat === "Yes") totalPrice += 100000;
+
+    // Generate transaction
+    const newTransaction = new Transaction({
+      title,
+      userId,
+      type,
+      orderId: generateOrderId(),
+      price: totalPrice.toString(),
+      reference: "",
+      status: "processing",
+    });
+
+    await newTransaction.save();
+
+    // Generate draft request
+    const newRequest = new RequesModel({
+      movie_title: workingTitle,
+      filmUpload,
+      dialogueTrack,
+      hasMusic,
+      musicLink: hasMusic === "Yes" ? musicLink : "",
+      wantsOriginalScore,
+      hasTitleGraphic,
+      titleGraphicUpload: hasTitleGraphic === "Yes" ? titleGraphicUpload : "",
+      posterUpload,
+      productionCompanyLogos,
+      keyCastNames: keyCastNames ? keyCastNames.map((name: string) => ({ name, role: "" })) : [],
+      directorName,
+      fromTheMakersOf,
+      releaseDate,
+      concerns,
+    });
+
+    await newRequest.save();
+
+    const paymentReq = {
+      body: {
+        email: userEmail,
+        amount: totalPrice,
+        id: newTransaction.id,
+      },
+    };
+
+    // Handle payment initialization
+    try {
+      const result = await handlePaymentInitialization(paymentReq);
+      console.log("Payment initialized successfully:", result);
+      res.status(201).json({ message: "Transaction and request created successfully", result });
+    } catch (error) {
+      console.error("Error during payment initialization:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  } catch (error) {
+    console.error("Error creating transaction and request:", error);
+    res.status(500).json({
+      message: "Error creating transaction and request",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
   
 export const BudgetTransaction = async (req: Request, res: Response) => {
   const { title, userId, type, movie_title, synopsis, genre, platform, budget, concerns, fileName, showtype, episodes } = req.body;
