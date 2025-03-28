@@ -446,6 +446,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     hasMusic, // Yes/No
     musicLink, // Google link (if hasMusic is Yes)
     wantsOriginalScore, // Yes/No (adds 300k)
+    originalScoreLink,
     hasTitleGraphic, // Yes/No (adds 100k)
     titleGraphicUpload, // Google link (if hasTitleGraphic is Yes)
     posterUpload, // Google link
@@ -494,6 +495,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
       hasMusic,
       musicLink: hasMusic === "Yes" ? musicLink : "",
       wantsOriginalScore,
+      originalScoreLink: wantsOriginalScore === "Yes" ? musicLink : "",
       hasTitleGraphic,
       titleGraphicUpload: hasTitleGraphic === "Yes" ? titleGraphicUpload : "",
       posterUpload,
