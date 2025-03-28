@@ -485,6 +485,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     const newRequest = new RequesModel({
       userId,
       type,
+      stattusof: 'pending',
       nameofservice: title,
       orderId: newTransaction.orderId,
       movie_title: workingTitle,
