@@ -116,6 +116,7 @@ export interface IRequest extends Document {
   originalScoreLink?: string;
   hasTitleGraphic?: string;
   titleGraphicUpload?: string;
+  wantsVerticalFormat?: string;
   posterUpload?: string;
   productionCompanyLogos?: string[];
   keyCastNames?: { name: string; role: string }[];
@@ -241,6 +242,7 @@ const requestSchema = new Schema<IRequest>(
     originalScoreLink: { type: String },
     hasTitleGraphic: { type: String },
     titleGraphicUpload: { type: String },
+    wantsVerticalFormat: { type: String },
     posterUpload: { type: String },
     productionCompanyLogos: { type: [String], default: [] },
     keyCastNames: {
