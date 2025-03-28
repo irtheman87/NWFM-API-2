@@ -306,65 +306,74 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     }
     
     // Fetch extra documents to account for filtering
-    const rawRequests = await RequestModel.find(filter)
-      .sort({ updatedAt: order === "desc" ? -1 : 1 })
-      .limit(pageSize * 3); // Fetch more to compensate for filtering
-    
-    const requestsWithDetails = await Promise.all(
-      rawRequests.map(async (request) => {
-        const transaction = await Transaction.findOne(
-          { orderId: request.orderId, status: "completed" },
-          "orderId status price title"
-        );
-    
-        if (!transaction) return null;
-    
-        const user = await User.findById(request.userId, "fname lname email profilepics");
-        const type = request.type;
-        let cid = null;
-    
-        if (type === "request") {
-          cid = await Task.findOne({ orderId: request.orderId }, "cid");
-        } else {
-          cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
-        }
-    
-        console.log("CID fetched:", cid);
-    
-        if (!cid) {
-          console.warn("CID is null or undefined for orderId:", request.orderId);
-        }
-    
-        const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
-    
-        if (!consultant) {
-          console.warn("Consultant not found for CID:", cid);
-        }
-    
-        return {
-          ...request.toObject(),
-          user,
-          assignedConsultant: consultant,
-          transaction,
-        };
-      })
+// Fetch paginated and sorted requests
+const requests = await RequestModel.find(filter)
+  .sort({ updatedAt: order === "desc" ? -1 : 1 })
+  .skip((pageNumber - 1) * pageSize)
+  .limit(pageSize);
+
+// Fetch associated user and transaction details, filter transactions with status "completed"
+const requestsWithDetails = await Promise.all(
+  requests.map(async (request) => {
+    const transaction = await Transaction.findOne(
+      { orderId: request.orderId, status: "completed" }, // Match by orderId and status
+      "orderId status price title" // Fetch specific fields
     );
-    
-    // Apply pagination after filtering
-    const filteredRequests = requestsWithDetails.filter((request) => request !== null);
-    const paginatedRequests = filteredRequests.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
-    
-    const totalDocuments = await RequestModel.countDocuments(filter);
-    
-    return res.status(200).json({
-      message: "Requests fetched successfully.",
-      pagination: {
-        currentPage: pageNumber,
-        totalPages: Math.ceil(totalDocuments / pageSize),
-        totalDocuments: filteredRequests.length,
-      },
-      requests: paginatedRequests, // Return only the correct paginated data
-    });
+
+    if (!transaction) return null; // Exclude requests with no "completed" transactions
+
+    const user = await User.findById(request.userId, "fname lname email profilepics"); // Fetch specific user details
+    let cid = null;
+
+    if (request.type === "request") {
+      cid = await Task.findOne({ orderId: request.orderId }, "cid");
+    } else {
+      cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
+    }
+
+    console.log("CID fetched:", cid);
+
+    if (!cid) {
+      console.warn("CID is null or undefined for orderId:", request.orderId);
+    }
+
+    const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
+
+    if (!consultant) {
+      console.warn("Consultant not found for CID:", cid);
+    }
+
+    return {
+      ...request.toObject(),
+      user,
+      assignedConsultant: consultant,
+      transaction, // Include transaction details
+    };
+  })
+);
+
+// Filter out null values (requests with no completed transactions)
+const filteredRequests = requestsWithDetails.filter((request) => request !== null);
+
+// Correct total document count after filtering
+const totalFilteredDocuments = filteredRequests.length;
+const totalPages = Math.ceil(totalFilteredDocuments / pageSize);
+
+// Apply pagination AFTER filtering
+const paginatedRequests = filteredRequests.slice(
+  (pageNumber - 1) * pageSize,
+  pageNumber * pageSize
+);
+
+return res.status(200).json({
+  message: "Requests fetched successfully.",
+  pagination: {
+    currentPage: pageNumber,
+    totalPages,
+    totalDocuments: totalFilteredDocuments, // Show actual count after filtering
+  },
+  requests: paginatedRequests, // Only return paginated results
+});  
     
   } catch (error) {
     console.error('Error fetching requests:', error);
