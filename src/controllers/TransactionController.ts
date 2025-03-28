@@ -483,6 +483,8 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
 
     // Generate draft request
     const newRequest = new RequesModel({
+      userId,
+      type,
       nameofservice: title,
       orderId: newTransaction.orderId,
       movie_title: workingTitle,
