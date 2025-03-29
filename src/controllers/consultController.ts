@@ -1234,6 +1234,26 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
       return res.status(400).json({ message: 'Missing orderId in the request body' });
     }
 
+    const request = await RequestModel.findOne({ orderId: orderId });
+
+    if (!request) {
+      throw new Error("Request not found");
+    }
+
+    const transaction = await Transaction.findOne({ orderId }).exec();
+    
+    if (!transaction) {
+      return res.status(404).json({ message: `Transaction with orderId ${orderId} not found` });
+    }
+
+    if(request.stattusof === 'ongoing') {
+      const price = transaction.price;
+
+      const actualIncome = parseFloat(price) * 0.6;
+          // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
+      credit(userId, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
+    }
+
     // Find and update the request
     const updatedRequest = await RequestModel.findOneAndUpdate(
       { orderId }, // Match the request by orderId
@@ -1244,24 +1264,6 @@ export const completeRequest = async (req: Request, res: Response): Promise<Resp
     if (!updatedRequest) {
       return res.status(404).json({ message: `Request with orderId ${orderId} not found` });
     }
-
-    const transaction = await Transaction.findOne({ orderId }).exec();
-    
-    if (!transaction) {
-      return res.status(404).json({ message: `Transaction with orderId ${orderId} not found` });
-    }
-
-      const price = transaction.price;
-
-      const actualIncome = parseFloat(price) * 0.6;
-          // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
-      credit(userId, actualIncome, orderId); // Example: assuming 'credit' needs `cid` and `price`
-
-      const request = await RequestModel.findOne({ orderId: orderId });
-
-      if (!request) {
-        throw new Error("Request not found");
-      }
 
       const user = await User.findById(request.userId);
 

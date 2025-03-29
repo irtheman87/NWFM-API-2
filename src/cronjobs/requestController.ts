@@ -3,6 +3,9 @@ import moment from 'moment';
 import RequestModel from '../models/Request';
 import User from '../models/User';
 import sendEmail from '../utils/sendEmail'; // Ensure this function is correctly implemented
+import Transaction from '../models/SetTransaction';
+import { credit } from '../utils/UtilityFunctions';
+import AppointmentModel from '../models/Appointment';
 
 export const updateExpiredRequests = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -22,6 +25,26 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
 
     // Loop through each request and process it
     for (const request of expiredRequests) {
+
+      const transaction = await Transaction.findOne({ orderId: request.orderId }).exec();
+        
+      if (!transaction) {
+        return res.status(404).json({ message: `Transaction with orderId ${request.orderId} not found` });
+      }
+
+      const appointment = await AppointmentModel.findOne({ orderId: request.orderId }).exec();
+      if (!appointment) {
+        return res.status(404).json({ message: `Appointment with orderId ${request.orderId} not found` });
+      }
+  
+      if(request.stattusof === 'ongoing') {
+        const price = transaction.price;
+  
+        const actualIncome = parseFloat(price) * 0.6;
+            // Here you would perform the credit or debit operation (credit/cid, price or amount depending on your logic)
+        credit(appointment.cid, actualIncome, request.orderId); // Example: assuming 'credit' needs `cid` and `price`
+      }
+      
       // Update the request status to `completed`
       await RequestModel.updateOne({ _id: request._id }, { $set: { stattusof: 'completed' } });
 
