@@ -472,7 +472,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
 
     // Add additional costs
     if (wantsOriginalScore === "Yes") totalPrice += 30000000;
-    if (hasTitleGraphic === "Yes") totalPrice += 10000000;
+    if (hasTitleGraphic === "No") totalPrice += 10000000;
     if (wantsVerticalFormat === "Yes") totalPrice += 10000000;
 
     // Generate transaction

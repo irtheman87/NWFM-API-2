@@ -121,9 +121,12 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
 
     // Handle 'charge.success' event
     if (event.event === 'charge.success') {
+      
       const { reference, status, customer } = event.data;
 
       console.log(`Payment successful. Reference: ${reference}`);
+
+
 
       // Update transaction in the database
       const result = await Transaction.findOneAndUpdate(
@@ -131,8 +134,14 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
         { status: 'completed' },
         { new: true }
       );
+      
 
-
+      sendEmail({
+        to: 'admin@dudutech.io',
+        subject: 'Payment Successful',
+        text: `A User Just Made A Payment for ${result?.title} with ref of ${result?.reference} and the amount of ${result?.price}`,
+        html: `A User Just Made A Payment for ${result?.title} with ref of ${result?.reference} and the amount of ${result?.price}`,
+      });
   
      
 
