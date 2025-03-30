@@ -2436,8 +2436,8 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
     });
   } catch (error: any) {
     console.error("Error creating withdrawal:", error.message || error);
-    return res.status(500).json({
-      message: "Failed to create withdrawal",
+    return res.status(400).json({
+      message: error.message,
       error: error.message || "An unknown error occurred",
     });
   }
