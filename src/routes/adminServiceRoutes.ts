@@ -5,7 +5,7 @@ import { isAdmin } from '../middleware/authMiddleware';
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import csvParser from "csv-parser";
+import csv from 'csv-parser';
 import { sendSMS } from '../utils/UtilityFunctions';
 
 const router = express.Router();
@@ -56,7 +56,4 @@ router.post('/upload-csv', upload.single('file'), async (req: Request, res: Resp
 });
 
 module.exports = router;
-function csv(): any {
-    throw new Error('Function not implemented.');
-}
 
