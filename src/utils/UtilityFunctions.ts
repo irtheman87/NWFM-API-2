@@ -336,7 +336,6 @@ export async function debit(
   accountnumber?: string
 ): Promise<IWallet | null> {
   try {
-    amount = amount;
     if (amount <= 0) throw new Error('Amount should be greater than 0');
 
     const wallet = await Wallet.findOne({ cid }).exec();
@@ -346,14 +345,13 @@ export async function debit(
       throw new Error('A Minimum of 100000 is required to withdraw');
     }
 
+    if (wallet.availableBalance < amount) {
+      throw new Error('Insufficient available balance');
+    }
 
     wallet.balance -= amount;
     wallet.availableBalance -= amount;
     await wallet.save();
-
-    if (wallet.availableBalance < amount) {
-      throw new Error('Insufficient available balance');
-    }
 
     // Create a wallet history record with status 'pending'
     await addWalletHistory(
