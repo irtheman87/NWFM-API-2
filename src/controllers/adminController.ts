@@ -306,9 +306,12 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       filter.type = type; // Add type filter only if provided
     }
 
+    // Ensure sort is a string and provide a fallback
+    const sortField = typeof sort === 'string' ? sort : 'createdAt'; // Fallback to 'createdAt' if sort is invalid
+
     // Fetch paginated and sorted requests
     const requests = await RequestModel.find(filter)
-      .sort({ updatedAt: order === 'desc' ? -1 : 1 })
+      .sort({ [sortField]: order === 'desc' ? -1 : 1 }) // Use sortField to satisfy TypeScript
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize);
 
@@ -324,26 +327,25 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
 
         const user = await User.findById(request.userId, 'fname lname email profilepics'); // Fetch specific user details
         const type = request.type;
-let cid = null;
+        let cid = null;
 
-if (type === "request") {
-  cid = await Task.findOne({ orderId: request.orderId }, "cid");
-} else {
-  cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
-}
+        if (type === "request") {
+          cid = await Task.findOne({ orderId: request.orderId }, "cid");
+        } else {
+          cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
+        }
 
-console.log("CID fetched:", cid);
+        console.log("CID fetched:", cid);
 
-if (!cid) {
-  console.warn("CID is null or undefined for orderId:", request.orderId);
-}
+        if (!cid) {
+          console.warn("CID is null or undefined for orderId:", request.orderId);
+        }
 
-const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
+        const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
 
-if (!consultant) {
-  console.warn("Consultant not found for CID:", cid);
-}
-
+        if (!consultant) {
+          console.warn("Consultant not found for CID:", cid);
+        }
 
         return {
           ...request.toObject(),
@@ -364,7 +366,7 @@ if (!consultant) {
       pagination: {
         currentPage: pageNumber,
         totalPages: Math.ceil(totalDocuments / pageSize),
-        totalDocuments: filteredRequests.length,
+        totalDocuments: totalDocuments, // Fixed to use unfiltered total
       },
       requests: filteredRequests,
     });
@@ -372,7 +374,7 @@ if (!consultant) {
     console.error('Error fetching requests:', error);
     return res.status(500).json({
       message: 'Failed to fetch requests',
-      error,
+      // Removed 'error' to avoid exposing raw error details
     });
   }
 };
