@@ -315,15 +315,18 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize);
 
-    // Fetch associated user and transaction details, filter transactions with status "completed"
+    // Fetch associated user and transaction details, only include requests with completed transactions
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
         const transaction = await Transaction.findOne(
-          { orderId: request.orderId, status: 'completed' }, // Match by orderId and status
+          { 
+            orderId: request.orderId, 
+            status: 'completed' // Hardcoded to only fetch completed transactions
+          }, 
           'orderId status price title' // Fetch specific fields
         );
 
-        if (!transaction) return null; // Exclude requests with no "completed" transactions
+        if (!transaction) return null; // Exclude requests with no completed transactions
 
         const user = await User.findById(request.userId, 'fname lname email profilepics'); // Fetch specific user details
         const type = request.type;
@@ -366,7 +369,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       pagination: {
         currentPage: pageNumber,
         totalPages: Math.ceil(totalDocuments / pageSize),
-        totalDocuments: totalDocuments, // Fixed to use unfiltered total
+        totalDocuments: totalDocuments, // Unfiltered total based on stattusof filter
       },
       requests: filteredRequests,
     });
@@ -374,7 +377,6 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     console.error('Error fetching requests:', error);
     return res.status(500).json({
       message: 'Failed to fetch requests',
-      // Removed 'error' to avoid exposing raw error details
     });
   }
 };
