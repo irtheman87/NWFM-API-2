@@ -309,69 +309,126 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     // Ensure sort is a string and provide a fallback
     const sortField = typeof sort === 'string' ? sort : 'createdAt'; // Fallback to 'createdAt' if sort is invalid
 
-    // Fetch paginated and sorted requests
-    const requests = await RequestModel.find(filter)
-      .sort({ [sortField]: order === 'desc' ? -1 : 1 }) // Use sortField to satisfy TypeScript
-      .skip((pageNumber - 1) * pageSize)
-      .limit(pageSize);
+    // Use aggregation to filter requests with completed transactions upfront
+    const requestsWithDetails = await RequestModel.aggregate([
+      { $match: filter }, // Apply stattusof and type filter
+      {
+        $lookup: {
+          from: 'transactions', // Assuming 'transactions' is the collection name
+          localField: 'orderId',
+          foreignField: 'orderId',
+          as: 'transaction',
+          pipeline: [
+            { $match: { status: 'completed' } }, // Only completed transactions
+            { $project: { orderId: 1, status: 1, price: 1, title: 1 } },
+          ],
+        },
+      },
+      { $unwind: '$transaction' }, // Exclude requests without a completed transaction
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+          pipeline: [{ $project: { fname: 1, lname: 1, email: 1, profilepics: 1 } }],
+        },
+      },
+      { $unwind: '$user' },
+      {
+        $lookup: {
+          from: type === 'request' ? 'tasks' : 'appointmentmodels', // Dynamic collection based on type
+          localField: 'orderId',
+          foreignField: 'orderId',
+          as: 'cidDoc',
+          pipeline: [{ $project: { cid: 1 } }],
+        },
+      },
+      { $unwind: { path: '$cidDoc', preserveNullAndEmptyArrays: true } }, // Allow null cid
+      {
+        $lookup: {
+          from: 'consultants',
+          localField: 'cidDoc.cid',
+          foreignField: '_id',
+          as: 'consultant',
+          pipeline: [{ $project: { fname: 1, lname: 1 } }],
+        },
+      },
+      { $unwind: { path: '$consultant', preserveNullAndEmptyArrays: true } }, // Allow null consultant
+      {
+        $project: {
+          _id: 1,
+          movie_title: 1,
+          synopsis: 1,
+          stattusof: 1,
+          type: 1,
+          nameofservice: 1,
+          genre: 1,
+          concerns: 1,
+          links: 1,
+          orderId: 1,
+          userId: 1,
+          expertise: 1,
+          files: 1,
+          filename: 1,
+          showtype: 1,
+          episodes: 1,
+          characterbible: 1,
+          keyArtCreated: 1,
+          productionCompanyLogos: 1,
+          date: 1,
+          createdAt: 1,
+          keycharacters: 1,
+          keycrew: 1,
+          teamMenber: 1,
+          startpop: 1,
+          characterlockdate: 1,
+          locationlockeddate: 1,
+          keyCastNames: 1,
+          updatedAt: 1,
+          time: 1,
+          chat_title: 1,
+          summary: 1,
+          consultantField: '$consultant', // Rename to avoid conflict
+          day: 1,
+          booktime: 1,
+          endTime: 1,
+          user: '$user',
+          assignedConsultant: '$consultant',
+          transaction: '$transaction',
+        },
+      },
+      { $sort: { [sortField]: order === 'desc' ? -1 : 1 } },
+      { $skip: (pageNumber - 1) * pageSize },
+      { $limit: pageSize },
+    ]);
 
-    // Fetch associated user and transaction details, only include requests with completed transactions
-    const requestsWithDetails = await Promise.all(
-      requests.map(async (request) => {
-        const transaction = await Transaction.findOne(
-          { 
-            orderId: request.orderId, 
-            status: 'completed' // Hardcoded to only fetch completed transactions
-          }, 
-          'orderId status price title' // Fetch specific fields
-        );
+    // Count total documents matching the filter with completed transactions
+    const totalDocsResult = await RequestModel.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: 'transactions',
+          localField: 'orderId',
+          foreignField: 'orderId',
+          as: 'transaction',
+          pipeline: [{ $match: { status: 'completed' } }],
+        },
+      },
+      { $unwind: '$transaction' },
+      { $count: 'total' },
+    ]);
 
-        if (!transaction) return null; // Exclude requests with no completed transactions
-
-        const user = await User.findById(request.userId, 'fname lname email profilepics'); // Fetch specific user details
-        const type = request.type;
-        let cid = null;
-
-        if (type === "request") {
-          cid = await Task.findOne({ orderId: request.orderId }, "cid");
-        } else {
-          cid = await AppointmentModel.findOne({ orderId: request.orderId }, "cid");
-        }
-
-        console.log("CID fetched:", cid);
-
-        if (!cid) {
-          console.warn("CID is null or undefined for orderId:", request.orderId);
-        }
-
-        const consultant = cid ? await Consultant.findById(cid.cid, "fname lname") : null;
-
-        if (!consultant) {
-          console.warn("Consultant not found for CID:", cid);
-        }
-
-        return {
-          ...request.toObject(),
-          user,
-          assignedConsultant: consultant,
-          transaction, // Include transaction details
-        };
-      })
-    );
-
-    // Filter out null values (requests with no completed transactions)
-    const filteredRequests = requestsWithDetails.filter((request) => request !== null);
-
-    const totalDocuments = await RequestModel.countDocuments(filter);
+    const totalDocuments = totalDocsResult.length > 0 ? totalDocsResult[0].total : 0;
 
     return res.status(200).json({
       message: 'Requests fetched successfully.',
       pagination: {
         currentPage: pageNumber,
         totalPages: Math.ceil(totalDocuments / pageSize),
-        totalDocuments: totalDocuments, // Unfiltered total based on stattusof filter
+        totalDocuments: totalDocuments,
       },
-      requests: filteredRequests,
+      requests: requestsWithDetails,
     });
   } catch (error) {
     console.error('Error fetching requests:', error);
@@ -380,7 +437,6 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     });
   }
 };
-
 
 
 export const fetchConsultantsByExpertise = async (req: Request, res: Response): Promise<Response> => {
