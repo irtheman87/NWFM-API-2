@@ -309,12 +309,12 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     // Ensure sort is a string and provide a fallback
     const sortField = typeof sort === 'string' ? sort : 'createdAt'; // Fallback to 'createdAt' if sort is invalid
 
-    // Use aggregation to filter requests with completed transactions upfront
+    // Main aggregation pipeline for fetching requests
     const requestsWithDetails = await RequestModel.aggregate([
       { $match: filter }, // Apply stattusof and type filter
       {
         $lookup: {
-          from: 'transactions', // Assuming 'transactions' is the collection name
+          from: 'transactions', // Verify this matches your collection name
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'transaction',
@@ -327,17 +327,17 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $unwind: '$transaction' }, // Exclude requests without a completed transaction
       {
         $lookup: {
-          from: 'users',
+          from: 'users', // Verify this matches your collection name
           localField: 'userId',
           foreignField: '_id',
           as: 'user',
           pipeline: [{ $project: { fname: 1, lname: 1, email: 1, profilepics: 1 } }],
         },
       },
-      { $unwind: '$user' },
+      { $unwind: '$user' }, // Expecting one user per request
       {
         $lookup: {
-          from: type === 'request' ? 'tasks' : 'appointmentmodels', // Dynamic collection based on type
+          from: type === 'request' ? 'tasks' : 'appointments', // Adjusted to 'appointments' (likely correct name)
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'cidDoc',
@@ -347,7 +347,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $unwind: { path: '$cidDoc', preserveNullAndEmptyArrays: true } }, // Allow null cid
       {
         $lookup: {
-          from: 'consultants',
+          from: 'consultants', // Verify this matches your collection name
           localField: 'cidDoc.cid',
           foreignField: '_id',
           as: 'consultant',
@@ -389,7 +389,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
           time: 1,
           chat_title: 1,
           summary: 1,
-          consultantField: '$consultant', // Rename to avoid conflict
+          consultantField: '$consultant', // Avoid naming conflict
           day: 1,
           booktime: 1,
           endTime: 1,
@@ -403,12 +403,15 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $limit: pageSize },
     ]);
 
+    // Log the result for debugging (remove later)
+    console.log('Fetched requests:', requestsWithDetails);
+
     // Count total documents matching the filter with completed transactions
     const totalDocsResult = await RequestModel.aggregate([
       { $match: filter },
       {
         $lookup: {
-          from: 'transactions',
+          from: 'transactions', // Verify this matches your collection name
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'transaction',
