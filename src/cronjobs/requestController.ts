@@ -13,6 +13,8 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
     // Get current time in GMT+1 and subtract 5 minutes
     const currentTime = moment().utcOffset('+01:00').subtract(5, 'minutes').toISOString();
 
+    console.log(`Current time (GMT+1): ${currentTime}`);
+
     // Find all `Chat` requests that are `ongoing` and have an expired `endTime`
     const expiredRequests = await RequestModel.find({
       type: 'Chat',
