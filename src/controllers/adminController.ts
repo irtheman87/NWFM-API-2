@@ -258,11 +258,36 @@ export const createExtension = async (req: Request, res: Response): Promise<Resp
 };
 
 
+interface DecodedToken {
+  role: string;
+  // Add other expected properties from your token payload if needed
+  [key: string]: any; // Allow other properties
+}
+
+// Helper function for type guarding the decoded token
+function isDecodedToken(obj: any): obj is DecodedToken {
+  return typeof obj === 'object' && obj !== null && typeof obj.role === 'string';
+}
+
+/**
+ * Fetches a paginated list of requests for admin users, enriching them
+ * with associated User, completed Transaction, and assigned Consultant details.
+ */
 export const fetchRequestsWithPagination = async (req: Request, res: Response): Promise<Response> => {
+  // --- 1. Extract and Validate Query Parameters ---
   const { page = 1, limit = 10, sort = 'createdAt', order = 'desc', status, type } = req.query;
 
+  // Ensure pagination parameters are valid numbers >= 1
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const pageSize = Math.max(Number(limit) || 10, 1); // Default limit 10 if invalid
+
+  // Validate sort order, default to descending
+  const sortOrder = order === 'asc' ? 1 : -1;
+  // Use provided sort field or fallback to 'createdAt'
+  const sortField = typeof sort === 'string' ? sort : 'createdAt';
+
   try {
-    // Validate the Bearer token
+    // --- 2. Authentication & Authorization ---
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
@@ -272,201 +297,212 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
 
     if (!JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT secret key is not configured' });
+      // Log critical error server-side for maintainers
+      console.error('CRITICAL: JWT_ACCESS_SECRET environment variable is not configured.');
+      return res.status(500).json({ message: 'Internal server configuration error.' }); // Generic message to client
     }
 
-    let decodedToken;
+    let decodedTokenPayload: unknown;
     try {
-      decodedToken = jwt.verify(token, JWT_SECRET);
-    } catch (err) {
-      return res.status(401).json({ message: 'Invalid token' });
+      // Verify the token using the secret
+      decodedTokenPayload = jwt.verify(token, JWT_SECRET);
+    } catch (err: any) {
+      // Handle specific JWT errors if needed (e.g., TokenExpiredError)
+      console.warn(`JWT verification failed: ${err.message}`);
+      return res.status(401).json({ message: 'Invalid or expired token.' });
     }
 
-    const { role } = decodedToken as { role: string };
+    // Safely check the token structure and role using the type guard
+    if (!isDecodedToken(decodedTokenPayload)) {
+        console.error('Token payload structure is invalid:', decodedTokenPayload);
+        return res.status(401).json({ message: 'Invalid token payload structure.' });
+    }
+
+    // Now safely access role after validation
+    const { role } = decodedTokenPayload;
     if (role !== 'admin') {
+      // Forbidden access if the user is not an admin
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    const pageNumber = Math.max(Number(page), 1);
-    const pageSize = Math.max(Number(limit), 1);
+    // --- 3. Build Filter for RequestModel Query ---
+    const filter: Record<string, any> = {};
 
-    let filter: Record<string, any>;
-
-    if (!status) {
-      filter = {
-        stattusof: { $in: ['pending', 'ongoing', 'completed'] }, // Match status from the list
-      };
-    } else {
-      filter = {
-        stattusof: { $in: [status] }, // Match status from the provided value
-      };
-    }
-    
-    if (type) {
-      filter.type = type; // Add type filter only if provided
+    // Add optional type filter (filters the initial RequestModel query)
+    if (type && typeof type === 'string') {
+        filter.type = type;
     }
 
-    // Ensure sort is a string and provide a fallback
-    const sortField = typeof sort === 'string' ? sort : 'createdAt'; // Fallback to 'createdAt' if sort is invalid
+    // Add status filter using the correct field name 'stattusof'
+    if (status && typeof status === 'string') {
+        // Allow filtering by one or more statuses (e.g., ?status=pending,ongoing)
+        const statusList = status.split(',').map(s => s.trim()).filter(Boolean);
+        if (statusList.length > 0) {
+            filter.stattusof = { $in: statusList };
+        } else {
+             // If status query param is present but empty, maybe return error or use default?
+             // Using default for now:
+             filter.stattusof = { $in: ['pending', 'ongoing', 'completed'] };
+        }
+    } else if (!status) {
+        // Default status filter if 'status' query param is not provided at all
+        filter.stattusof = { $in: ['pending', 'ongoing', 'completed'] };
+    }
 
-    // Main aggregation pipeline for fetching requests
-    const pipeline: any[] = [ // Use any[] to bypass strict typing
-      { $match: filter }, // Apply stattusof and type filter
-      { 
-        $lookup: { 
-          from: 'transactions', // Replace with your actual collection name if different
-          localField: 'orderId',
-          foreignField: 'orderId',
-          as: 'transaction',
-          pipeline: [
-            { $match: { status: 'completed' } },
-            { $project: { orderId: 1, status: 1, price: 1, title: 1 } },
-          ],
-        },
-      },
-      { $unwind: '$transaction' }, // Exclude requests without a completed transaction
-    ];
-
-    // Log after transaction join
-    const afterTransaction = await RequestModel.aggregate(pipeline);
-    console.log('After transaction join:', afterTransaction.length);
-
-    pipeline.push(
-      { 
-        $lookup: {
-          from: 'users', // Replace with your actual collection name if different
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user',
-          pipeline: [{ $project: { fname: 1, lname: 1, email: 1, profilepics: 1 } }],
-        },
-      },
-      { $unwind: '$user' } // Expecting one user per request
-    );
-
-    // Log after user join
-    const afterUser = await RequestModel.aggregate(pipeline);
-    console.log('After user join:', afterUser.length);
-
-    pipeline.push(
-      { 
-        $lookup: {
-          from: type === 'request' ? 'tasks' : 'appointments', // Correct based on your models
-          localField: 'orderId',
-          foreignField: 'orderId',
-          as: 'cidDoc',
-          pipeline: [{ $project: { cid: 1 } }],
-        },
-      },
-      { $unwind: { path: 'cidDoc', preserveNullAndEmptyArrays: true } } // Allow null cid
-    );
-
-    // Log after cid join
-    const afterCid = await RequestModel.aggregate(pipeline);
-    console.log('After cid join:', afterCid.length);
-
-    pipeline.push(
-      { 
-        $lookup: {
-          from: 'consultants', // Replace with your actual collection name if different
-          localField: 'cidDoc.cid',
-          foreignField: '_id',
-          as: 'consultant',
-          pipeline: [{ $project: { fname: 1, lname: 1 } }],
-        },
-      },
-      { $unwind: { path: '$consultant', preserveNullAndEmptyArrays: true } } // Allow null consultant
-    );
-
-    // Log after consultant join
-    const afterConsultant = await RequestModel.aggregate(pipeline);
-    console.log('After consultant join:', afterConsultant.length);
-
-    pipeline.push(
-      {
-        $project: {
-          _id: 1,
-          movie_title: 1,
-          synopsis: 1,
-          stattusof: 1,
-          type: 1,
-          nameofservice: 1,
-          genre: 1,
-          concerns: 1,
-          links: 1,
-          orderId: 1,
-          userId: 1,
-          expertise: 1,
-          files: 1,
-          filename: 1,
-          showtype: 1,
-          episodes: 1,
-          characterbible: 1,
-          keyArtCreated: 1,
-          productionCompanyLogos: 1,
-          date: 1,
-          createdAt: 1,
-          keycharacters: 1,
-          keycrew: 1,
-          teamMenber: 1,
-          startpop: 1,
-          characterlockdate: 1,
-          locationlockeddate: 1,
-          keyCastNames: 1,
-          updatedAt: 1,
-          time: 1,
-          chat_title: 1,
-          summary: 1,
-          day: 1,
-          booktime: 1,
-          endTime: 1,
-          user: '$user',
-          assignedConsultant: '$consultant',
-          transaction: '$transaction',
-        },
-      },
-      { $sort: { [sortField]: order === 'desc' ? -1 : 1 } },
-      { $skip: (pageNumber - 1) * pageSize },
-      { $limit: pageSize }
-    );
-
-    const requestsWithDetails = await RequestModel.aggregate(pipeline);
-    console.log('Final requests:', requestsWithDetails.length);
-
-    // Count total documents matching the filter with completed transactions
-    const totalDocsResult = await RequestModel.aggregate([
-      { $match: filter },
-      {
-        $lookup: {
-          from: 'transactions', // Replace with your actual collection name if different
-          localField: 'orderId',
-          foreignField: 'orderId',
-          as: 'transaction',
-          pipeline: [{ $match: { status: 'completed' } }],
-        },
-      },
-      { $unwind: '$transaction' },
-      { $count: 'total' },
+    // --- 4. Fetch Initial Paginated Requests & Total Count Concurrently ---
+    const [requests, totalDocuments] = await Promise.all([
+        RequestModel.find(filter)
+          .sort({ [sortField]: sortOrder })
+          .skip((pageNumber - 1) * pageSize)
+          .limit(pageSize)
+          .lean(), // Use .lean() for performance - returns plain JS objects
+        RequestModel.countDocuments(filter)
+        // Note: This count is based on the *initial* filter. The final returned
+        // list length depends on finding associated 'completed' transactions below.
     ]);
 
-    const totalDocuments = totalDocsResult.length > 0 ? totalDocsResult[0].total : 0;
+    // If no requests match the initial filter for this page, return early
+    if (requests.length === 0) {
+      return res.status(200).json({
+        message: 'No requests found matching the specified criteria for this page.',
+        pagination: {
+          currentPage: pageNumber,
+          totalPages: Math.ceil(totalDocuments / pageSize),
+          totalDocuments: totalDocuments,
+        },
+        requests: [], // Return empty array
+      });
+    }
 
+    // --- 5. Prepare for Batch Fetching Related Data ---
+    const userIds: string[] = [];
+    const orderIds: string[] = [];
+    const taskOrderIds: string[] = [];
+    const appointmentOrderIds: string[] = [];
+
+    // Collect IDs and separate orderIds based on request type
+    requests.forEach(request => {
+        if (request.userId) userIds.push(request.userId.toString()); // Ensure string IDs if they are ObjectIds
+        if (request.orderId) {
+            const orderIdStr = request.orderId.toString();
+            orderIds.push(orderIdStr);
+            if (request.type === 'request') { // Check type from the fetched RequestModel
+                taskOrderIds.push(orderIdStr);
+            } else {
+                appointmentOrderIds.push(orderIdStr);
+            }
+        }
+    });
+
+    // Ensure unique IDs for querying
+    const uniqueUserIds = [...new Set(userIds)];
+    const uniqueOrderIds = [...new Set(orderIds)];
+    const uniqueTaskOrderIds = [...new Set(taskOrderIds)];
+    const uniqueAppointmentOrderIds = [...new Set(appointmentOrderIds)];
+
+    // --- 6. Batch Fetch Related Data Concurrently ---
+    const [
+        usersData,
+        transactionsData,
+        tasksData,
+        appointmentsData
+    ] = await Promise.all([
+        // Fetch Users
+        uniqueUserIds.length > 0
+            ? User.find({ _id: { $in: uniqueUserIds } }, 'fname lname email profilepics').lean()
+            : Promise.resolve([]),
+        // Fetch COMPLETED Transactions for ALL relevant order IDs
+        uniqueOrderIds.length > 0
+            ? Transaction.find(
+                { orderId: { $in: uniqueOrderIds }, status: 'completed' },
+                'orderId status price title' // Select only needed fields
+              ).lean()
+            : Promise.resolve([]),
+        // Fetch Tasks only for relevant order IDs
+        uniqueTaskOrderIds.length > 0
+            ? Task.find({ orderId: { $in: uniqueTaskOrderIds } }, 'orderId cid').lean()
+            : Promise.resolve([]), // Resolve empty array if no task IDs
+        // Fetch Appointments only for relevant order IDs (NO 'type' filter needed here)
+        uniqueAppointmentOrderIds.length > 0
+            ? AppointmentModel.find({ orderId: { $in: uniqueAppointmentOrderIds } }, 'orderId cid').lean()
+            : Promise.resolve([]) // Resolve empty array if no appointment IDs
+    ]);
+
+    // --- 7. Map Data for Efficient Lookup ---
+    const usersMap = new Map(usersData.map(u => [u._id.toString(), u]));
+    const completedTransactionsMap = new Map(transactionsData.map(t => [t.orderId, t]));
+    // Combine Task and Appointment CIDs (Consultant IDs) keyed by orderId
+    const cidMap = new Map<string, any>(); // Map<orderId string, cidObjectOrValue>
+    tasksData.forEach(t => t.orderId && cidMap.set(t.orderId.toString(), t.cid));
+    appointmentsData.forEach(a => a.orderId && cidMap.set(a.orderId.toString(), a.cid));
+
+    // --- 8. Batch Fetch Consultants based on collected CIDs ---
+    // Assuming cidMap values look like { cid: 'consultant_object_id' } based on original code
+    const consultantIdsToFetch = [...cidMap.values()]
+                                     .map(cidInfo => cidInfo?.cid) // Safely access nested cid property
+                                     .filter(Boolean); // Filter out null/undefined IDs
+
+    let consultantsMap = new Map();
+    if (consultantIdsToFetch.length > 0) {
+        const uniqueConsultantIds = [...new Set(consultantIdsToFetch.map(id => id.toString()))]; // Ensure unique string IDs
+        const consultantsData = await Consultant.find(
+            { _id: { $in: uniqueConsultantIds } },
+             'fname lname' // Select only needed fields
+        ).lean();
+        consultantsMap = new Map(consultantsData.map(c => [c._id.toString(), c]));
+    }
+
+    // --- 9. Combine Fetched Data and Filter Results ---
+    const enrichedRequests = requests
+        .map(request => {
+            const orderIdStr = request.orderId?.toString(); // Use string version for map lookups
+
+            // *** Core Filtering Logic: Must have a completed transaction ***
+            const transaction = orderIdStr ? completedTransactionsMap.get(orderIdStr) : null;
+            if (!transaction) {
+                return null; // Skip requests without a matching completed transaction
+            }
+
+            // Look up related data from maps
+            const user = request.userId ? usersMap.get(request.userId.toString()) : null;
+            const cidInfo = orderIdStr ? cidMap.get(orderIdStr) : null;
+            // Assuming structure { cid: 'consultant_id_string' } based on original code's cid.cid access
+            const consultantId = cidInfo?.cid?.toString();
+            const consultant = consultantId ? consultantsMap.get(consultantId) : null;
+
+            // Construct the final object for the response
+            return {
+                ...request, // Spread the plain request object properties
+                user: user || null, // Include user or null if not found/lookup failed
+                assignedConsultant: consultant || null, // Include consultant or null
+                transaction, // Include the completed transaction details
+            };
+        })
+        .filter((request): request is NonNullable<typeof request> => request !== null); // Filter out the null entries and satisfy TypeScript
+
+    // --- 10. Send Final Response ---
     return res.status(200).json({
       message: 'Requests fetched successfully.',
       pagination: {
         currentPage: pageNumber,
         totalPages: Math.ceil(totalDocuments / pageSize),
-        totalDocuments: totalDocuments,
+        totalDocuments: totalDocuments, // Total matching initial filter
       },
-      requests: requestsWithDetails,
+      requests: enrichedRequests, // The final list, potentially shorter than pageSize
     });
-  } catch (error) {
-    console.error('Error fetching requests:', error);
+
+  } catch (error: any) {
+    // Log the actual error server-side for debugging
+    console.error('Error fetching requests with pagination:', error);
+    // Return a generic error message to the client
     return res.status(500).json({
-      message: 'Failed to fetch requests',
+      message: 'Failed to fetch requests due to an internal server error.',
+      // Optionally include an error code or ID for tracking
+      // errorId: 'some-unique-id'
     });
   }
 };
+
 
 
 export const fetchConsultantsByExpertise = async (req: Request, res: Response): Promise<Response> => {
