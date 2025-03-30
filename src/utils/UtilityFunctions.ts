@@ -162,9 +162,7 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
     type: string, 
     relatedId: string, 
     title: string, 
-    message: string,
-    chat_title?: string,
-    movie_title?: string
+    message: string
   ): Promise<void> => {
     try {
       const notification = new Notification({
@@ -175,8 +173,6 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
         relatedId,
         title,
         message,
-        chat_title,
-        movie_title,
       });
   
       await notification.save();
@@ -212,6 +208,7 @@ function isTimeMatch(requestTime: Time, otime: Time, ctime: Time): boolean {
       // const userSocketId = users[userId];
      
       io.emit('adminNotification', notification);
+
       console.log('Admin Notification created:', notification);
     } catch (error) {
       console.error('Error creating notification:', error);
@@ -336,22 +333,15 @@ export async function debit(
   accountnumber?: string
 ): Promise<IWallet | null> {
   try {
+    amount = amount * 100;
     if (amount <= 0) throw new Error('Amount should be greater than 0');
 
     const wallet = await Wallet.findOne({ cid }).exec();
     if (!wallet) throw new Error('Wallet not found');
 
-    if(wallet.availableBalance < 100000){
-      throw new Error('A Minimum of 100000 is required to withdraw');
-    }
-
     if (wallet.availableBalance < amount) {
       throw new Error('Insufficient available balance');
     }
-
-    wallet.balance -= amount;
-    wallet.availableBalance -= amount;
-    await wallet.save();
 
     // Create a wallet history record with status 'pending'
     await addWalletHistory(
@@ -364,15 +354,12 @@ export async function debit(
       accountnumber
     )
       .then(() => console.log('Pending withdrawal recorded in wallet history.'))
-      .catch((error) => {
-        console.error('Failed to add pending wallet history:', error);
-        throw new Error('Failed to record withdrawal in history');
-      });
+      .catch((error) => console.error('Failed to add pending wallet history:', error));
 
     return wallet; // No deduction is made at this point
-  } catch (error: any) {
-    console.error('Error debiting wallet:', error.message || error);
-    throw new Error(error.message || 'An unknown error occurred while debiting wallet');
+  } catch (error) {
+    console.error('Error debiting wallet:', error);
+    throw new Error('Failed to debit wallet');
   }
 }
 

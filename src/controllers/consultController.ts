@@ -1609,7 +1609,7 @@ async function chatTransaction(
     // Consultant Notification Created
     createNotification(cid.toString(), userId.toString(), 'consultant', 'Request', newTransaction.orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(userId.toString(), cid.toString(), 'user', 'Request', newTransaction.orderId.toString(), 'A Chat date has been set for Request ', 'An Email Has Been Sent to you with Link to Set or Accept New Chat Date', '', `+${request.movie_title}+`);
+    createNotification(userId.toString(), cid.toString(), 'user', 'Request', newTransaction.orderId.toString(), 'A Chat date has been set for Request ',  `+${request.movie_title}+`);
 
     const email = await fetchConsultantEmail(cid);
     const useremail = await fetchUserEmail(userId);
@@ -1957,8 +1957,6 @@ export const uploadConsultantFiles = async (req: Request, res: Response): Promis
       "Files",
       orderId.toString(),
       "New Files",
-      "You received new files for your request service",
-      '',
       `+${request?.movie_title}+`
     );
 
