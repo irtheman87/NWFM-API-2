@@ -310,51 +310,79 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     const sortField = typeof sort === 'string' ? sort : 'createdAt'; // Fallback to 'createdAt' if sort is invalid
 
     // Main aggregation pipeline for fetching requests
-    const requestsWithDetails = await RequestModel.aggregate([
+    const pipeline: any[] = [ // Use any[] to bypass strict typing
       { $match: filter }, // Apply stattusof and type filter
-      {
-        $lookup: {
-          from: 'transactions', // Assuming this is correct; verify your collection name
+      { 
+        $lookup: { 
+          from: 'transactions', // Replace with your actual collection name if different
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'transaction',
           pipeline: [
-            { $match: { status: 'completed' } }, // Only completed transactions
+            { $match: { status: 'completed' } },
             { $project: { orderId: 1, status: 1, price: 1, title: 1 } },
           ],
         },
       },
       { $unwind: '$transaction' }, // Exclude requests without a completed transaction
-      {
+    ];
+
+    // Log after transaction join
+    const afterTransaction = await RequestModel.aggregate(pipeline);
+    console.log('After transaction join:', afterTransaction.length);
+
+    pipeline.push(
+      { 
         $lookup: {
-          from: 'users', // Verify this matches your collection name
+          from: 'users', // Replace with your actual collection name if different
           localField: 'userId',
           foreignField: '_id',
           as: 'user',
           pipeline: [{ $project: { fname: 1, lname: 1, email: 1, profilepics: 1 } }],
         },
       },
-      { $unwind: '$user' }, // Expecting one user per request
-      {
+      { $unwind: '$user' } // Expecting one user per request
+    );
+
+    // Log after user join
+    const afterUser = await RequestModel.aggregate(pipeline);
+    console.log('After user join:', afterUser.length);
+
+    pipeline.push(
+      { 
         $lookup: {
-          from: type === 'request' ? 'tasks' : 'appointments', // Corrected collection names
+          from: type === 'request' ? 'tasks' : 'appointments', // Correct based on your models
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'cidDoc',
           pipeline: [{ $project: { cid: 1 } }],
         },
       },
-      { $unwind: { path: '$cidDoc', preserveNullAndEmptyArrays: true } }, // Allow null cid
-      {
+      { $unwind: { path: 'cidDoc', preserveNullAndEmptyArrays: true } } // Allow null cid
+    );
+
+    // Log after cid join
+    const afterCid = await RequestModel.aggregate(pipeline);
+    console.log('After cid join:', afterCid.length);
+
+    pipeline.push(
+      { 
         $lookup: {
-          from: 'consultants', // Verify this matches your collection name
+          from: 'consultants', // Replace with your actual collection name if different
           localField: 'cidDoc.cid',
           foreignField: '_id',
           as: 'consultant',
           pipeline: [{ $project: { fname: 1, lname: 1 } }],
         },
       },
-      { $unwind: { path: '$consultant', preserveNullAndEmptyArrays: true } }, // Allow null consultant
+      { $unwind: { path: '$consultant', preserveNullAndEmptyArrays: true } } // Allow null consultant
+    );
+
+    // Log after consultant join
+    const afterConsultant = await RequestModel.aggregate(pipeline);
+    console.log('After consultant join:', afterConsultant.length);
+
+    pipeline.push(
       {
         $project: {
           _id: 1,
@@ -399,15 +427,18 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       },
       { $sort: { [sortField]: order === 'desc' ? -1 : 1 } },
       { $skip: (pageNumber - 1) * pageSize },
-      { $limit: pageSize },
-    ]);
+      { $limit: pageSize }
+    );
+
+    const requestsWithDetails = await RequestModel.aggregate(pipeline);
+    console.log('Final requests:', requestsWithDetails.length);
 
     // Count total documents matching the filter with completed transactions
     const totalDocsResult = await RequestModel.aggregate([
       { $match: filter },
       {
         $lookup: {
-          from: 'transactions', // Verify this matches your collection name
+          from: 'transactions', // Replace with your actual collection name if different
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'transaction',
@@ -419,13 +450,6 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     ]);
 
     const totalDocuments = totalDocsResult.length > 0 ? totalDocsResult[0].total : 0;
-
-    // Log for debugging (remove later)
-    if (requestsWithDetails.length === 0) {
-      console.log('No requests returned. Filter:', filter, 'Total Docs:', totalDocuments);
-    } else {
-      console.log('Requests fetched:', requestsWithDetails.length);
-    }
 
     return res.status(200).json({
       message: 'Requests fetched successfully.',
