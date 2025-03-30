@@ -337,7 +337,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $unwind: '$user' }, // Expecting one user per request
       {
         $lookup: {
-          from: type === 'request' ? 'tasks' : 'appointments', // Adjusted to 'appointments' (likely correct name)
+          from: type === 'request' ? 'Task' : 'Appointment', // Adjusted to 'appointments' (likely correct name)
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'cidDoc',
