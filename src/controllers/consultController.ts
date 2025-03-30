@@ -2379,7 +2379,7 @@ export const fetchDataByType = async (req: Request, res: Response): Promise<Resp
   }
 };
 
-
+const errormsg = '';
 
 export const createWithdrawal = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -2428,19 +2428,18 @@ export const createWithdrawal = async (req: Request, res: Response): Promise<Res
     // Attempt to create a withdrawal
     const wallet: IWallet | null = await debit(userId, amount, bankname, accountnumber);
 
-    if (!wallet) {
-      return res.status(500).json({ message: "Failed to create withdrawal. Wallet not updated." });
-    }
-
-    createAdminNotification('Withdrawal', userId ,'New Withdrawal Request');
+    createAdminNotification('Withdrawal', userId, 'New Withdrawal Request');
 
     return res.status(200).json({
       message: "Withdrawal created successfully. Pending approval.",
       wallet,
     });
-  } catch (error) {
-    console.error("Error creating withdrawal:", error);
-    return res.status(500).json({ message: "Failed to create withdrawal", error });
+  } catch (error: any) {
+    console.error("Error creating withdrawal:", error.message || error);
+    return res.status(500).json({
+      message: "Failed to create withdrawal",
+      error: error.message || "An unknown error occurred",
+    });
   }
 };
 

@@ -357,12 +357,15 @@ export async function debit(
       accountnumber
     )
       .then(() => console.log('Pending withdrawal recorded in wallet history.'))
-      .catch((error) => console.error('Failed to add pending wallet history:', error));
+      .catch((error) => {
+        console.error('Failed to add pending wallet history:', error);
+        throw new Error('Failed to record withdrawal in history');
+      });
 
     return wallet; // No deduction is made at this point
-  } catch (error) {
-    console.error('Error debiting wallet:', error);
-    throw new Error('Failed to debit wallet');
+  } catch (error: any) {
+    console.error('Error debiting wallet:', error.message || error);
+    throw new Error(error.message || 'An unknown error occurred while debiting wallet');
   }
 }
 
