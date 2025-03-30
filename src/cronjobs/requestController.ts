@@ -20,7 +20,10 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
       endTime: { $lte: currentTime }, // Requests where endTime is at least 5 min in the past
     });
 
+    console.log(`Found ${expiredRequests.length} expired requests.`);
+
     if (expiredRequests.length === 0) {
+      console.log('No expired requests found.');
       return res.status(200).json({ message: 'No expired requests found.' });
     }
 
@@ -39,6 +42,8 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
       }
   
       if(request.stattusof === 'ongoing') {
+
+        console.log(request._id);
         const price = transaction.price;
   
         const actualIncome = parseFloat(price) * 0.6;
@@ -55,6 +60,8 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
         console.warn(`User not found for request ID: ${request._id}`);
         continue; // Skip if user not found
       }
+
+      console.log(`User found: ${user.fname} ${user.lname}`);
 
       // Send email notification
       await sendEmail({
