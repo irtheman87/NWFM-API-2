@@ -2628,7 +2628,7 @@ export const fetchBankDetailsByCID = async (req: Request, res: Response): Promis
     }
 
     // Fetch bank details from the database
-    const bankDetails = await Bank.find({ cid }).exec();
+    const bankDetails = await Bank.find({ cid }).sort({ createdAt: -1 }).exec();
 
     // Check if no bank details were found
     if (!bankDetails.length) {
