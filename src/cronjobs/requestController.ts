@@ -11,7 +11,7 @@ export const updateExpiredRequests = async (req: Request, res: Response): Promis
   try {
     console.log('Updating expired requests...');
     // Get current time in GMT+1 and subtract 5 minutes
-    const currentTime = moment().utcOffset('+02:00').subtract(5, 'minutes').toISOString();
+    const currentTime = moment().utcOffset('+01:00').subtract(65, 'minutes').toISOString();
 
     console.log(`Current time (GMT+1): ${currentTime}`);
 
