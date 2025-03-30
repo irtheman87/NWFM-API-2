@@ -931,7 +931,7 @@ export const createAPitch = async (req: Request, res: Response) => {
     let totalPrice = 0;
 
     if (showtype === "Yes") {
-      totalPrice = 80000 * Number(episodes);
+      totalPrice = 8000000 * Number(episodes);
     } else {
       totalPrice = Number(price);
     } // ✅ Fix: Close the if-else block properly
