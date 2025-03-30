@@ -333,6 +333,7 @@ export async function debit(
   accountnumber?: string
 ): Promise<IWallet | null> {
   try {
+    amount = amount * 100;
     if (amount <= 0) throw new Error('Amount should be greater than 0');
 
     const wallet = await Wallet.findOne({ cid }).exec();

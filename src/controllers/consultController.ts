@@ -2651,38 +2651,34 @@ export const fetchBankDetailsByCID = async (req: Request, res: Response): Promis
 
 export const fetchWithdrawalsByCID = async (req: Request, res: Response): Promise<Response> => {
   try {
-
     const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          return res.status(401).json({ message: 'Authorization token is missing or invalid' });
-        }
-    
-        // Extract and verify token
-        const token = authHeader.split(' ')[1];
-        const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
-        if (!JWT_SECRET) {
-          return res.status(500).json({ message: 'JWT secret key is not configured' });
-        }
-    
-        let decodedToken;
-        try {
-          decodedToken = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
-          return res.status(401).json({ message: 'Invalid token' });
-        }
-    
-        // Check Admin Role
-        const { role } = decodedToken as { role: string };
-        if (role !== 'consultant') {
-          return res.status(403).json({ message: 'Access denied. Admin role required.' });
-        }
-        
-    
-        // Extract user details from the decoded token
-        const { userId } = decodedToken as { userId: string };
-        if (!userId) {
-          return res.status(403).json({ message: "Access denied. No CID found in the token." });
-        }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role, userId } = decodedToken as { role: string; userId: string };
+    if (role !== 'consultant') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    if (!userId) {
+      return res.status(403).json({ message: "Access denied. No CID found in the token." });
+    }
 
     const { cid } = req.params;
 
@@ -2698,18 +2694,25 @@ export const fetchWithdrawalsByCID = async (req: Request, res: Response): Promis
       return res.status(404).json({ message: 'No withdrawals found for the provided CID.' });
     }
 
+    // Adjust the amount field by dividing by 100
+    const formattedWithdrawals = withdrawals.map((withdrawal) => ({
+      ...withdrawal.toObject(),
+      amount: withdrawal.amount / 100, // Convert amount back to original value
+    }));
+
     return res.status(200).json({
       message: 'Withdrawals fetched successfully.',
-      withdrawals,
+      withdrawals: formattedWithdrawals,
     });
   } catch (error) {
     console.error('Error fetching withdrawals:', error);
     return res.status(500).json({
       message: 'An error occurred while fetching withdrawals.',
-      error: error,
+      error: error || error,
     });
   }
 };
+
 
 /**
  * Fetch all deposits by CID
@@ -2758,25 +2761,31 @@ export const fetchDepositsByCID = async (req: Request, res: Response): Promise<R
       return res.status(404).json({ message: 'No deposits found for the provided CID.' });
     }
 
-    // Fetch related request data using orderId
+    // Fetch related request data using orderId and divide amount by 100
     const enrichedDeposits = await Promise.all(
       deposits.map(async (deposit) => {
+        const depositData: {
+          amount: number;
+          movie_title: string | null;
+          nameofservice: string | null;
+        } = {
+          ...deposit.toObject(),
+          amount: deposit.amount / 100, // Convert amount back to original value
+          movie_title: null,
+          nameofservice: null,
+        };
+
         if (deposit.orderId) {
           const requestData = await RequestModel.findOne({ orderId: deposit.orderId })
             .select('chat_title type movie_title nameofservice') // Only select needed fields
             .exec();
-          return {
-            ...deposit.toObject(),
-            depositInNaira: (deposit.amount/100),
-            movie_title: requestData?.movie_title || null,
-            nameofservice: requestData?.nameofservice || null,
-          };
+          if (requestData) {
+            depositData.movie_title = requestData.movie_title || null;
+            depositData.nameofservice = requestData.nameofservice || null;
+          }
         }
-        return {
-          ...deposit.toObject(),
-          movie_title: null,
-          nameofservice: null,
-        };
+
+        return depositData;
       })
     );
 
@@ -2788,10 +2797,11 @@ export const fetchDepositsByCID = async (req: Request, res: Response): Promise<R
     console.error('Error fetching deposits:', error);
     return res.status(500).json({
       message: 'An error occurred while fetching deposits.',
-      error: error,
+      error: error || error,
     });
   }
 };
+
 
 export const fetchWithdrawalById = async (req: Request, res: Response): Promise<Response> => {
   try {
