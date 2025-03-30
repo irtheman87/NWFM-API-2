@@ -407,3 +407,26 @@ export const uploads = multer({ storage }).fields([
 //   { name: 'characterbible', maxCount: 1 }, // Accept 1 characterbible file
 //   { name: 'keyart', maxCount: 10 }         // Accept up to 10 keyart files
 // ]);
+
+const twilio = require('twilio');
+
+// Use environment variables
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
+
+export async function sendSMS(to: string, message: string) {
+    try {
+        const response = await client.messages.create({
+            body: message,
+            from: process.env.TWILIO_PHONE_NUMBER, // Store this in .env
+            to: to
+        });
+        console.log('Message sent successfully:', response.sid);
+        return response.sid;
+    } catch (error) {
+        console.error('Failed to send message:', error);
+        throw new Error(String(error));
+    }
+}
+

@@ -320,4 +320,5 @@ router.get("/email-stats", (req: Request, res: Response) => {
     res.json({ totalSent, delivered, failed });
 });
 
+
 module.exports = router;
