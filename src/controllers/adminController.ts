@@ -314,7 +314,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $match: filter }, // Apply stattusof and type filter
       {
         $lookup: {
-          from: 'transactions', // Verify this matches your collection name
+          from: 'transactions', // Assuming this is correct; verify your collection name
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'transaction',
@@ -337,7 +337,7 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $unwind: '$user' }, // Expecting one user per request
       {
         $lookup: {
-          from: type === 'request' ? 'Task' : 'Appointment', // Adjusted to 'appointments' (likely correct name)
+          from: type === 'request' ? 'tasks' : 'appointments', // Corrected collection names
           localField: 'orderId',
           foreignField: 'orderId',
           as: 'cidDoc',
@@ -389,7 +389,6 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
           time: 1,
           chat_title: 1,
           summary: 1,
-          consultantField: '$consultant', // Avoid naming conflict
           day: 1,
           booktime: 1,
           endTime: 1,
@@ -402,9 +401,6 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
       { $skip: (pageNumber - 1) * pageSize },
       { $limit: pageSize },
     ]);
-
-    // Log the result for debugging (remove later)
-    console.log('Fetched requests:', requestsWithDetails);
 
     // Count total documents matching the filter with completed transactions
     const totalDocsResult = await RequestModel.aggregate([
@@ -423,6 +419,13 @@ export const fetchRequestsWithPagination = async (req: Request, res: Response): 
     ]);
 
     const totalDocuments = totalDocsResult.length > 0 ? totalDocsResult[0].total : 0;
+
+    // Log for debugging (remove later)
+    if (requestsWithDetails.length === 0) {
+      console.log('No requests returned. Filter:', filter, 'Total Docs:', totalDocuments);
+    } else {
+      console.log('Requests fetched:', requestsWithDetails.length);
+    }
 
     return res.status(200).json({
       message: 'Requests fetched successfully.',
