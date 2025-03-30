@@ -456,7 +456,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     directorName,
     fromTheMakersOf,
     releaseDate,
-    concerns,
+    info,
   } = req.body;
 
   console.log('Request userId:', req.body.userId);
@@ -505,7 +505,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
       directorName,
       fromTheMakersOf,
       releaseDate,
-      concerns,
+      info,
       expertise: 'Director',
     });
 
