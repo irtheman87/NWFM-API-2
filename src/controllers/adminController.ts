@@ -660,7 +660,7 @@ if (existingAppointmentsCount >= 3) {
     // Consultant Notification Created
     createNotification(cid.toString(), uid.toString(), 'consultant', 'Chat', orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(uid.toString(), cid.toString(), 'user', 'Chat', orderId.toString(), 'Chat Assigned', `+${request.chat_title}+`);
+    createNotification(uid.toString(), cid.toString(), 'user', 'Chat', orderId.toString(), 'Chat Assigned', `Your Chat request ${request.chat_title} has been assign to a Consultant`);
 
 
     const user = await User.findById(uid);
@@ -970,7 +970,7 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
     // Consultant Notification Created
     createNotification(cid.toString(), uid.toString(), 'consultant', 'Request', orderId.toString(), 'New Order', 'You have a New Order Match');
     // User Notification Created
-    createNotification(uid.toString(),cid.toString(), 'user', 'Request', orderId.toString(), 'Request Assigned', `+${request?.movie_title}+`);
+    createNotification(uid.toString(),cid.toString(), 'user', 'Request', orderId.toString(), 'Request Assigned', `Your request ${request?.movie_title} has been assigned to a Consultant`);
     const email = await fetchConsultantEmail(cid);
     if (email) {
       (async () => {
