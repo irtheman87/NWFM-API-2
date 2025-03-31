@@ -28,13 +28,13 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
     }
 
     const filePath = req.file.path;
-    const users: { userName: string; email: string }[] = [];
+    const users: { name: string; email: string }[] = [];
 
     fs.createReadStream(filePath)
         .pipe(csvParser())
         .on("data", (row) => {
-            if (row.userName && row.email) {
-                users.push({ userName: row.userName.trim(), email: row.email.trim() });
+            if (row.name && row.email) {
+                users.push({ name: row.name.trim(), email: row.email.trim() });
             }
         })
         .on("end", async () => {
@@ -45,15 +45,15 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
             failed = 0;
 
             for (let i = 0; i < users.length; i++) {
-                const { userName, email } = users[i];
+                const { name, email } = users[i];
 
                 try {
-                    const badgeUrl = await generateUserBadge(userName);
+                    const badgeUrl = await generateUserBadge(name);
 
                     await sendEmail({
                         to: email,
                         subject: "Welcome to the future of Nollywood Filmmaking",
-                        text: `Hello ${userName}, your badge has been created!`,
+                        text: `Hello ${name}, your badge has been created!`,
                         html: `
 <!DOCTYPE html>
 <html lang="en">
@@ -261,18 +261,22 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                     });
 
                     delivered++;
+                    console.log(delivered, "emails delivered successfully");
                 } catch (error) {
                     console.error(`Failed to send to ${email}:`, error);
                     failed++;
+                    console.log(failed, "emails failed to deliver"); 
                 }
 
                 totalSent++;
                 if (i < users.length - 1) {
                     await new Promise((resolve) => setTimeout(resolve, 10000)); // 10-second delay
                 }
+                console.log(totalSent, "emails sent successfully");
             }
 
             res.json({ message: "Emails sent successfully", totalSent, delivered, failed });
+            console.log("All emails processed");
         });
 });
 
