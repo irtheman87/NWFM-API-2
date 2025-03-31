@@ -5497,7 +5497,7 @@ export const deleteAllChatRequests = async (req: Request, res: Response): Promis
 export const exportEmailsToCSV = async (req: Request, res: Response) => {
   try {
     // Fetch all records from the EmailList collection
-    const emailList = await EmailList.find({}, "name email").lean();
+    const emailList = await EmailList.find({}, "userName email").lean();
 
     if (emailList.length === 0) {
       return res.status(404).json({ message: "No emails found." });
