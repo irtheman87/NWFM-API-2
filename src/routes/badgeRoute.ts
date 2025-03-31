@@ -119,7 +119,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                           <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/read+my+script.png" alt="Read my Script" width="60">
                         </td>
                         <td>
-                          <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script</a></strong></p>
+                          <p><strong><a href="https://nollywoodfilmmaker.com/services/read-my-script" style="color: #000; text-decoration: underline;">Read My Script And Advice</a></strong></p>
                           <p>Get professional feedback on your script to improve story, structure, and production readiness.</p>
                         </td>
                       </tr>
@@ -153,7 +153,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
                           <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+pitch+deck.png" alt="Verified Crew" width="60">
                         </td>
                         <td>
-                          <p><strong><a href="https://nollywoodfilmmaker.com/services/create-pitch-deckt" style="color: #000; text-decoration: underline;">Create my Pitch Deck</a></strong></p>
+                          <p><strong><a href="https://nollywoodfilmmaker.com/services/create-pitch-deck" style="color: #000; text-decoration: underline;">Create my Pitch Deck</a></strong></p>
                           <p>Let professionals craft a compelling pitch deck to present your project to investors or collaborators.</p>
                         </td>
                       </tr>
@@ -187,7 +187,7 @@ router.post("/send-bulk-emails", upload.single("file"), async (req: Request, res
           <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/create+trailer.png" alt="Legal Contracts" width="60">
         </td>
         <td>
-          <p><strong><a href="https://nollywoodfilmmaker.com/services/trailers" style="color: #000; text-decoration: underline;">Create my Film Trailers</a></strong></p>
+          <p><strong><a href="https://nollywoodfilmmaker.com/services/create-teaser" style="color: #000; text-decoration: underline;">Create my Film Trailers</a></strong></p>
           <p>Create an amazing teaser and trailer suitable for all social media platforms and displays.</p>
         </td>
       </tr>

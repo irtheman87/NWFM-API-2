@@ -25,6 +25,8 @@ async function loadImageFromUrl(url: string) {
     family: "Avenir Black",
   });
 
+  
+
   export const generateUserBadge = async (userName: string): Promise<string> => {
     const width = 1080;
     const height = 1350;

@@ -39,6 +39,7 @@ import { S3Client, PutObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3"
 import WeeklySchedule from '../models/Availability';
 import ContactFormSubmission from '../models/ContactFormSubmission';
 import { DateTime } from 'luxon';
+import { Parser } from "json2csv";
 
 
 const s3 = new S3Client({
@@ -5490,5 +5491,31 @@ export const deleteAllChatRequests = async (req: Request, res: Response): Promis
       message: 'An error occurred while deleting Chat requests.',
       error,
     });
+  }
+};
+
+export const exportEmailsToCSV = async (req: Request, res: Response) => {
+  try {
+    // Fetch all records from the EmailList collection
+    const emailList = await EmailList.find({}, "name email").lean();
+
+    if (emailList.length === 0) {
+      return res.status(404).json({ message: "No emails found." });
+    }
+
+    // Convert to CSV format
+    const csvFields = ["userName", "email"];
+    const json2csvParser = new Parser({ fields: csvFields });
+    const csvData = json2csvParser.parse(emailList);
+
+    // Set response headers for file download
+    res.setHeader("Content-Disposition", "attachment; filename=email_list.csv");
+    res.setHeader("Content-Type", "text/csv");
+
+    // Send the CSV data as response
+    res.status(200).send(csvData);
+  } catch (error) {
+    console.error("Error exporting emails to CSV:", error);
+    res.status(500).json({ message: "Internal server error", error });
   }
 };
