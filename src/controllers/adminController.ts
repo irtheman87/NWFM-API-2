@@ -915,6 +915,22 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
       return res.status(400).json({ message: 'A task with this orderId already exists' });
     }
 
+    const consultant = await Consultant.findById(cid);
+    if (!consultant) {
+          throw new Error("User not found"); // Handle case where user is not found
+    }
+
+    const requested = await RequestModel.findOne({orderId: orderId});
+    if (!requested) {
+      throw new Error("Request not found"); // Handle case where request is not found
+    }
+
+    const user = await User.findById(uid);
+    if (!user) {
+      throw new Error("User not found"); // Handle case where user is not found
+    }
+    
+
     // Create a new task
     const task = new Task({
       date,
@@ -931,9 +947,9 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
     });
 
     // Save the task to the database
-    let customSubject;
-    let CustomTextMessage = `You have a new task with orderId: ${orderId}`;
-    let CustomMessage = `You have a new task with orderId: ${orderId}`;
+    let customSubject ;
+    let CustomTextMessage;
+    let CustomMessage;
 
     function toAllCaps(text: string): string {
       return text.toUpperCase();
@@ -942,27 +958,12 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
 
     const savedTask = await task.save();
 
-    if(nameofservice === "Read my Script and advice") {
 
       customSubject =`You have recieved a new ${toAllCaps(nameofservice)} request with orderId: ${orderId}`;
 
-      CustomTextMessage = `You have a new task with orderId: ${orderId} and the service is "Read my Script and advice"`;
+      CustomTextMessage = `You have a new task with orderId: ${orderId} and the service is "${toAllCaps(nameofservice)}"`;
 
-      CustomMessage = `You have a new task with orderId: ${orderId} and the service is "Read my Script and advice"`;
-
-    } else if(nameofservice === "Write my Script") {
-
-    }else if(nameofservice === "Edit my Script") {
-
-    } else if(nameofservice === "Proofread my Script") {
-
-    } else if(nameofservice === "Consultation") {
-
-    } else if(nameofservice === "Others") {
-
-    }else if(nameofservice === "Life Hacks") {
-
-    }
+      CustomMessage = `You have a new task with orderId: ${orderId} and the service is "${toAllCaps(nameofservice)}"`;
 
 
     // Consultant Notification Created
@@ -976,14 +977,75 @@ export const createTask = async (req: Request, res: Response): Promise<Response>
           await sendEmail({
             to: email,
             subject: `${customSubject}`,
-            text: `You Have A New Order. Please check your dashboard for details.
-            <a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a>
-            `,
-            html: `You Have A New Order. Please check your dashboard for details.
-              <h1>New Order Received</h1>
-              <p>You have a new order. Please check your dashboard for details.</p>
-              <p><a href="https://nollywoodfilmmaker.com/consultants/dashboard" style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">View Order</a></p>
-            `,
+            text: `Hello ${consultant.fname} ${consultant.lname},
+          
+            ${CustomTextMessage}
+          
+          View Order: https://nollywoodfilmmaker.com/consultants/dashboard/${orderId}/order-details
+          `,
+            html: `
+            <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 600px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: auto;
+  }
+  .header img {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+  }
+  h1 {
+    color: #333;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <a href="https://nollywoodfilmmaker.com">
+      <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+           alt="Nollywood Filmmaker Database">
+    </a>
+  </div>
+              <h1>Hello ${consultant.fname} ${consultant.lname},</h1>
+              ${CustomMessage}
+              <p>
+                <a href="https://nollywoodfilmmaker.com/consultants/dashboard/${orderId}/order-details" 
+                   style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">
+                  View Order
+                </a>
+              </p>
+</div>
+</body>
+</html>`,
+            
           });          
           console.log('Email sent successfully.');
         } catch (error) {
