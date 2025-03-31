@@ -5497,14 +5497,14 @@ export const deleteAllChatRequests = async (req: Request, res: Response): Promis
 export const exportEmailsToCSV = async (req: Request, res: Response) => {
   try {
     // Fetch all records from the EmailList collection
-    const emailList = await EmailList.find({}, "userName email").lean();
+    const emailList = await EmailList.find({}, "name email").lean();
 
     if (emailList.length === 0) {
       return res.status(404).json({ message: "No emails found." });
     }
 
     // Convert to CSV format
-    const csvFields = ["userName", "email"];
+    const csvFields = ["name", "email"];
     const json2csvParser = new Parser({ fields: csvFields });
     const csvData = json2csvParser.parse(emailList);
 
