@@ -274,185 +274,118 @@ function isDecodedToken(obj: any): obj is DecodedToken {
  * Fetches a paginated list of requests for admin users, enriching them
  * with associated User, completed Transaction, and assigned Consultant details.
  */
-export const fetchRequestsWithPagination = async (req: Request, res: Response): Promise<Response> => {
-  // --- 1. Extract Query Parameters ---
+const extractQueryParams = (req: Request) => {
   const { page = 1, limit = 10, sort = 'createdAt', order = 'desc', status, type } = req.query;
-  const pageNumber = Math.max(Number(page) || 1, 1);
-  const pageSize = Math.max(Number(limit) || 10, 1);
-  const sortOrder = order === 'asc' ? 1 : -1;
-  const sortField = typeof sort === 'string' ? sort : 'createdAt';
+  return {
+    pageNumber: Math.max(Number(page) || 1, 1),
+    pageSize: Math.max(Number(limit) || 10, 1),
+    sortOrder: order === 'asc' ? 1 : -1,
+    sortField: typeof sort === 'string' ? sort : 'createdAt',
+    status,
+    type
+  };
+};
 
-  console.log(`Received Query Params: status=${status}, type=${type}, page=${pageNumber}, limit=${pageSize}`); // Log received params
+const authenticateAndAuthorize = (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+  
+  const token = authHeader.split(' ')[1];
+  const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+  if (!JWT_SECRET) return res.status(500).json({ message: 'Internal config error.' });
+  
+  try {
+    const decodedTokenPayload = jwt.verify(token, JWT_SECRET) as { role: string };
+    if (decodedTokenPayload.role !== 'admin') return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    return decodedTokenPayload;
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid/expired token.' });
+  }
+};
+
+const buildFilter = (status: any, type: any) => {
+  const filter: Record<string, any> = {};
+  if (type && typeof type === 'string' && type.trim()) filter.type = type.trim();
+  const defaultStatuses = ['pending', 'ongoing', 'completed'];
+  if (status && typeof status === 'string') {
+    const statusList = status.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    filter.stattusof = { $in: statusList.length > 0 ? statusList : defaultStatuses };
+  } else {
+    filter.stattusof = { $in: defaultStatuses };
+  }
+  return filter;
+};
+
+export const fetchRequestsWithPagination = async (req: Request, res: Response): Promise<Response> => {
+  const { pageNumber, pageSize, sortField, sortOrder, status, type } = extractQueryParams(req);
+  const authResult = authenticateAndAuthorize(req, res);
+  if (!authResult || (typeof authResult === 'object' && 'message' in authResult)) {
+    return res.status(401).json({ message: 'Unauthorized access' });
+  }
+  const filter = buildFilter(status, type);
 
   try {
-    // --- 2. Authentication & Authorization ---
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ message: 'Authorization token is missing or invalid' });
-    const token = authHeader.split(' ')[1];
-    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
-    if (!JWT_SECRET) { console.error('CRITICAL: JWT_ACCESS_SECRET env var missing.'); return res.status(500).json({ message: 'Internal config error.' }); }
-    let decodedTokenPayload: unknown;
-    try { decodedTokenPayload = jwt.verify(token, JWT_SECRET); }
-    catch (err: any) { console.warn(`JWT verify failed: ${err.message}`); return res.status(401).json({ message: 'Invalid/expired token.' }); }
-    if (!isDecodedToken(decodedTokenPayload)) { console.error('Invalid token payload:', decodedTokenPayload); return res.status(401).json({ message: 'Invalid token payload.' }); }
-    const { role } = decodedTokenPayload;
-    if (role !== 'admin') return res.status(403).json({ message: 'Access denied. Admin role required.' });
-
-    // --- 3. Build Filter Object ---
-    const filter: Record<string, any> = {};
-
-    // Add optional type filter
-    if (type && typeof type === 'string' && type.trim()) {
-        filter.type = type.trim();
-        console.log(`Applied type filter: ${filter.type}`);
-    }
-
-    // Add status filter using 'stattusof' - Added lowercase conversion
-    const defaultStatuses = ['pending', 'ongoing', 'completed']; // Define default once
-    if (status && typeof status === 'string') {
-        const statusList = status.split(',')
-                                .map(s => s.trim().toLowerCase()) // Trim whitespace and convert to lowercase
-                                .filter(Boolean); // Remove empty strings resulting from trailing commas etc.
-
-        if (statusList.length > 0) {
-            console.log(`Applying status filter (lowercase): [${statusList.join(', ')}]`);
-            filter.stattusof = { $in: statusList };
-        } else {
-             // Handle case where status param exists but is empty (e.g., ?status=)
-             console.log('Status query param was empty, using default statuses.');
-             filter.stattusof = { $in: defaultStatuses };
-        }
-    } else { // Use default only if status param is completely missing
-        console.log('No status query param provided, using default statuses.');
-        filter.stattusof = { $in: defaultStatuses };
-    }
-
-    // --- 4. *** DEBUGGING: Log the final filter object *** ---
-    // Log it BEFORE the database query executes
-    console.log(`Executing DB query with filter: ${JSON.stringify(filter)}`);
-
-    // --- 5. Fetch Initial Paginated Requests & Total Count ---
-    // Ensure the 'filter' object is correctly passed to BOTH find and countDocuments
     const [requests, totalDocuments] = await Promise.all([
-        RequestModel.find(filter) // Pass the constructed filter
-          .sort({ [sortField]: sortOrder })
-          .skip((pageNumber - 1) * pageSize)
-          .limit(pageSize)
-          .lean(),
-        RequestModel.countDocuments(filter) // Pass the SAME constructed filter
+      RequestModel.find(filter).sort({ [sortField]: sortOrder as 1 | -1 }).skip((pageNumber - 1) * pageSize).limit(pageSize).lean(),
+      RequestModel.countDocuments(filter)
     ]);
 
-    // --- DEBUGGING: Log the count received directly from the DB ---
-    console.log(`DB Result: countDocuments returned ${totalDocuments}`);
-    console.log(`DB Result: find returned ${requests.length} documents for this page.`);
-
-    // --- 6. Handle Empty Results ---
-     if (requests.length === 0 && totalDocuments === 0) {
-        return res.status(200).json({
-            message: 'No requests found matching the specified criteria.',
-            pagination: { currentPage: pageNumber, totalPages: 0, totalDocuments: 0 },
-            requests: [],
-        });
-    }
-    if (requests.length === 0 && totalDocuments > 0) {
-        // This case means the filter matched some docs, but none on the current page
-        return res.status(200).json({
-            message: 'No requests found for this page number.',
-            pagination: {
-                currentPage: pageNumber,
-                totalPages: Math.ceil(totalDocuments / pageSize),
-                totalDocuments: totalDocuments,
-            },
-            requests: [],
-        });
+    if (requests.length === 0) {
+      return res.status(200).json({
+        message: totalDocuments === 0 ? 'No requests found matching the specified criteria.' : 'No requests found for this page number.',
+        pagination: { currentPage: pageNumber, totalPages: Math.ceil(totalDocuments / pageSize), totalDocuments },
+        requests: [],
+      });
     }
 
-    // --- 7. Prepare for Batch Fetching Related Data ---
-    const userIds: string[] = []; const orderIds: string[] = [];
-    const taskOrderIds: string[] = []; const appointmentOrderIds: string[] = [];
-    requests.forEach(request => {
-        if (request.userId) userIds.push(request.userId.toString());
-        if (request.orderId) {
-            const orderIdStr = request.orderId.toString();
-            orderIds.push(orderIdStr);
-            if (request.type === 'request') taskOrderIds.push(orderIdStr);
-            else appointmentOrderIds.push(orderIdStr);
-        }
-    });
-    const uniqueUserIds = [...new Set(userIds)]; const uniqueOrderIds = [...new Set(orderIds)];
-    const uniqueTaskOrderIds = [...new Set(taskOrderIds)]; const uniqueAppointmentOrderIds = [...new Set(appointmentOrderIds)];
-
-    // --- 8. Batch Fetch Related Data Concurrently ---
-    const [ usersData, transactionsData, tasksData, appointmentsData ] = await Promise.all([
-        uniqueUserIds.length > 0 ? User.find({ _id: { $in: uniqueUserIds } }, 'fname lname email profilepics').lean() : Promise.resolve([]),
-        // Fetch COMPLETED Transactions for ALL initially fetched requests' order IDs
-        uniqueOrderIds.length > 0 ? Transaction.find({ orderId: { $in: uniqueOrderIds }, status: 'completed' }, 'orderId status price title').lean() : Promise.resolve([]),
-        uniqueTaskOrderIds.length > 0 ? Task.find({ orderId: { $in: uniqueTaskOrderIds } }, 'orderId cid').lean() : Promise.resolve([]),
-        uniqueAppointmentOrderIds.length > 0 ? AppointmentModel.find({ orderId: { $in: uniqueAppointmentOrderIds } }, 'orderId cid').lean() : Promise.resolve([])
-    ]);
-
-    // --- 9. Map Data for Efficient Lookup ---
-    const usersMap = new Map(usersData.map(u => [u._id.toString(), u]));
-    const completedTransactionsMap = new Map(transactionsData.map(t => [t.orderId, t])); // Map of completed transactions ONLY
-    const cidMap = new Map<string, any>();
-    tasksData.forEach(t => t.orderId && cidMap.set(t.orderId.toString(), t.cid));
-    appointmentsData.forEach(a => a.orderId && cidMap.set(a.orderId.toString(), a.cid));
-
-    // --- 10. Batch Fetch Consultants ---
-    const consultantIdsToFetch = [...cidMap.values()].map(cidInfo => cidInfo?.cid).filter(Boolean);
-    let consultantsMap = new Map();
-    if (consultantIdsToFetch.length > 0) {
-        const uniqueConsultantIds = [...new Set(consultantIdsToFetch.map(id => id.toString()))];
-        const consultantsData = await Consultant.find({ _id: { $in: uniqueConsultantIds } }, 'fname lname').lean();
-        consultantsMap = new Map(consultantsData.map(c => [c._id.toString(), c]));
-    }
-
-    // --- 11. Combine Fetched Data and Apply Secondary Filtering (by completed transaction) ---
-    let skippedCount = 0; // Debugging counter
-    const enrichedRequests = requests
-        .map(request => {
-            const orderIdStr = request.orderId?.toString();
-            const transaction = orderIdStr ? completedTransactionsMap.get(orderIdStr) : null;
-
-            // *** This is the secondary filter based on completed transactions ***
-            // If the goal is to see PENDING requests, they likely WON'T have a completed transaction.
-            // This block will filter them out if status=pending was correctly applied in step 5.
-            if (!transaction) {
-                skippedCount++;
-                // console.log(`DEBUG: Request orderId=${orderIdStr}, status=${request.stattusof} skipped (no completed transaction).`); // Optional detailed log
-                return null; // Skip this request
-            }
-
-            // Look up other related data
-            const user = request.userId ? usersMap.get(request.userId.toString()) : null;
-            const cidInfo = orderIdStr ? cidMap.get(orderIdStr) : null;
-            const consultantId = cidInfo?.cid?.toString();
-            const consultant = consultantId ? consultantsMap.get(consultantId) : null;
-
-            return { ...request, user: user || null, assignedConsultant: consultant || null, transaction };
-        })
-        .filter((request): request is NonNullable<typeof request> => request !== null);
-
-    // --- DEBUGGING: Log how many were skipped by the transaction filter ---
-    console.log(`Secondary Filter: Skipped ${skippedCount} requests due to missing completed transaction.`);
-    console.log(`Final Result: Returning ${enrichedRequests.length} requests.`);
-
-    // --- 12. Send Final Response ---
+    const enrichedRequests = await enrichRequests(requests);
     return res.status(200).json({
       message: 'Requests fetched successfully.',
-      pagination: {
-        currentPage: pageNumber,
-        // Use the totalDocuments from the initial count query
-        totalPages: Math.ceil(totalDocuments / pageSize),
-        totalDocuments: totalDocuments,
-      },
-      requests: enrichedRequests, // The list AFTER secondary filtering
+      pagination: { currentPage: pageNumber, totalPages: Math.ceil(totalDocuments / pageSize), totalDocuments },
+      requests: enrichedRequests,
     });
-
-  } catch (error: any) {
-    console.error('Error fetching requests with pagination:', error);
+  } catch (error) {
+    console.error('Error fetching requests:', error);
     return res.status(500).json({ message: 'Failed to fetch requests due to an internal server error.' });
   }
+};
+
+const enrichRequests = async (requests: any[]) => {
+  const userIds: string[] = []; const orderIds: string[] = [];
+  const taskOrderIds: string[] = []; const appointmentOrderIds: string[] = [];
+  requests.forEach(request => {
+    if (request.userId) userIds.push(request.userId.toString());
+    if (request.orderId) {
+      const orderIdStr = request.orderId.toString();
+      orderIds.push(orderIdStr);
+      request.type === 'request' ? taskOrderIds.push(orderIdStr) : appointmentOrderIds.push(orderIdStr);
+    }
+  });
+  
+  const [usersData, transactionsData, tasksData, appointmentsData] = await Promise.all([
+    userIds.length ? User.find({ _id: { $in: [...new Set(userIds)] } }, 'fname lname email profilepics').lean() : [],
+    orderIds.length ? Transaction.find({ orderId: { $in: [...new Set(orderIds)] }, status: 'completed' }, 'orderId status price title').lean() : [],
+    taskOrderIds.length ? Task.find({ orderId: { $in: [...new Set(taskOrderIds)] } }, 'orderId cid').lean() : [],
+    appointmentOrderIds.length ? AppointmentModel.find({ orderId: { $in: [...new Set(appointmentOrderIds)] } }, 'orderId cid').lean() : []
+  ]);
+  
+  const usersMap = new Map(usersData.map(u => [u._id.toString(), u]));
+  const transactionsMap = new Map(transactionsData.map(t => [t.orderId, t]));
+  const cidMap = new Map([...tasksData, ...appointmentsData].map(t => [t.orderId.toString(), t.cid]));
+  
+  const consultantIdsToFetch = [...new Set([...cidMap.values()].map(cid => cid?.toString()).filter(Boolean))];
+  const consultantsMap = consultantIdsToFetch.length ? new Map((await Consultant.find({ _id: { $in: consultantIdsToFetch } }, 'fname lname').lean()).map(c => [c._id.toString(), c])) : new Map();
+  
+  return requests.map(request => {
+    const transaction = request.orderId ? transactionsMap.get(request.orderId.toString()) : null;
+    if (!transaction) return null;
+    return {
+      ...request,
+      user: request.userId ? usersMap.get(request.userId.toString()) : null,
+      assignedConsultant: request.orderId ? consultantsMap.get(cidMap.get(request.orderId.toString())) : null,
+      transaction
+    };
+  }).filter(Boolean);
 };
 
 
