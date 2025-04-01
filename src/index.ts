@@ -6,6 +6,7 @@ import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
 import Notification from './models/Notification';
+import User from './models/User'; // Ensure this path is correct and the User model exists
 
 dotenv.config(); // Load environment variables
 
@@ -44,7 +45,19 @@ io.on('connection', (socket) => {
     console.log(`User ${userId} connected with socket ID ${socket.id}`);
   });
 
-  socket.on('disconnect', () => {
+
+  const updateUserCount = async () => {
+    const userCount = await User.countDocuments();
+    io.emit("userCountUpdate", userCount);
+  };
+  
+  // Listen for new user additions
+  User.watch().on("change", async () => {
+    await updateUserCount();
+  });
+
+  socket.on('disconnect', async () => {
+    //await updateUserCount(); // Send the latest count on connection
     for (const [userId, socketId] of Object.entries(users)) {
       if (socketId === socket.id) {
         delete users[userId];

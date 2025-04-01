@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User, {IUser} from '../models/User';
@@ -26,6 +26,7 @@ import ServiceChatThread from '../models/ServiceChatThread';
 import ServiceChat from '../models/ServiceChat';
 import geoip from 'geoip-lite';
 import DraftModel from '../models/DraftModel';
+import Visitor from '../models/Visits';
 
 
 // Define the storage engine
@@ -2087,5 +2088,36 @@ export const getTransactionByReference = async (req: Request, res: Response) => 
   } catch (error) {
     console.error("Error fetching transaction:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const trackVisitor = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const ip = req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    const page = req.originalUrl;
+
+    if (!ip) return next(); // Skip if IP is not found
+
+    // Check if the IP exists
+    let visitor = await Visitor.findOne({ ip });
+
+    if (visitor) {
+      // Update visits array (add new page visit)
+      visitor.visits.push({ page, date: new Date() });
+      await visitor.save();
+    } else {
+      // Create a new visitor entry
+      visitor = new Visitor({
+        ip,
+        visits: [{ page, date: new Date() }],
+      });
+      await visitor.save();
+    }
+
+    console.log(`Logged visit: ${ip} -> ${page}`);
+    next();
+  } catch (error) {
+    console.error("Error tracking visitor:", error);
+    next();
   }
 };
