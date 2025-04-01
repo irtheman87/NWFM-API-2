@@ -72,6 +72,20 @@ io.on('connection', (socket) => {
 // Connect to the database
 connectDB();
 
+const getUserCount = async () => {
+  return await User.countDocuments();
+};
+
+// API route to fetch user count when the page is refreshed
+app.get("/user-count", async (req, res) => {
+  try {
+    const count = await getUserCount();
+    res.json({ userCount: count });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch user count" });
+  }
+});
+
 // Routes
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/consultants', require('./routes/consultRoutes'));
