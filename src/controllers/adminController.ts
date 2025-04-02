@@ -5574,7 +5574,7 @@ export const sendCongratsEmail = async (req: Request, res: Response) => {
 
     await sendEmail({
       to: email,
-        subject: '🎉 Congratulations! You’re First Client on Nollywood Filmmaker',
+        subject: '🎉 Congratulations! You’re Our First Client on Nollywood Filmmaker',
       text: `Hi ${firstName},
 
 Congratulations! You are the first on NollywoodFilmmaker.com! 
@@ -5658,5 +5658,32 @@ Nollywood Filmmaker`,
   } catch (error) {
     console.error('Error sending congratulatory email:', error);
     res.status(500).json({ message: 'Failed to send congratulatory email' });
+  }
+};
+
+export const validateAndCleanTransactions = async (req: Request, res: Response) => {
+  try {
+      // Get all transactions
+      const transactions = await Transaction.find();
+      
+      // Extract orderIds from RequestModel
+      const validOrders = new Set(
+          (await RequestModel.find({}, "orderId")).map(req => req.orderId)
+      );
+      
+      // Find transactions with invalid orderIds
+      const invalidTransactions = transactions.filter(t => !validOrders.has(t.orderId));
+      
+      // Delete invalid transactions
+      const deleteOps = invalidTransactions.map(t => Transaction.deleteOne({ _id: t._id }));
+      await Promise.all(deleteOps);
+      
+      res.status(200).json({
+          message: "Invalid transactions removed successfully",
+          deletedCount: invalidTransactions.length
+      });
+  } catch (error) {
+      console.error("Error cleaning transactions:", error);
+      res.status(500).json({ message: "Server error", error });
   }
 };
