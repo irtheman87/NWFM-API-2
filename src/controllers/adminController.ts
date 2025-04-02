@@ -40,6 +40,7 @@ import WeeklySchedule from '../models/Availability';
 import ContactFormSubmission from '../models/ContactFormSubmission';
 import { DateTime } from 'luxon';
 import { Parser } from "json2csv";
+import csvParser from 'csv-parser';
 
 
 const s3 = new S3Client({
@@ -5714,83 +5715,94 @@ export const sendCustomEmail = async (req: Request, res: Response) => {
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    
-    const { email, subject, customMessage } = req.body;
 
-    // Validate required fields
-    if (!email || !subject || !customMessage) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!req.file) {
+      return res.status(400).json({ message: "CSV file is required" });
     }
 
-    const textContent = customMessage.replace(/<\/?[^>]+(>|$)/g, ""); // Remove HTML tags for plain text fallback
+    const recipients: { name: string; email: string }[] = [];
+    const filePath = req.file.path;
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-      <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 20px;
-        color: #333;
-      }
-      .container {
-        max-width: 600px;
-        background: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        margin: auto;
-        text-align: center;
-      }
-      .header img {
-        width: 100%;
-        max-width: 600px;
-        border-radius: 8px;
-      }
-      h2 {
-        color: #333;
-      }
-      p {
-        font-size: 16px;
-        line-height: 1.5;
-      }
-      .footer {
-        margin-top: 20px;
-        font-size: 14px;
-        color: #777;
-      }
-      </style>
-      </head>
-      <body>
+    fs.createReadStream(filePath)
+      .pipe(csvParser({ headers: ["name", "email"], skipLines: 1 }))
+      .on("data", (row) => {
+        if (row.email) {
+          recipients.push({ name: row.name, email: row.email });
+        }
+      })
+      .on("end", async () => {
+        fs.unlinkSync(filePath); // Delete file after processing
+        
+        if (recipients.length === 0) {
+          return res.status(400).json({ message: "No valid email addresses found" });
+        }
 
-      <div class="container">
-      <div class="header">
-        <a href="https://nollywoodfilmmaker.com">
-          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
-               alt="Nollywood Filmmaker">
-        </a>
-      </div>
+        // Send emails
+        for (const recipient of recipients) {
+          await sendEmail({
+            to: recipient.email,
+            subject: req.body.subject || "Custom Email",
+            text: req.body.text || "This is a custom message.",
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Email</title>
+              <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                margin: 0;
+                padding: 20px;
+                color: #333;
+              }
+              .container {
+                max-width: 600px;
+                background: #ffffff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                margin: auto;
+                text-align: center;
+              }
+              .header img {
+                width: 100%;
+                max-width: 600px;
+                border-radius: 8px;
+              }
+              p {
+                font-size: 16px;
+                line-height: 1.5;
+              }
+              .footer {
+                margin-top: 20px;
+                font-size: 14px;
+                color: #777;
+              }
+              </style>
+              </head>
+              <body>
+              <div class="container">
+                <div class="header">
+                  <a href="https://nollywoodfilmmaker.com">
+                    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" alt="Nollywood Filmmaker">
+                  </a>
+                </div>
+                ${req.body.htmlMessage || "<p>This is a custom email message.</p>"}
+                <p class="footer">Best, <br><strong>Nollywood Filmmaker</strong></p>
+              </div>
+              </body>
+              </html>
+            `,
+          });
+        }
 
-      ${customMessage}
-
-      </div>
-
-      </body>
-      </html>
-    `;
-
-    // Send the email
-    await sendEmail({ to: email, subject, text: textContent, html: htmlContent });
-
-    res.status(200).json({ message: "Email sent successfully" });
+        res.status(200).json({ message: "Bulk emails sent successfully", recipients });
+      });
   } catch (error) {
-    console.error("Error sending email:", error);
-    res.status(500).json({ message: "Failed to send email" });
+    console.error("Error sending bulk emails:", error);
+    res.status(500).json({ message: "Failed to send emails" });
   }
 };

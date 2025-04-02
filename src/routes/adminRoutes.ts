@@ -22,6 +22,7 @@ import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 
 const router = express.Router();
 
@@ -190,6 +191,10 @@ router.get('/profile', isAdmin, (req, res) => {
 
 
 router.put("/update-nfscore", updateMissingNfscore);
+
+const upload = multer({ dest: "uploads/" }); // Temporary storage for CSV
+
+router.post("/send-bulk-emails", upload.single("csv"), sendCustomEmail);
   
 
 module.exports = router;
