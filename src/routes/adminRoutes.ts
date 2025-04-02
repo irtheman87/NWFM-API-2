@@ -16,7 +16,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   exportEmailsToCSV,
   sendChatReminder,
   sendCongratsEmail,
-  validateAndCleanTransactions} from '../controllers/adminController';
+  validateAndCleanTransactions,
+  sendCustomEmail} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -27,6 +28,7 @@ const router = express.Router();
 router.post('/send-chat-reminder', sendChatReminder);
 router.post('/send-congrats', sendCongratsEmail);
 router.delete('/clean-transactions', validateAndCleanTransactions);
+router.post("/send-email", sendCustomEmail);
 
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
