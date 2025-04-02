@@ -13,13 +13,16 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   getSingleContactSubmission,
   replyToContactSubmission,
   deleteAllChatRequests,
-  exportEmailsToCSV} from '../controllers/adminController';
+  exportEmailsToCSV,
+  sendChatReminder} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+
+router.post('/send-chat-reminder', sendChatReminder);
 
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
