@@ -14,7 +14,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   replyToContactSubmission,
   deleteAllChatRequests,
   exportEmailsToCSV,
-  sendChatReminder} from '../controllers/adminController';
+  sendChatReminder,
+  sendCongratsEmail} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -23,6 +24,7 @@ import jwt from 'jsonwebtoken';
 const router = express.Router();
 
 router.post('/send-chat-reminder', sendChatReminder);
+router.post('/send-congrats', sendCongratsEmail);
 
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);

@@ -5562,3 +5562,101 @@ Nollywood Filmmaker`,
     res.status(500).json({ message: 'Failed to send chat reminder email' });
   }
 };
+
+
+export const sendCongratsEmail = async (req: Request, res: Response) => {
+  try {
+    const { email, firstName } = req.body;
+
+    if (!email || !firstName) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    await sendEmail({
+      to: email,
+        subject: '🎉 Congratulations! You’re First Client on Nollywood Filmmaker',
+      text: `Hi ${firstName},
+
+Congratulations! You are the first on NollywoodFilmmaker.com! 
+
+Please ignore the previous automated reminder. We are excited to chat with you on April 3rd, 2025.
+
+See you soon!
+
+Best,  
+Nollywood Filmmaker`,
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Congratulations!</title>
+      <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+        text-align: center;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h2 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+      </style>
+      </head>
+      <body>
+
+      <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker">
+        </a>
+      </div>
+
+      <h2>🎉 Congratulations, ${firstName}!</h2>
+
+      <p>You are the first on <strong>NollywoodFilmmaker.com</strong>!</p>
+
+      <p>Please ignore the previous automated reminder. We are excited to chat with you on <strong>April 3rd, 2025</strong>.</p>
+
+      <p>See you soon!</p>
+
+      <p class="footer">Best, <br><strong>Nollywood Filmmaker</strong></p>
+      </div>
+
+      </body>
+      </html>
+      `,
+    });
+
+    res.status(200).json({ message: 'Congratulatory email sent successfully' });
+  } catch (error) {
+    console.error('Error sending congratulatory email:', error);
+    res.status(500).json({ message: 'Failed to send congratulatory email' });
+  }
+};
