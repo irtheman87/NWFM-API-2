@@ -5565,6 +5565,122 @@ Nollywood Filmmaker`,
 };
 
 
+export const sendChatReminderget = async (req: Request, res: Response) => {
+  try {
+    // Extract the query parameters
+    const { email, firstName, chatLink } = req.query;
+
+    // Check if the required parameters are provided
+    if (!email || !firstName) {
+      return res.status(400).json({ message: 'Missing required fields: email and firstName' });
+    }
+
+    // Generate a sample chat link if not provided
+    const generatedChatLink = chatLink || `https://example.com/chat/${Date.now()}`;
+
+    // Send the reminder email
+    await sendEmail({
+      to: email as string,
+      subject: 'Reminder: Your Chat on Nollywood Filmmaker in 30 Minutes',
+      text: `Hi ${firstName},
+
+You have a chat scheduled on NollywoodFilmmaker.com in 30 minutes. 
+
+Click the link below to join the conversation:
+${generatedChatLink}
+
+See you soon!
+
+Best,  
+Nollywood Filmmaker`,
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Chat Reminder</title>
+      <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+        text-align: center;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h2 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .btn {
+        display: inline-block;
+        padding: 12px 20px;
+        background-color: #ff9800;
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 16px;
+        border-radius: 5px;
+        margin-top: 20px;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+      </style>
+      </head>
+      <body>
+
+      <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker">
+        </a>
+      </div>
+
+      <h2>Hi ${firstName},</h2>
+
+      <p>You have a chat scheduled on <strong>NollywoodFilmmaker.com</strong> in 30 minutes.</p>
+
+      <p>Click below to join the conversation:</p>
+      <a href="${generatedChatLink}" class="btn">Join Chat</a>
+
+      <p class="footer">If you have any questions, feel free to reach out to our support team.</p>
+
+      <p class="footer">Best, <br><strong>Nollywood Filmmaker</strong></p>
+      </div>
+
+      </body>
+      </html>
+      `,
+    });
+
+    res.status(200).json({ message: 'Chat reminder email sent successfully' });
+  } catch (error) {
+    console.error('Error sending chat reminder email:', error);
+    res.status(500).json({ message: 'Failed to send chat reminder email' });
+  }
+};
+
+
 export const sendCongratsEmail = async (req: Request, res: Response) => {
   try {
     const { email, firstName } = req.body;

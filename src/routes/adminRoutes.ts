@@ -17,7 +17,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   sendChatReminder,
   sendCongratsEmail,
   validateAndCleanTransactions,
-  sendCustomEmail} from '../controllers/adminController';
+  sendCustomEmail,
+  sendChatReminderget} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -27,6 +28,7 @@ import multer from 'multer';
 const router = express.Router();
 
 router.post('/send-chat-reminder', sendChatReminder);
+router.get('/send-chat-reminder', sendChatReminderget);
 router.post('/send-congrats', sendCongratsEmail);
 router.delete('/clean-transactions', validateAndCleanTransactions);
 router.post("/send-email", sendCustomEmail);
