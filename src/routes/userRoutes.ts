@@ -33,6 +33,7 @@ import { uploadCharacterBible, uploadLocalFiles } from '../utils/moreUtils';
 import { convertTimeToUserTimezone } from '../controllers/adminController';
 import AppointmentModel from '../models/Appointment';
 import Consultant from '../models/consultant';
+import { Parser } from 'json2csv';
 
  const crypto = require('crypto');
 
@@ -638,6 +639,33 @@ router.post('/webhook/url', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error handling webhook:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.get('/export-users', async (req: Request, res: Response) => {
+  try {
+    // Fetch all users (you can adjust the query based on your needs)
+    const users = await User.find({}, 'fname lname email'); // Only selecting fname, lname, and email
+
+    // Prepare the data for CSV export
+    const csvData = users.map(user => ({
+      name: `${user.fname} ${user.lname}`, // Using 'name' instead of 'userName'
+      email: user.email,
+    }));
+
+    // Convert the data to CSV format using json2csv
+    const parser = new Parser();
+    const csv = parser.parse(csvData);
+
+    // Set the response header for file download
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', 'attachment; filename="users.csv"');
+
+    // Send the CSV data as a response to download
+    res.send(csv);
+  } catch (error) {
+    console.error('Error fetching users or exporting CSV:', error);
+    res.status(500).send('Error fetching users or exporting CSV');
   }
 });
 
