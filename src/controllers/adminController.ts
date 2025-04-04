@@ -3304,9 +3304,9 @@ export const fetchAllDeposits = async (req: Request, res: Response): Promise<Res
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
     }
 
-    // Extract and verify token
     const token = authHeader.split(' ')[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+
     if (!JWT_SECRET) {
       return res.status(500).json({ message: 'JWT secret key is not configured' });
     }
@@ -3318,36 +3318,38 @@ export const fetchAllDeposits = async (req: Request, res: Response): Promise<Res
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check Admin Role
     const { role } = decodedToken as { role: string };
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    // Fetch all deposits
+
     const deposits = await WalletHistory.find({ type: 'deposit' }).exec();
 
     if (!deposits.length) {
       return res.status(404).json({ message: 'No deposits found.' });
     }
 
-    // Fetch related request data using orderId
     const enrichedDeposits = await Promise.all(
       deposits.map(async (deposit) => {
+        const depositObj = deposit.toObject();
+        depositObj.amount = deposit.amount / 100;
+
         if (deposit.orderId) {
           const requestData = await RequestModel.findOne({ orderId: deposit.orderId })
-            .select('chat_title type movie_title nameofservice') // Only select needed fields
+            .select('chat_title type movie_title nameofservice')
             .exec();
+
           return {
-            ...deposit.toObject(),
-            depositInNaira: (deposit.amount/100),
+            ...depositObj,
             chat_title: requestData?.chat_title || null,
             type: requestData?.type || null,
             movie_title: requestData?.movie_title || null,
             nameofservice: requestData?.nameofservice || null,
           };
         }
+
         return {
-          ...deposit.toObject(),
+          ...depositObj,
           chat_title: null,
           type: null,
           movie_title: null,
@@ -3364,10 +3366,11 @@ export const fetchAllDeposits = async (req: Request, res: Response): Promise<Res
     console.error('Error fetching deposits:', error);
     return res.status(500).json({
       message: 'An error occurred while fetching deposits.',
-      error: error,
+      error,
     });
   }
 };
+
 
 export const fetchTotalTransactions = async (req: Request, res: Response): Promise<Response> => {
   try {
