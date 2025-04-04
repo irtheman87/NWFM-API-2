@@ -5504,7 +5504,7 @@ export const exportEmailsToCSV = async (req: Request, res: Response) => {
 };
 
 
-export const exportUsersToCSV = async (req: Request, res: Response): Promise<Response | void> => {
+export const exportUserssToCSV = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -19,7 +19,7 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   validateAndCleanTransactions,
   sendCustomEmail,
   sendChatReminderget,
-  exportUsersToCSV} from '../controllers/adminController';
+  exportUserssToCSV} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -33,7 +33,7 @@ router.get('/send-chat-reminder', sendChatReminderget);
 router.post('/send-congrats', sendCongratsEmail);
 router.delete('/clean-transactions', validateAndCleanTransactions);
 router.post("/send-email", sendCustomEmail);
-// router.get('/export-users', exportUsersToCSV);
+router.get('/export-users', exportUserssToCSV);
 
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
