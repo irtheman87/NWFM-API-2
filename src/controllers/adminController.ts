@@ -745,7 +745,7 @@ export const fetchAllUsers = async (req: Request, res: Response): Promise<Respon
   const { page = 1, limit = 10, email } = req.query;
 
   try {
-    // Extract and validate the Bearer token
+    // --- 1. Auth Token Verification ---
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
@@ -753,7 +753,6 @@ export const fetchAllUsers = async (req: Request, res: Response): Promise<Respon
 
     const token = authHeader.split(' ')[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
-
     if (!JWT_SECRET) {
       return res.status(500).json({ message: 'JWT secret key is not configured' });
     }
@@ -765,31 +764,53 @@ export const fetchAllUsers = async (req: Request, res: Response): Promise<Respon
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check for admin role in the token payload
     const { role } = decodedToken as { role: string };
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    // Validate pagination parameters
+    // --- 2. Pagination Setup ---
     const pageNumber = Math.max(Number(page), 1);
     const pageSize = Math.max(Number(limit), 1);
 
-    // Build the filter query
+    // --- 3. Build Search Filter ---
     const filter: Record<string, any> = {};
-    if (email) {
-      filter.email = { $regex: email, $options: 'i' }; // Case-insensitive search by email
+
+    if (email && typeof email === 'string' && email.trim()) {
+      const keyword = email.trim();
+      const nameParts = keyword.split(' ');
+
+      if (nameParts.length === 2) {
+        const [first, last] = nameParts;
+        filter.$or = [
+          { email: { $regex: keyword, $options: 'i' } },
+          { fname: { $regex: first, $options: 'i' } },
+          { lname: { $regex: last, $options: 'i' } },
+          {
+            $and: [
+              { fname: { $regex: first, $options: 'i' } },
+              { lname: { $regex: last, $options: 'i' } }
+            ]
+          }
+        ];
+      } else {
+        filter.$or = [
+          { email: { $regex: keyword, $options: 'i' } },
+          { fname: { $regex: keyword, $options: 'i' } },
+          { lname: { $regex: keyword, $options: 'i' } }
+        ];
+      }
     }
 
-    // Fetch the total count of documents
+    // --- 4. Query DB ---
     const totalDocuments = await User.countDocuments(filter);
 
-    // Fetch paginated user details, excluding password
     const users = await User.find(filter)
-      .select('-password') // Exclude the password field
+      .select('-password') // exclude password
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize);
 
+    // --- 5. Response ---
     return res.status(200).json({
       message: 'Users fetched successfully.',
       pagination: {
@@ -1255,13 +1276,13 @@ export const fetchMonthlyTransactionTotals = async () => {
 
 export const fetchAllConsultants = async (req: Request, res: Response): Promise<Response> => {
   try {
-    // Verify Authorization Header
+    // --- 1. Verify Authorization Header ---
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
     }
 
-    // Extract and verify token
+    // --- 2. Decode Token ---
     const token = authHeader.split(' ')[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
@@ -1275,27 +1296,55 @@ export const fetchAllConsultants = async (req: Request, res: Response): Promise<
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check Admin Role
     const { role } = decodedToken as { role: string };
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
-    // Extract pagination query parameters
-    const page = parseInt(req.query.page as string, 10) || 1; // Default to page 1
-    const limit = parseInt(req.query.limit as string, 10) || 10; // Default to 10 per page
+    // --- 3. Pagination and Search ---
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
     const skip = (page - 1) * limit;
+    const search = (req.query.email as string)?.trim(); // "email" is reused for search keyword
 
-    // Fetch consultants with pagination
+    // --- 4. Build Search Filter ---
+    const filter: Record<string, any> = { role: 'consultant', status: 'active' };
+
+    if (search) {
+      const nameParts = search.split(' ');
+      if (nameParts.length === 2) {
+        const [first, last] = nameParts;
+        filter.$or = [
+          { email: { $regex: search, $options: 'i' } },
+          { fname: { $regex: first, $options: 'i' } },
+          { lname: { $regex: last, $options: 'i' } },
+          {
+            $and: [
+              { fname: { $regex: first, $options: 'i' } },
+              { lname: { $regex: last, $options: 'i' } }
+            ]
+          }
+        ];
+      } else {
+        filter.$or = [
+          { email: { $regex: search, $options: 'i' } },
+          { fname: { $regex: search, $options: 'i' } },
+          { lname: { $regex: search, $options: 'i' } }
+        ];
+      }
+    }
+
+    // --- 5. Query Database ---
     const consultants = await Consultant.find(
-      { role: 'consultant', status: 'active' },
-      'fname lname email phone expertise profilepics location createdAt' // Select specific fields
+      filter,
+      'fname lname email phone expertise profilepics location createdAt'
     )
       .skip(skip)
       .limit(limit);
 
-    const totalConsultants = await Consultant.countDocuments({ role: 'consultant' });
+    const totalConsultants = await Consultant.countDocuments(filter);
 
+    // --- 6. Respond ---
     return res.status(200).json({
       consultants,
       pagination: {
@@ -5453,6 +5502,60 @@ export const exportEmailsToCSV = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error", error });
   }
 };
+
+
+export const exportUsersToCSV = async (req: Request, res: Response): Promise<Response | void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check Admin Role
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Fetch all users (you can add filters if needed)
+    const users = await User.find({}, 'fname lname email');
+
+    // Map into desired format: { name: "Full Name", email: "user@example.com" }
+    const formattedUsers = users.map(user => ({
+      name: `${user.fname} ${user.lname}`,
+      email: user.email,
+    }));
+
+    // Convert to CSV
+    const parser = new Parser({ fields: ['name', 'email'] });
+    const csv = parser.parse(formattedUsers);
+
+    // Set headers for file download
+    res.setHeader('Content-Disposition', 'attachment; filename=users.csv');
+    res.setHeader('Content-Type', 'text/csv');
+
+    // Send CSV file as response
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error('Error exporting users to CSV:', error);
+    return res.status(500).json({ message: 'Failed to export users', error });
+  }
+};
+
 
 
 export const sendChatReminder = async (req: Request, res: Response) => {

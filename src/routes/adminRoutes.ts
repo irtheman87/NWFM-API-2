@@ -32,6 +32,7 @@ router.get('/send-chat-reminder', sendChatReminderget);
 router.post('/send-congrats', sendCongratsEmail);
 router.delete('/clean-transactions', validateAndCleanTransactions);
 router.post("/send-email", sendCustomEmail);
+router.get('/export-users', exportUsersToCSV);
 
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
