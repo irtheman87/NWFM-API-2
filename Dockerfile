@@ -12,6 +12,8 @@ RUN npm install
 
 COPY . .
 
+COPY ./src/utils/font/Avenir-Black.ttf ./dist/utils/font/Avenir-Black.ttf
+
 RUN npm run build && npm cache clean --force
 
 EXPOSE 5001
