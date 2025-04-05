@@ -1264,7 +1264,7 @@ export const fetchMonthlyTransactionTotals = async () => {
     const formattedResults = monthlyTotals.map(({ _id, totalTransactions, totalPrice }) => ({
       month: monthNames[_id - 1], // Map the month number to its name (1-based index)
       totalTransactions,
-      totalPrice,
+      totalPrice:(totalPrice/100),
     }));
 
     return formattedResults;
