@@ -3541,10 +3541,21 @@ export const fetchDepositById = async (req: Request, res: Response): Promise<Res
       return res.status(404).json({ message: 'Deposit not found with the given ID.' });
     }
 
+
+
     return res.status(200).json({
       message: 'Deposit fetched successfully.',
       depositInNaira: (deposit.amount/100),
-      deposit,
+      deposit:{
+        amount: (deposit.amount)/100,
+        status: deposit.status,
+        createdAt: deposit.createdAt,
+        updatedAt: deposit.updatedAt,
+        type: deposit.type,
+        orderId: deposit.orderId,
+        cid: deposit.cid,
+        _id: deposit._id,
+      },
     });
   } catch (error) {
     console.error('Error fetching deposit:', error);
