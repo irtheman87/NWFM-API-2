@@ -7,7 +7,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
 import Notification from './models/Notification';
 import User from './models/User'; // Ensure this path is correct and the User model exists
-import morgan from 'morgan'; // Logging middleware
+// import morgan from 'morgan'; // Logging middleware
 
 dotenv.config(); // Load environment variables
 
@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5001;
 
 app.use(express.urlencoded({ extended: true })); // For form-data bodies
 app.use(express.json());
-app.use(morgan('combined')); // Logging middleware
+// app.use(morgan('combined')); // Logging middleware
 
 // Log and set up static folder for uploads
 const uploadsPath = path.join(__dirname, '..', 'uploads');
