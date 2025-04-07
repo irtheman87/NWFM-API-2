@@ -32,7 +32,7 @@ import Attendance from '../models/attendanceModel';
 import { findSourceMap } from 'module';
 import { createCanvas, loadImage, registerFont  } from 'canvas';
 const QRCode = require('qrcode');
-import fs from 'fs';
+// import fs from 'fs';
 import path from 'path';
 const axios =  require('axios');
 import { S3Client, PutObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
@@ -41,6 +41,10 @@ import ContactFormSubmission from '../models/ContactFormSubmission';
 import { DateTime } from 'luxon';
 import { Parser } from "json2csv";
 import csvParser from 'csv-parser';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs-extra';
+import sharp from 'sharp';
+
 
 
 const s3 = new S3Client({
@@ -5122,29 +5126,45 @@ export const generateBadge = async (
     const template = await loadImage(templateURL);
     ctx.drawImage(template, 0, 0, width, height);
 
-    // Load profile picture
-    const profilePic = await loadImage(profileImageURL);
-    const circleX = width / 2, circleY = 650, radius = 270;
+    // === Profile Image Conversion ===
+    const prepareProfileImage = async (url: string) => {
+      const ext = path.extname(new URL(url).pathname).toLowerCase().replace('.', '');
+      const allowed = ['jpeg', 'jpg', 'png'];
+      const needsConvert = !allowed.includes(ext);
+      const res = await axios.get(url, { responseType: 'arraybuffer' });
+      const imgBuf = Buffer.from(res.data);
+      const filename = `${uuidv4()}.${needsConvert ? 'png' : ext}`;
+      const filePath = path.join(__dirname, '../temp', filename);
+      await fs.ensureDir(path.dirname(filePath));
 
-    // Crop from the center
+      if (needsConvert) {
+        await sharp(imgBuf).png().toFile(filePath);
+      } else {
+        await fs.writeFile(filePath, imgBuf);
+      }
+
+      const image = await loadImage(filePath);
+      fs.unlink(filePath).catch(console.error);
+      return image;
+    };
+
+    // Load and process profile image
+    const profilePic = await prepareProfileImage(profileImageURL);
+    const circleX = width / 2, circleY = 650, radius = 270;
     const minSide = Math.min(profilePic.width, profilePic.height);
     const sx = (profilePic.width - minSide) / 2;
     const sy = (profilePic.height - minSide) / 2;
-    const sWidth = minSide, sHeight = minSide;
 
-    // Draw profile picture in a circular clip
     ctx.save();
     ctx.beginPath();
     ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-    ctx.drawImage(profilePic, sx, sy, sWidth, sHeight, circleX - radius, circleY - radius, radius * 2, radius * 2);
+    ctx.drawImage(profilePic, sx, sy, minSide, minSide, circleX - radius, circleY - radius, radius * 2, radius * 2);
     ctx.restore();
 
     let badgename = type === 'crew' && crewname ? crewname : company || 'Unknown';
-
-    // Split text into two lines if too long
-    const maxWidth = width * 0.8; // 80% of canvas width
+    const maxWidth = width * 0.8;
     ctx.font = 'bold 70px DejaVuSans';
     ctx.fillStyle = '#000';
     ctx.textAlign = 'center';
@@ -5162,33 +5182,26 @@ export const generateBadge = async (
       }
     }
 
-    // Draw name, breaking into two lines if needed
     if (line2) {
-      ctx.fillText(line1, width / 2, 1020); // First line
-      ctx.fillText(line2, width / 2, 1090); // Second line
+      ctx.fillText(line1, width / 2, 1020);
+      ctx.fillText(line2, width / 2, 1090);
     } else {
-      ctx.fillText(line1, width / 2, 1050); // Single-line case
+      ctx.fillText(line1, width / 2, 1050);
     }
 
-    // Draw "VERIFIED" text
     ctx.font = 'bold 80px DejaVuSans';
     ctx.fillStyle = '#053736';
     ctx.fillText('VERIFIED', width / 2, 1210);
 
-    // Load and draw verification icon
     const verificationIconURL = 'https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF+VERIFY_badge_icon.png';
     const verificationIcon = await loadImage(verificationIconURL);
     ctx.drawImage(verificationIcon, circleX + radius - 100, circleY - radius + 50, 110, 110);
 
-    // Generate QR code
     const qrImageData = await QRCode.toDataURL(qrData);
     const qrImage = await loadImage(qrImageData);
     ctx.drawImage(qrImage, (width - 250) / 2, height - 220, 250, 250);
 
-    // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
-
-    // Upload to S3
     const fileName = `badges/${badgename.replace(/\s+/g, '_')}_${Date.now()}.png`;
     const uploadParams = {
       Bucket: process.env.AWS_S3_BUCKET_NAME || '',
@@ -5200,14 +5213,13 @@ export const generateBadge = async (
 
     await s3.send(new PutObjectCommand(uploadParams));
 
-    console.log(`https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`);
     return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-
   } catch (error) {
     console.error('Error generating badge:', error);
     throw new Error('Failed to generate badge');
   }
 };
+
 
 export const getContactSubmissions = async (req: Request, res: Response): Promise<Response> => {
   try {
