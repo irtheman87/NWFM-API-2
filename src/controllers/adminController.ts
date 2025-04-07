@@ -44,6 +44,8 @@ import csvParser from 'csv-parser';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import sharp from 'sharp';
+import { createObjectCsvStringifier } from 'csv-writer';
+import { tmpdir } from 'os';
 
 
 
@@ -6049,5 +6051,51 @@ export const sendCustomEmail = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error sending bulk emails:", error);
     res.status(500).json({ message: "Failed to send emails" });
+  }
+};
+
+export const exportVerifiedCrewCSV = async (req: Request, res: Response): Promise<Response | void> => {
+  try {
+    // Find verified crew members
+    const verifiedCrew = await Crew.find({ verified: true }).select('firstName lastName email');
+
+    if (!verifiedCrew.length) {
+      return res.status(404).json({ message: 'No verified crew members found.' });
+    }
+
+    // Prepare CSV rows
+    const csvRows = verifiedCrew.map((crew) => ({
+      name: `${crew.firstName} ${crew.lastName}`.trim(),
+      email: crew.email,
+    }));
+
+    // Create CSV stringifier
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'name', title: 'name' },
+        { id: 'email', title: 'email' },
+      ],
+    });
+
+    // Build full CSV content
+    const csvContent = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(csvRows);
+
+    // Save to temporary file
+    const filePath = path.join(tmpdir(), `verified_crew_${Date.now()}.csv`);
+    await fs.writeFile(filePath, csvContent, 'utf8');
+
+    // Send file as a download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="verified_crew.csv"`);
+    res.download(filePath, async (err) => {
+      await fs.unlink(filePath); // Clean up temp file
+      if (err) {
+        console.error('Download error:', err);
+        res.status(500).send('Error downloading file');
+      }
+    });
+  } catch (error) {
+    console.error('CSV export failed:', error);
+    return res.status(500).json({ message: 'Failed to export verified crew to CSV' });
   }
 };
