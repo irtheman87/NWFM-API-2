@@ -6099,3 +6099,34 @@ export const exportVerifiedCrewCSV = async (req: Request, res: Response): Promis
     return res.status(500).json({ message: 'Failed to export verified crew to CSV' });
   }
 };
+
+export const exportVerifiedCompaniesCSV = async (req: Request, res: Response) => {
+  try {
+    const companies = await Company.find({ verified: true }).select('name email');
+
+    if (!companies.length) {
+      return res.status(404).json({ message: 'No verified companies found.' });
+    }
+
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'name', title: 'name' },
+        { id: 'email', title: 'email' },
+      ],
+    });
+
+    const records = companies.map((company) => ({
+      name: company.name,
+      email: company.email,
+    }));
+
+    const csvContent = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(records);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=verified_companies.csv');
+    return res.send(csvContent);
+  } catch (error) {
+    console.error('CSV export failed:', error);
+    return res.status(500).json({ message: 'Error generating CSV', error });
+  }
+};

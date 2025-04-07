@@ -20,7 +20,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   sendCustomEmail,
   sendChatReminderget,
   exportUserssToCSV,
-  exportVerifiedCrewCSV} from '../controllers/adminController';
+  exportVerifiedCrewCSV,
+  exportVerifiedCompaniesCSV} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -145,6 +146,8 @@ router.delete('/requests/chat/delete-all', deleteAllChatRequests);
 router.get("/export-emails", exportEmailsToCSV);
 
 router.get('/export-verified', exportVerifiedCrewCSV);
+
+router.get('/export/verified-companies', exportVerifiedCompaniesCSV);
 
 router.get('/fetch/user/pending-request/:id', validateUserRequestForAdmin, (req, res) => {
   // Access the request object added by the middleware
