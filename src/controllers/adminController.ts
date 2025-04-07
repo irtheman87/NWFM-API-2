@@ -5936,14 +5936,13 @@ export const validateAndCleanTransactions = async (req: Request, res: Response) 
   }
 };
 
-export const sendCustomEmail = async (req: Request, res: Response) => {
+export const sendCustomEmail = async (req: Request, res: Response) => { 
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token is missing or invalid' });
     }
 
-    // Extract and verify token
     const token = authHeader.split(' ')[1];
     const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
     if (!JWT_SECRET) {
@@ -5957,7 +5956,6 @@ export const sendCustomEmail = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check Admin Role
     const { role } = decodedToken as { role: string };
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
@@ -5979,13 +5977,15 @@ export const sendCustomEmail = async (req: Request, res: Response) => {
       })
       .on("end", async () => {
         fs.unlinkSync(filePath); // Delete file after processing
-        
+
         if (recipients.length === 0) {
           return res.status(400).json({ message: "No valid email addresses found" });
         }
 
-        // Send emails
         for (const recipient of recipients) {
+          const htmlMessage = (req.body.htmlMessage || "<p>This is a custom email message.</p>")
+            .replace(/\[Name\]/gi, recipient.name); // Replace all occurrences of [Name]
+
           await sendEmail({
             to: recipient.email,
             subject: req.body.subject || "Custom Email",
@@ -6037,7 +6037,7 @@ export const sendCustomEmail = async (req: Request, res: Response) => {
                     <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" alt="Nollywood Filmmaker">
                   </a>
                 </div>
-                ${req.body.htmlMessage || "<p>This is a custom email message.</p>"}
+                ${htmlMessage}
                 <p class="footer">Best, <br><strong>Nollywood Filmmaker</strong></p>
               </div>
               </body>
@@ -6053,6 +6053,7 @@ export const sendCustomEmail = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to send emails" });
   }
 };
+
 
 export const exportVerifiedCrewCSV = async (req: Request, res: Response): Promise<Response | void> => {
   try {
