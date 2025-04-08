@@ -22,21 +22,6 @@ import { io, users } from '..';
 const CC = require('currency-converter-lt')
 
 
-export const convertCurrency = async (
-  amount: number,
-  from: string,
-  to: string
-): Promise<number> => {
-  const converter = new CC({ from, to, amount, isDecimalComma: false });
-  try {
-    const result = await converter.convert();
-    return Number(result.toFixed(2)); // Ensure 2 decimal places
-  } catch (error) {
-    console.error('Currency conversion failed:', error);
-    throw new Error('Currency conversion failed');
-  }
-};
-
 interface PaystackResponse {
   status: boolean;
   message: string;
@@ -217,9 +202,10 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       try {
 
         const newAmount = totalPrice/100000;
-        const usdAmount = await convertCurrency(newAmount, 'NGN', 'USD');
 
-        log('Converted amount:', usdAmount);
+        let currencyConverter = new CC({from:"NGN", to:"USD", amount:100});
+
+        log('Converted amount::', currencyConverter);
 
         const cart = {
           currency: "USD",
