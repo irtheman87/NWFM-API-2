@@ -194,10 +194,11 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       try {
         const cart = {
           currency: "USD",
-          total: totalPrice,
+          total: totalPrice.toString(),
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
         res.status(httpStatusCode).json(jsonResponse);
+        console.log('Order created successfully:', jsonResponse);
       } catch (error) {
         console.error("Failed to create order:", error);
         res.status(500).json({ error: "Failed to create order." });
