@@ -16,7 +16,9 @@ import User, { IUser } from '../models/User';
 import { ReadScriptTransaction, WatchFinalCutTransaction, BudgetTransaction, CreateBudgetTransaction, CreateMarketBudgetTransaction, createAPitch, createLegal, chatTransaction,
   getParameterHandler, uploadFiles, ExtendMyTime, createPitchDeckRequest,
   updateRequestTime,
-  CreateFilmTrailerTransaction
+  CreateFilmTrailerTransaction,
+  handleCreateOrder,
+  handleCaptureOrder
  } from '../controllers/TransactionController';
 import { validateUserRequest, verifyUserToken } from '../middleware/TokenValidator';
 import { verifyUserEmail } from '../controllers/utilityroute';
@@ -34,6 +36,8 @@ import { convertTimeToUserTimezone } from '../controllers/adminController';
 import AppointmentModel from '../models/Appointment';
 import Consultant from '../models/consultant';
 import { Parser } from 'json2csv';
+import { ApiError,  CheckoutPaymentIntent,  Client,  Environment,  LogLevel,  OrdersController} from "@paypal/paypal-server-sdk";
+
 
  const crypto = require('crypto');
 
@@ -84,6 +88,9 @@ router.get("/drafts/:userId", verifyUserToken, getDraftsByUserId);
 router.post("/drafts", verifyUserToken, createDraft);
 router.get("/transactions/:reference", verifyUserToken, getTransactionByReference);
 router.post("/film-trailer", verifyUserToken, CreateFilmTrailerTransaction);
+
+router.post("/orders", handleCreateOrder);
+router.post("/orders/:orderID/capture", handleCaptureOrder);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {
@@ -668,5 +675,7 @@ router.get('/export-users', async (req: Request, res: Response) => {
     res.status(500).send('Error fetching users or exporting CSV');
   }
 });
+
+
 
 module.exports = router;

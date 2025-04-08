@@ -1,4 +1,4 @@
-import e, { Request, Response } from 'express';
+import e, { Request, Response, Router } from 'express';
 import Transaction, {generateOrderId} from '../models/SetTransaction';
 import RequesModel from '../models/Request'; // Adjust the path to your request model
 import https from 'https'; // Ensure you import https if not already imported
@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
 import { zipAndUploadFiles } from '../utils/zipAndUpload';
+import { captureOrder, createOrder } from '../utils/paypalService';
+
 
 
 interface PaystackResponse {
@@ -1694,5 +1696,27 @@ async function updateTransactionReference(id: string, reference: string) {
     throw error;
   }
 }
+
+export const handleCreateOrder = async (req: Request, res: Response) => {
+  try {
+    const { cart } = req.body;
+    const { jsonResponse, httpStatusCode } = await createOrder(cart);
+    res.status(httpStatusCode).json(jsonResponse);
+  } catch (error) {
+    console.error("Failed to create order:", error);
+    res.status(500).json({ error: "Failed to create order." });
+  }
+};
+
+export const handleCaptureOrder = async (req: Request, res: Response) => {
+  try {
+    const { orderID } = req.params;
+    const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
+    res.status(httpStatusCode).json(jsonResponse);
+  } catch (error) {
+    console.error("Failed to capture order:", error);
+    res.status(500).json({ error: "Failed to capture order." });
+  }
+};
 
 // export const uploadFiles = upload.array('files', 10); // Limit to max 10 files
