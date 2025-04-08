@@ -5,13 +5,20 @@ import https from 'https'; // Ensure you import https if not already imported
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { S3Client, PutObjectCommand, GetObjectAclCommand} from '@aws-sdk/client-s3';
-import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne} from '../utils/UtilityFunctions';
+import { getServicePriceByName, fetchUserEmailById, fetchExtensionPriceByLength, convertToGMTPlusOne, createAdminNotification} from '../utils/UtilityFunctions';
 import { v4 as uuidv4 } from 'uuid';
 import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
 import { zipAndUploadFiles } from '../utils/zipAndUpload';
 import { captureOrder, createOrder } from '../utils/paypalService';
 import { log } from 'console';
+import sendEmail from '../utils/sendEmail';
+import RequestModel from '../models/Request';
+import AppointmentModel from '../models/Appointment';
+import Consultant from '../models/consultant';
+import { convertTimeToUserTimezone } from './adminController';
+import User from '../models/User';
+import { io, users } from '..';
 const CC = require('currency-converter-lt')
 
 
@@ -209,7 +216,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     }else if(method === "paypal"){
       try {
 
-        const newAmount = totalPrice/10000;
+        const newAmount = totalPrice/100000;
         const usdAmount = await convertCurrency(newAmount, 'NGN', 'USD');
 
         log('Converted amount:', usdAmount);
@@ -220,7 +227,10 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
           id: currentId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
-        res.status(httpStatusCode).json(jsonResponse);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: currentId
+        });
         console.log('Order created successfully:', jsonResponse);
 
 
@@ -1656,6 +1666,9 @@ async function handlePaymentInitialization(req: any, res?: any) {
   }
 }
 
+function toAllCaps(text: string): string {
+  return text.toUpperCase();
+}
 // function PostResponse(res: Response, authUrl: string, transaction: any) {
 //   return res.status(200).json({
 //     message: "Successful",
@@ -1752,9 +1765,514 @@ export const handleCreateOrder = async (req: Request, res: Response) => {
 
 export const handleCaptureOrder = async (req: Request, res: Response) => {
   try {
-    const { orderID } = req.params;
+    const { orderID, orderId } = req.params;
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
     res.status(httpStatusCode).json(jsonResponse);
+
+    const result = await Transaction.findOneAndUpdate(
+            { orderId }, 
+            { status: 'completed' },
+            { new: true }
+          );
+          
+    
+          sendEmail({
+            to: 'admin@dudutech.io',
+            subject: 'Payment Successful',
+            text: `A User Just Made A Payment for ${result?.title} with ref of ${result?.reference} and the amount of ${result?.price}`,
+            html: `A User Just Made A Payment for ${result?.title} with ref of ${result?.reference} and the amount of ${result?.price}`,
+          });
+      
+         
+    
+          if(result?.type == "Chat"){
+            console.log(result?.type);
+            const orderid =  result?.orderId as string;
+            //fetchRequestByOrderId(orderid); 
+    
+            let request = null;
+    
+            if(result.originalOrderIdFromChat){
+              request = await RequestModel.findOne({ orderId: result.originalOrderIdFromChat });
+              if (!request) {
+                throw new Error("Request not found"); // Handle case where request is not found
+              }
+    
+              const appointment = await AppointmentModel.findOne({ orderId: result.originalOrderIdFromChat });
+    
+              if(!appointment){
+                throw new Error("Appointment not found");
+              }
+    
+              const consultant = await Consultant.findById(appointment.cid);
+              if (!consultant) {
+                throw new Error("Consultant not found"); // Handle case where consultant is not found
+              }
+    
+              const user = await User.findById(request.userId);
+              if (!user) {
+                throw new Error("User not found"); // Handle case where user is not found
+              }
+    
+              function formatDateForGoogleCalendar(date: Date): string {
+                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+              }  
+    
+              const chatStart = new Date(request.usebooktimed ?? Date.now());
+              // Adjust the time if it's always coming in 1hr behind your expected time:
+              const adjustedChatStart = new Date(chatStart.getTime());
+              
+              // Set the event duration to 1 hour (adjust as needed)
+              const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
+              
+              // Generate the Google Calendar URL with pre-filled event details.
+              const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+                request.nameofservice!
+              )}&dates=${formatDateForGoogleCalendar(adjustedChatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+                `Date Booked: ${request.createdAt}`
+              )}`;
+    
+              
+            let userTimeZoneCreated;
+            let userTimeZoneBookTime;
+        
+            if (request.createdAt && user.timezone) {
+              userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt);
+              // Use userTimeZone...
+            } else {
+              console.log("createdAt is missing in request");
+            }
+    
+    
+        
+            if (request.booktime && user.timezone) {
+              userTimeZoneBookTime = convertTimeToUserTimezone(request.usebooktimed ?? new Date());
+    
+              // Use userTimeZone...
+            } else {
+              console.log("Booked Time is missing in request");
+            }
+    
+              await sendEmail({
+                to: consultant.email,
+                subject: 'New Chat Request',
+                text: `Hello ${consultant.fname} ${consultant.lname},
+              
+              You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:
+              
+              Service Booked: ${request.nameofservice}
+              Time for Chat: ${userTimeZoneBookTime}
+              Add to Google Calendar: ${googleCalendarUrl}
+              
+              View Order: https://nollywoodfilmmaker.com/consultants/dashboard
+              `,
+                html: `
+                <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Nollywood Filmmaker Database</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+    </style>
+    </head>
+    <body>
+    
+    <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker Database">
+        </a>
+      </div>
+                  <h1>Hello ${consultant.fname} ${consultant.lname},</h1>
+                  <p>You have a request to Continue Chat from ${user.fname} ${user.lname}. Details below:</p>
+                  <ul>
+                    <li><strong>Service Booked:</strong> ${request.nameofservice}</li>
+                    <li><strong>Time for Chat:</strong> ${request.usebooktimed}</li>
+                    <li><strong>Add to Google Calendar:</strong> <a href="${googleCalendarUrl}" target="_blank">Click here</a></li>
+                  </ul>
+                  <p>
+                    <a href="https://nollywoodfilmmaker.com/consultants/dashboard" 
+                       style="display:inline-block; padding:10px 20px; color:#fff; background:#28a745; text-decoration:none; border-radius:5px;">
+                      View Order
+                    </a>
+                  </p>
+    </div>
+    </body>
+    </html>
+                `,
+              });       
+    
+              if (!request) {
+                throw new Error("Request not found"); // Handle case where request is not found
+              }
+            }else{
+              request = await RequestModel.findOne({ orderId: result.orderId });
+              if (!request) {
+                throw new Error("Request not found"); // Handle case where request is not found
+              }
+              
+            }
+    
+            const user = await User.findById(request.userId);
+            if (!user) {
+              throw new Error("User not found"); // Handle case where user is not found
+            }
+            
+            // Ensure booktime is defined
+            if (!request.booktime) {
+              throw new Error("Book time is missing from the request");
+            }
+    
+            let chatStartDate: Date;
+    
+            if (request.continued === true) {
+              // Defensive checks before assigning to Date constructor
+              if (!request.usebooktimed || !request.useendTimed) {
+                throw new Error("Missing continuation timing details (usebooktimed or useendTimed).");
+              }
+    
+              request.stattusof = "ongoing";
+              chatStartDate = new Date(request.usebooktimed); // Make sure it's defined now
+              request.booktime = request.usebooktimed;
+              request.endTime = request.useendTimed;
+              request.continued = false;
+              await request.save();
+            } else {
+              chatStartDate = new Date(request.booktime); // Safe to assign now
+            }
+            
+            // Helper function to format a Date for Google Calendar (YYYYMMDDTHHmmssZ)
+            function formatDateForGoogleCalendar(date: Date): string {
+              return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            }
+            
+            
+            // Parse the chat start time (now safe to assume it's defined)
+            const chatStart = new Date(chatStartDate);
+            // Adjust the time if it's always coming in 1hr behind your expected time:
+            const adjustedChatStart = new Date(chatStart.getTime());
+            
+            // Set the event duration to 1 hour (adjust as needed)
+            const chatEnd = new Date(adjustedChatStart.getTime() + 60 * 60 * 1000);
+            
+            // Generate the Google Calendar URL with pre-filled event details.
+            const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+              request.nameofservice!
+            )}&dates=${formatDateForGoogleCalendar(adjustedChatStart)}/${formatDateForGoogleCalendar(chatEnd)}&details=${encodeURIComponent(
+              `Date Booked: ${request.createdAt}`
+            )}`;
+    
+            const price = (Number(result.price) / 100).toLocaleString();
+            console.log(`Price: ${price}`);
+            console.log(`Chat Start: ${chatStart}`);
+            console.log(`Chat End: ${chatEnd}`);
+    
+            let userTimeZoneCreated;
+        let userTimeZoneBookTime;
+    
+        if (request.createdAt && user.timezone) {
+          userTimeZoneCreated = convertTimeToUserTimezone(request.createdAt);
+          // Use userTimeZone...
+        } else {
+          console.log("createdAt is missing in request");
+        }
+    
+        if (request.booktime && user.timezone) {
+          userTimeZoneBookTime = convertTimeToUserTimezone(request.booktime);
+          // Use userTimeZone...
+        } else {
+          console.log("Booked Time is missing in request");
+        }
+    
+    
+    
+            
+            await sendEmail({
+              to: user.email,
+              subject: 'Chat Request Confirmed',
+              text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
+            
+            Service Booked: ${request.nameofservice}
+            Price: ${price}
+            Time for Chat: ${userTimeZoneBookTime}
+            OrderId: ${request.orderId}
+    
+            Add to Google Calendar: ${googleCalendarUrl}
+    
+            <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+              Watch Tutorials here
+            </a>
+            
+            <a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a>
+            `,
+              html: `  <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Nollywood Filmmaker Database</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+    </style>
+    </head>
+    <body>
+    
+    <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker Database">
+        </a>
+      </div>
+      
+      <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. Here are the details below:</p>
+                     <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
+                     <p><strong>Price:</strong> ${price}</p>
+                     <p><strong>Time for Chat:</strong> ${userTimeZoneBookTime}</p>
+                     <p><strong>OrderId:</strong> ${request.orderId}</p>
+                     <p>
+                       <a href="${googleCalendarUrl}" target="_blank" style="color: #1a73e8; text-decoration: none;">
+                         Add to Google Calendar
+                       </a>
+                     </p>
+                     <p>
+                     <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+              Watch Tutorials here
+            </a>
+                     </p>
+                     <p>Here are some of our other services:</p>
+                     <ul>
+            <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a></li>
+                </ul>
+                
+                </div>
+    
+    </body>
+    </html>`,
+            });              
+     
+          }else if(result?.type == "request"){
+            
+            const request = await RequestModel.findOne({ orderId: result.orderId });
+    
+            if(!request){
+              throw new Error("Request not found");
+            }
+    
+            let tagMsg;
+    
+            if(request.nameofservice == "RRead my Script and advice"){
+              tagMsg = "script";
+            }else if(request.nameofservice == "Watch the Final cut of my film and advice"){
+              tagMsg = "movie";
+            }else{
+              tagMsg = `Our team has started working on your request, your document will be available for download on your <a href="https://nollywoodfilmmaker.com/user/dashboard/order-details/${request.orderId}" style="color: #1a73e8; text-decoration: none;">
+             dashboard
+            </a> soon .
+    
+            <p>
+            <b style='color:red'>Note</b>: You may be contacted by our consultant while processing your documents.
+            </p>`
+            }
+    
+              if (!request) {
+                throw new Error("Request not found"); // Handle case where request is not found
+              }
+    
+              console.log(`Request: ${request}`);
+    
+              const user = await User.findById(request.userId);
+    
+              if (!user) {
+                throw new Error("User not found"); // Handle case where user is not found
+              }
+    
+              const price = (Number(result.price) / 100).toLocaleString();
+    
+              await sendEmail({
+                to: user.email,
+                subject: `${toAllCaps(request.nameofservice ||  "")} Order Confirmed`,
+                text: `Thanks ${user.fname} ${user.lname} for placing an order on our platform. Here are the details below:
+                
+            Service Booked: ${request.nameofservice}
+            Price: ${price}
+            Date Booked: ${request.createdAt}
+            OrderId: ${request.orderId}
+    
+            <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+              Watch Tutorials here
+            </a>
+            
+            <a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a>
+            `,
+                html: `<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Nollywood Filmmaker Database</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin: auto;
+      }
+      .header img {
+        width: 100%;
+        max-width: 600px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #777;
+      }
+    </style>
+    </head>
+    <body>
+    
+    <div class="container">
+      <div class="header">
+        <a href="https://nollywoodfilmmaker.com">
+          <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+               alt="Nollywood Filmmaker Database">
+        </a>
+      </div>
+      
+                     <p>Thanks <strong>${user.fname} ${user.lname}</strong> for placing an order on our platform. 
+                     Your <b>${toAllCaps(request.nameofservice ||  "")}</b> order has been recieved. ${tagMsg} </p>                 
+    
+                     <p><strong>Service Booked:</strong> ${request.nameofservice}</p>
+                     <p><strong>Price:</strong> ${price}</p>
+                     <p><strong>Date Booked:</strong> ${request.createdAt}</p>
+                     <p><strong>OrderId:</strong> ${request.orderId}</p>
+                     <p>
+                     <a href="https://www.youtube.com/playlist?list=PL9Rc2I3KoJiiNUO3zv9o161C3u-rDd5cp" target="_blank" style="color: #1a73e8; text-decoration: none;">
+              Watch Tutorials here
+            </a>
+                     </p>
+                     <p>Here are some of our other services:</p>
+                     <ul>
+                    <li><a href="https://nollywoodfilmmaker.com/services/read-my-script">Find some of our other services here</a></li>
+                </ul>
+                
+                </div>
+    
+    </body>
+    </html>`,
+              });
+     
+          }
+    
+          if(result?.type == "Chat" || result?.type == "request"){
+            createAdminNotification(result?.type, result?.orderId ,'New Service Order');
+          }
+          
+         
+    
+          if (!result) {
+            console.error(`Transaction with reference ${orderId} not found.`);
+            return res.status(404).json({ message: 'Transaction not found' });
+          }
+    
+          // Assuming `result.userId` contains the ID of the user who made the transaction
+          const userId = result.userId;
+    
+          // Check if user is connected, then emit the event
+          if (userId && users[userId]) {
+            io.to(users[userId]).emit('completed', {
+              message: 'Your payment was successful!',
+              transaction: result,
+            });
+            console.log(`Notification sent to user ${userId}`);
+          } else {
+            console.error(`User ${userId} not connected`);
+          }
+    
+          console.log(`Transaction updated successfully: ${result}`);
+
   } catch (error) {
     console.error("Failed to capture order:", error);
     res.status(500).json({ error: "Failed to capture order." });
