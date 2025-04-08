@@ -201,11 +201,11 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     }else if(method === "paypal"){
       try {
 
-        const newAmount = totalPrice/100000;
+        const newAmount = totalPrice/100;
 
-        let currencyConverter = new CC({from:"NGN", to:"USD", amount:100});
+        let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
 
-        log('Converted amount::', currencyConverter);
+        log('Converted amount::', currencyConverter.convertedValue);
 
         const cart = {
           currency: "USD",
@@ -1751,8 +1751,7 @@ export const handleCreateOrder = async (req: Request, res: Response) => {
 
 export const handleCaptureOrder = async (req: Request, res: Response) => {
   try {
-    const { orderID} = req.params;
-    const { orderId } = req.body;
+    const { orderID, orderId} = req.params;
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
     res.status(httpStatusCode).json(jsonResponse);
 
