@@ -11,6 +11,7 @@ import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
 import { zipAndUploadFiles } from '../utils/zipAndUpload';
 import { captureOrder, createOrder } from '../utils/paypalService';
+import { log } from 'console';
 const CC = require('currency-converter-lt')
 
 
@@ -208,12 +209,14 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     }else if(method === "paypal"){
       try {
 
-        const newAmount = totalPrice/100;
+        const newAmount = totalPrice/10000;
         const usdAmount = await convertCurrency(newAmount, 'NGN', 'USD');
+
+        log('Converted amount:', usdAmount);
 
         const cart = {
           currency: "USD",
-          total: usdAmount.toString(),
+          total: newAmount.toString(),
           id: currentId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
