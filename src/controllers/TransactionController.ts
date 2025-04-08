@@ -11,8 +11,23 @@ import { format, parseISO, add } from 'date-fns';
 import moment from 'moment-timezone';
 import { zipAndUploadFiles } from '../utils/zipAndUpload';
 import { captureOrder, createOrder } from '../utils/paypalService';
+const CC = require('currency-converter-lt')
 
 
+export const convertCurrency = async (
+  amount: number,
+  from: string,
+  to: string
+): Promise<number> => {
+  const converter = new CC({ from, to, amount, isDecimalComma: false });
+  try {
+    const result = await converter.convert();
+    return Number(result.toFixed(2)); // Ensure 2 decimal places
+  } catch (error) {
+    console.error('Currency conversion failed:', error);
+    throw new Error('Currency conversion failed');
+  }
+};
 
 interface PaystackResponse {
   status: boolean;
@@ -192,14 +207,21 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
       }
     }else if(method === "paypal"){
       try {
+
+        const newAmount = totalPrice/100;
+        const usdAmount = await convertCurrency(newAmount, 'NGN', 'USD');
+
         const cart = {
           currency: "USD",
-          total: totalPrice.toString(),
+          total: usdAmount.toString(),
           id: currentId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
         res.status(httpStatusCode).json(jsonResponse);
         console.log('Order created successfully:', jsonResponse);
+
+
+
       } catch (error) {
         console.error("Failed to create order:", error);
         res.status(500).json({ error: "Failed to create order." });
