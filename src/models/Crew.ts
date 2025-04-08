@@ -37,6 +37,7 @@ interface Crew extends Document {
     failed?: boolean;
     note?: string;
     nfscore?: string;
+    phase?: number;
 }
 
 const CrewSchema: Schema = new Schema({
@@ -74,6 +75,7 @@ const CrewSchema: Schema = new Schema({
     failed: { type: Boolean },
     note: { type: String },
     nfscore: { type: String },
+    phase: { type: Number },
 }, {
     timestamps: true,
 });

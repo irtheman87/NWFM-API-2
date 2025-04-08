@@ -4787,6 +4787,8 @@ export const updateCrewVerificationStatus = async (req: Request, res: Response) 
 
     crew.badgelink = badgeURL;
 
+    crew.phase = 2;
+
     await crew.save();
 
 
@@ -4997,6 +4999,8 @@ export const updateVerificationStatus = async (req: Request, res: Response) => {
     const badgeURL = await generateBadge('company', profileImageURL, 'https://nollywoodfilmmaker.com', fullname, fullname);
     
     company.badgelink = badgeURL;
+
+    company.phase = 2;
 
     await company.save();
 
@@ -6129,5 +6133,46 @@ export const exportVerifiedCompaniesCSV = async (req: Request, res: Response) =>
   } catch (error) {
     console.error('CSV export failed:', error);
     return res.status(500).json({ message: 'Error generating CSV', error });
+  }
+};
+
+export const updateVerificationPhases = async (req: Request, res: Response) => {
+  try {
+    // Update Company: set phase to 2 if verified === true, else 1
+    const companyVerified = await Company.updateMany(
+      { verified: true },
+      { $set: { phase: 3 } }
+    );
+
+    const companyUnverified = await Company.updateMany(
+      { $or: [{ verified: false }, { verified: { $exists: false } }] },
+      { $set: { phase: 1 } }
+    );
+
+    // Update Crew: set phase to 2 if verified === true, else 1
+    const crewVerified = await Crew.updateMany(
+      { verified: true },
+      { $set: { phase: 3 } }
+    );
+
+    const crewUnverified = await Crew.updateMany(
+      { $or: [{ verified: false }, { verified: { $exists: false } }] },
+      { $set: { phase: 1 } }
+    );
+
+    return res.status(200).json({
+      message: "Phases updated successfully",
+      company: {
+        verified: companyVerified.modifiedCount,
+        unverified: companyUnverified.modifiedCount,
+      },
+      crew: {
+        verified: crewVerified.modifiedCount,
+        unverified: crewUnverified.modifiedCount,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating phases:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -40,6 +40,7 @@ type CompanyDocument = Document & {
   failed?: boolean;
   note?: string;
   nfscore?: string;
+  phase?: number;
 };
 
 // Define the schema for the Company model
@@ -80,6 +81,7 @@ const CompanySchema: Schema = new Schema(
     failed  : { type: Boolean },
     note: { type: String },
     nfscore: { type: String },
+    phase: { type: Number },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps

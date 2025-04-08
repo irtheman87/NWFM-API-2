@@ -21,7 +21,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   sendChatReminderget,
   exportUserssToCSV,
   exportVerifiedCrewCSV,
-  exportVerifiedCompaniesCSV} from '../controllers/adminController';
+  exportVerifiedCompaniesCSV,
+  updateVerificationPhases} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -205,6 +206,7 @@ router.put("/update-nfscore", updateMissingNfscore);
 const upload = multer({ dest: "uploads/" }); // Temporary storage for CSV
 
 router.post("/send-bulk-emails", upload.single("csv"), sendCustomEmail);
-  
+
+router.put("/update-phases", updateVerificationPhases);
 
 module.exports = router;
