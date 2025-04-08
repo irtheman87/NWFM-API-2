@@ -31,8 +31,8 @@ import { ApiError, CheckoutPaymentIntent, Client, Environment, LogLevel, OrdersC
         purchaseUnits: [
           {
             amount: {
-              currencyCode: "USD",
-              value: "100.00",
+              currencyCode: cart.currency,
+              value: cart.total,
             },
           },
         ],

@@ -69,7 +69,7 @@ function getDayOfWeek(date: Date | string): string {
 
 
 export const ReadScriptTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes} = req.body;
+  const { title, userId, type, movie_title, synopsis, genre, platform, concerns, fileName, showtype, episodes, method} = req.body;
 
   try {
 
@@ -179,6 +179,8 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
           id: currentId,
         },
       };
+
+      if(method === "Paystack"){
   
       try {
         const result = await handlePaymentInitialization(paymentReq);
@@ -188,6 +190,19 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
+    }else if(method === "Paypal"){
+      try {
+        const cart = {
+          currency: "USD",
+          total: totalPrice,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json(jsonResponse);
+      } catch (error) {
+        console.error("Failed to create order:", error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
+    }
 
   } catch (error: unknown) {
     if (error instanceof Error) {
