@@ -210,7 +210,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
         const cart = {
           currency: "USD",
           total: newAmount.toString(),
-          id: currentId,
+          id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
         res.status(httpStatusCode).json({
