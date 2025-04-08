@@ -89,7 +89,7 @@ router.post("/drafts", verifyUserToken, createDraft);
 router.get("/transactions/:reference", verifyUserToken, getTransactionByReference);
 router.post("/film-trailer", verifyUserToken, CreateFilmTrailerTransaction);
 
-router.post("/orders", handleCreateOrder);
+// router.post("/orders", handleCreateOrder);
 router.post("/orders/:orderID/capture", handleCaptureOrder);
 
 // Protected route example

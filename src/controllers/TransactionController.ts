@@ -180,7 +180,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
         },
       };
 
-      if(method === "Paystack"){
+      if(method === "paystack"){
   
       try {
         const result = await handlePaymentInitialization(paymentReq);
@@ -190,7 +190,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
         console.error('Error during payment initialization:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
-    }else if(method === "Paypal"){
+    }else if(method === "paypal"){
       try {
         const cart = {
           currency: "USD",
