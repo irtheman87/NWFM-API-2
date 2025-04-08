@@ -215,7 +215,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
         res.status(httpStatusCode).json({
           jsonResponse,
-          orderId: currentId
+          orderId: newTransaction.orderId
         });
         console.log('Order created successfully:', jsonResponse);
 
