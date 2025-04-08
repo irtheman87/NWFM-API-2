@@ -90,7 +90,7 @@ router.get("/transactions/:reference", verifyUserToken, getTransactionByReferenc
 router.post("/film-trailer", verifyUserToken, CreateFilmTrailerTransaction);
 
 // router.post("/orders", handleCreateOrder);
-router.post("/orders/:orderID/capture", handleCaptureOrder);
+router.post("/orders/:orderID/capture/:orderId", handleCaptureOrder);
 
 // Protected route example
 router.get('/profile', isnotAdmin, (req, res) => {
