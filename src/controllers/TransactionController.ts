@@ -1751,7 +1751,8 @@ export const handleCreateOrder = async (req: Request, res: Response) => {
 
 export const handleCaptureOrder = async (req: Request, res: Response) => {
   try {
-    const { orderID, orderId } = req.params;
+    const { orderID} = req.params;
+    const { orderId } = req.body;
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
     res.status(httpStatusCode).json(jsonResponse);
 
