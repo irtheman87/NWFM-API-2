@@ -643,7 +643,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
 
         const cart = {
           currency: "USD",
-          total: newAmount,
+          total: updatedAmount.toString(),
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -754,14 +754,14 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
         try {
   
           const newAmount = (Number(newPrice)/100)/1500;
-  
-          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-  
-          // log('Converted amount::', currencyConverter.convertedValue);
+
+          const updatedAmount = Math.round(newAmount);
+
+          console.log(`Here Your Pay :::: ${updatedAmount}`);
   
           const cart = {
             currency: "USD",
-            total: newAmount.toString(),
+            total: updatedAmount.toString(),
             id: newTransaction.orderId,
           };
           const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -798,14 +798,14 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
         try {
   
           const newAmount = (Number(price)/100)/1500;
-  
-          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-  
-          // log('Converted amount::', currencyConverter.convertedValue);
+
+          const updatedAmount = Math.round(newAmount);
+
+          console.log(`Here Your Pay :::: ${updatedAmount}`);
   
           const cart = {
             currency: "USD",
-            total: newAmount.toString(),
+            total: updatedAmount.toString(),
             id: newTransaction.orderId,
           };
           const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -947,14 +947,14 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
         try {
   
           const newAmount = (Number(transprice)/100)/1500;
-  
-          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-  
-          // log('Converted amount::', currencyConverter.convertedValue);
+
+          const updatedAmount = Math.round(newAmount);
+
+          console.log(`Here Your Pay :::: ${updatedAmount}`);
   
           const cart = {
             currency: "USD",
-            total: newAmount.toString(),
+            total: updatedAmount.toString(),
             id: newTransaction.orderId,
           };
           const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1070,14 +1070,14 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
         try {
   
           const newAmount = (Number(actualPrice)/100)/1500;
-  
-          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-  
-          // log('Converted amount::', currencyConverter.convertedValue);
+
+          const updatedAmount = Math.round(newAmount);
+
+          console.log(`Here Your Pay :::: ${updatedAmount}`);
   
           const cart = {
             currency: "USD",
-            total: newAmount.toString(),
+            total: updatedAmount.toString(),
             id: newTransaction.orderId,
           };
           const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1117,14 +1117,14 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
         try {
   
           const newAmount = (Number(price)/100)/1500;
-  
-          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-  
-          // log('Converted amount::', currencyConverter.convertedValue);
+
+          const updatedAmount = Math.round(newAmount);
+
+          console.log(`Here Your Pay :::: ${updatedAmount}`);
   
           const cart = {
             currency: "USD",
-            total: newAmount.toString(),
+            total: updatedAmount.toString(),
             id: newTransaction.orderId,
           };
           const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1318,13 +1318,13 @@ export const createAPitch = async (req: Request, res: Response) => {
 
         const newAmount = (Number(totalPrice)/100)/1500;
 
-        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+        const updatedAmount = Math.round(newAmount);
 
-        // log('Converted amount::', currencyConverter.convertedValue);
+        console.log(`Here Your Pay :::: ${updatedAmount}`);
 
         const cart = {
           currency: "USD",
-          total: newAmount.toString(),
+          total: updatedAmount.toString(),
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1430,14 +1430,14 @@ export const createLegal = async (req: Request, res: Response) => {
         try {
   
           const newAmount = (Number(price)/100)/1500;
-  
-          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-  
-          // log('Converted amount::', currencyConverter.convertedValue);
+
+          const updatedAmount = Math.round(newAmount);
+
+          console.log(`Here Your Pay :::: ${updatedAmount}`);
   
           const cart = {
             currency: "USD",
-            total: newAmount.toString(),
+            total: updatedAmount.toString(),
             id: newTransaction.orderId,
           };
           const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1557,13 +1557,13 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
 
         const newAmount = (Number(price)/100)/1500;
 
-        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+        const updatedAmount = Math.round(newAmount);
 
-        // log('Converted amount::', currencyConverter.convertedValue);
+        console.log(`Here Your Pay :::: ${updatedAmount}`);
 
         const cart = {
           currency: "USD",
-          total: newAmount.toString(),
+          total: updatedAmount.toString(),
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1716,13 +1716,13 @@ export const chatTransaction = async (req: Request, res: Response) => {
 
         const newAmount = (Number(price)/100)/1500;
 
-        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+        const updatedAmount = Math.round(newAmount);
 
-        // log('Converted amount::', currencyConverter.convertedValue);
+        console.log(`Here Your Pay :::: ${updatedAmount}`);
 
         const cart = {
           currency: "USD",
-          total: newAmount.toString(),
+          total: updatedAmount.toString(),
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1820,13 +1820,13 @@ export const ExtendMyTime = async (req: Request, res: Response) => {
 
         const newAmount = (Number(price)/100)/1500;
 
-        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+        const updatedAmount = Math.round(newAmount);
 
-        // log('Converted amount::', currencyConverter.convertedValue);
+        console.log(`Here Your Pay :::: ${updatedAmount}`);
 
         const cart = {
           currency: "USD",
-          total: newAmount.toString(),
+          total: updatedAmount.toString(),
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
@@ -1857,7 +1857,7 @@ export const ExtendMyTime = async (req: Request, res: Response) => {
 };
 
 export const updateRequestTime = async (req: Request, res: Response) => {
-  const { orderId, date } = req.body;
+  const { orderId, date, method } = req.body;
 
   try {
     if (!orderId || !date) {
@@ -1918,18 +1918,41 @@ export const updateRequestTime = async (req: Request, res: Response) => {
       },
     };
 
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      return res.status(201).json({
-        message: "Request updated and payment initialized successfully.",
-        updatedRequest,
-        transaction: newTransaction,
-        payment: result
-      });
-    } catch (paymentError: unknown) {
-      console.error('Error during payment initialization:', paymentError);
-      return res.status(500).json({ error: 'Payment initialization failed' });
+    if(method === "paystack"){
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else if(method === "paypal"){
+      try {
+
+        const newAmount = (5000000/100)/1500;
+
+        const updatedAmount = Math.round(newAmount);
+
+        console.log(`Here Your Pay :::: ${updatedAmount}`);
+
+        const cart = {
+          currency: "USD",
+          total: updatedAmount.toString(),
+          id: newTransaction.orderId,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: newTransaction.orderId
+        });
+        console.log('Order created successfully:', jsonResponse);
+
+      } catch (error) {
+        console.error("Failed to create order:", error instanceof Error ? error.message : error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
     }
 
   } catch (error: unknown) {
