@@ -621,6 +621,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     };
 
     // Handle payment initialization
+   
     if(method === "paystack"){
   
       try {
@@ -633,7 +634,9 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
       }
     }else if(method === "paypal"){
       try {
-        const newAmount = (Number(totalPrice)/100)/1500;
+
+        const newAmount = (totalPrice/100)/1500;
+
         const cart = {
           currency: "USD",
           total: newAmount.toString(),
@@ -646,7 +649,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
         });
         console.log('Order created successfully:', jsonResponse);
       } catch (error) {
-        console.error("Failed to create order:", error instanceof Error ? error.message : error);
+        console.error("Failed to create order:", error);
         res.status(500).json({ error: "Failed to create order." });
       }
     }
