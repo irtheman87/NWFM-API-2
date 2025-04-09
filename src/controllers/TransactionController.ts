@@ -201,11 +201,11 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     }else if(method === "paypal"){
       try {
 
-        const newAmount = totalPrice/100;
+        const newAmount = (totalPrice/100)/1500;
 
-        let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
 
-        log('Converted amount::', currencyConverter.convertedValue);
+        // log('Converted amount::', currencyConverter.convertedValue);
 
         const cart = {
           currency: "USD",
@@ -351,7 +351,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
 // };
 
 export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns, showtype, episodes, stage } = req.body;
+  const { title, userId, type, name, movie_title, synopsis, genre, platform, link, concerns, showtype, episodes, stage, method } = req.body;
 
   try {
     const price = await getServicePriceByName(title);
@@ -433,13 +433,43 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (newPrice/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+  
+  
+  
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
     }else{
       const paymentReq = {
@@ -450,13 +480,43 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(price)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+  
+  
+  
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
     }
 
@@ -497,6 +557,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     fromTheMakersOf,
     releaseDate,
     info,
+    method
   } = req.body;
 
   console.log('Request userId:', req.body.userId);
@@ -560,13 +621,40 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     };
 
     // Handle payment initialization
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log("Payment initialized successfully:", result);
-      res.status(201).json({ message: "Transaction and request created successfully", result });
-    } catch (error) {
-      console.error("Error during payment initialization:", error);
-      res.status(500).json({ error: "Internal server error" });
+    if(method === "paystack"){
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else if(method === "paypal"){
+      try {
+
+        const newAmount = (Number(totalPrice)/100)/1500;
+
+        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+
+        // log('Converted amount::', currencyConverter.convertedValue);
+
+        const cart = {
+          currency: "USD",
+          total: newAmount.toString(),
+          id: newTransaction.orderId,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: newTransaction.orderId
+        });
+        console.log('Order created successfully:', jsonResponse);
+      } catch (error) {
+        console.error("Failed to create order:", error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
     }
   } catch (error) {
     console.error("Error creating transaction and request:", error);
@@ -579,7 +667,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
 
   
 export const BudgetTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, movie_title, synopsis, genre, platform, budget, concerns, fileName, showtype, episodes } = req.body;
+  const { title, userId, type, movie_title, synopsis, genre, platform, budget, concerns, fileName, showtype, episodes, method } = req.body;
 
   // Log request body to verify incoming data
   console.log('Request body:', req.body);
@@ -651,13 +739,40 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(newPrice)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
     }else{
       const paymentReq = {
@@ -668,13 +783,43 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(price)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+  
+  
+  
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
     }
 
@@ -697,7 +842,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
 export const CreateBudgetTransaction = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    actors, crew, shootdays, info, budgetrange,  fileName, showtype, episodes
+    actors, crew, shootdays, info, budgetrange,  fileName, showtype, episodes, method
   } = req.body;
 
   try {
@@ -787,13 +932,40 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(transprice)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -814,7 +986,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
 export const CreateMarketBudgetTransaction = async (req: Request, res: Response) => {
   const { 
     title, userId, type, name, movie_title, platform, 
-    link, social, ooh, budgetrange, showtype, episodes
+    link, social, ooh, budgetrange, showtype, episodes, method
   } = req.body;
 
   try {
@@ -883,13 +1055,43 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(actualPrice)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+  
+  
+  
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
     }else{
       const paymentReq = {
@@ -900,13 +1102,40 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(price)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
     }
 
@@ -930,7 +1159,7 @@ export const createAPitch = async (req: Request, res: Response) => {
   const { 
     title, userId, type, days, movie_title, platform, 
     actors, startpop, genre, info, budgetrange, fileName, 
-    showtype, episodes, characterlockdate, locationlockeddate
+    showtype, episodes, characterlockdate, locationlockeddate, method
   } = req.body;
 
   try {
@@ -1073,13 +1302,43 @@ export const createAPitch = async (req: Request, res: Response) => {
       },
     };
 
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Transaction and request created successfully', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(method === "paystack"){
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else if(method === "paypal"){
+      try {
+
+        const newAmount = (Number(totalPrice)/100)/1500;
+
+        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+
+        // log('Converted amount::', currencyConverter.convertedValue);
+
+        const cart = {
+          currency: "USD",
+          total: newAmount.toString(),
+          id: newTransaction.orderId,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: newTransaction.orderId
+        });
+        console.log('Order created successfully:', jsonResponse);
+
+
+
+      } catch (error) {
+        console.error("Failed to create order:", error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
     }
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -1098,7 +1357,7 @@ export const createAPitch = async (req: Request, res: Response) => {
 
 export const createLegal = async (req: Request, res: Response) => {
   const { 
-    title, userId, type, name, movie_title, productionCompany, contacts, showtype, episodes 
+    title, userId, type, name, movie_title, productionCompany, contacts, showtype, episodes , method
   } = req.body;
 
   try {
@@ -1156,13 +1415,40 @@ export const createLegal = async (req: Request, res: Response) => {
         },
       };
   
-      try {
-        const result = await handlePaymentInitialization(paymentReq);
-        console.log('Payment initialized successfully:', result);
-        res.status(201).json({ message: 'Transaction and request created successfully', result });
-      } catch (error: unknown) {
-        console.error('Error during payment initialization:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      if(method === "paystack"){
+  
+        try {
+          const result = await handlePaymentInitialization(paymentReq);
+          console.log('Payment initialized successfully:', result);
+          res.status(201).json({ message: 'Transaction and request created successfully', result });
+        } catch (error: unknown) {
+          console.error('Error during payment initialization:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }else if(method === "paypal"){
+        try {
+  
+          const newAmount = (Number(price)/100)/1500;
+  
+          // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+  
+          // log('Converted amount::', currencyConverter.convertedValue);
+  
+          const cart = {
+            currency: "USD",
+            total: newAmount.toString(),
+            id: newTransaction.orderId,
+          };
+          const { jsonResponse, httpStatusCode } = await createOrder(cart);
+          res.status(httpStatusCode).json({
+            jsonResponse,
+            orderId: newTransaction.orderId
+          });
+          console.log('Order created successfully:', jsonResponse);
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          res.status(500).json({ error: "Failed to create order." });
+        }
       }
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -1195,6 +1481,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
     putinfestivals,
     revprojection,
     fundingtype,
+    method
   } = req.body;
 
   try {
@@ -1254,13 +1541,40 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
       },
     };
 
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log("Payment initialized successfully:", result);
-      res.status(201).json({ message: "Pitch deck request created successfully", result });
-    } catch (error) {
-      console.error("Error during payment initialization:", error);
-      res.status(500).json({ error: "Internal server error" });
+    if(method === "paystack"){
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else if(method === "paypal"){
+      try {
+
+        const newAmount = (Number(price)/100)/1500;
+
+        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+
+        // log('Converted amount::', currencyConverter.convertedValue);
+
+        const cart = {
+          currency: "USD",
+          total: newAmount.toString(),
+          id: newTransaction.orderId,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: newTransaction.orderId
+        });
+        console.log('Order created successfully:', jsonResponse);
+      } catch (error) {
+        console.error("Failed to create order:", error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
     }
   } catch (error) {
     res.status(500).json({
@@ -1296,7 +1610,7 @@ const getTimeFromDated = (dateString: string) => {
 
 // Exported chatTransaction function
 export const chatTransaction = async (req: Request, res: Response) => {
-  const { title, userId, type, name, chat_title, date, time, summary, consultant} = req.body;
+  const { title, userId, type, name, chat_title, date, time, summary, consultant, method} = req.body;
 
   try {
     // Create and save new transaction
@@ -1386,15 +1700,41 @@ export const chatTransaction = async (req: Request, res: Response) => {
       },
     };
 
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error: unknown) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    if(method === "paystack"){
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else if(method === "paypal"){
+      try {
 
+        const newAmount = (Number(price)/100)/1500;
+
+        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+
+        // log('Converted amount::', currencyConverter.convertedValue);
+
+        const cart = {
+          currency: "USD",
+          total: newAmount.toString(),
+          id: newTransaction.orderId,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: newTransaction.orderId
+        });
+        console.log('Order created successfully:', jsonResponse);
+      } catch (error) {
+        console.error("Failed to create order:", error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       res.status(500).json({
@@ -1410,7 +1750,7 @@ export const chatTransaction = async (req: Request, res: Response) => {
 };
 
 export const ExtendMyTime = async (req: Request, res: Response) => {
-  const { title, userId, type, length, orderId } = req.body;
+  const { title, userId, type, length, orderId, method } = req.body;
 
   try {
     // Fetch price and user email
@@ -1464,13 +1804,41 @@ export const ExtendMyTime = async (req: Request, res: Response) => {
       },
     };
 
-    try {
-      const result = await handlePaymentInitialization(paymentReq);
-      console.log('Payment initialized successfully:', result);
-      res.status(201).json({ message: 'Done', result });
-    } catch (error) {
-      console.error('Error during payment initialization:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    if(method === "paystack"){
+  
+      try {
+        const result = await handlePaymentInitialization(paymentReq);
+        console.log('Payment initialized successfully:', result);
+        res.status(201).json({ message: 'Transaction and request created successfully', result });
+      } catch (error: unknown) {
+        console.error('Error during payment initialization:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }else if(method === "paypal"){
+      try {
+
+        const newAmount = (Number(price)/100)/1500;
+
+        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
+
+        // log('Converted amount::', currencyConverter.convertedValue);
+
+        const cart = {
+          currency: "USD",
+          total: newAmount.toString(),
+          id: newTransaction.orderId,
+        };
+        const { jsonResponse, httpStatusCode } = await createOrder(cart);
+        res.status(httpStatusCode).json({
+          jsonResponse,
+          orderId: newTransaction.orderId
+        });
+        console.log('Order created successfully:', jsonResponse);
+
+      } catch (error) {
+        console.error("Failed to create order:", error);
+        res.status(500).json({ error: "Failed to create order." });
+      }
     }
 
   } catch (error) {
