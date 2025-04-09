@@ -639,7 +639,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
 
         const cart = {
           currency: "USD",
-          total: newAmount.toString(),
+          total: '2000',
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
