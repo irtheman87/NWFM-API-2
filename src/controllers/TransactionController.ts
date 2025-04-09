@@ -144,7 +144,7 @@ export const ReadScriptTransaction = async (req: Request, res: Response) => {
     }
   
     // Save transaction data
-    const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
+    const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing', method: method });
     await newTransaction.save();
 
     // Get file URLs from uploaded files if any
@@ -398,7 +398,7 @@ export const WatchFinalCutTransaction = async (req: Request, res: Response) => {
     //   return res.status(400).json({ message: 'No file uploaded for character bible' });
     // }
 
-    const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' });
+    const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing', method: method  });
     await newTransaction.save();
 
       const newRequest = new RequesModel({
@@ -577,7 +577,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
     if (wantsVerticalFormat === "Yes") totalPrice += 10000000;
 
     // Generate transaction
-    const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing' });
+    const newTransaction = new Transaction({title, userId, type, orderId: generateOrderId(), price: totalPrice, reference: '', status: 'processing', method: method  });
     await newTransaction.save();
 
 
@@ -701,7 +701,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
       console.error('Error checking or dropping index:', error);
     }
 
-    const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' });
+    const newTransaction = new Transaction({ title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing', method: method  });
     await newTransaction.save();
     
 
@@ -892,7 +892,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
 
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: transprice, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: transprice, reference: '', status: 'processing', method: method  
     });
     await newTransaction.save();
 
@@ -1021,7 +1021,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
     }
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: transprice, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: transprice, reference: '', status: 'processing', method: method  
     });
     await newTransaction.save();
 
@@ -1217,6 +1217,7 @@ export const createAPitch = async (req: Request, res: Response) => {
       price: totalPrice,
       reference: '',
       status: 'processing',
+      method: method 
     });
     await newTransaction.save();
 
@@ -1386,7 +1387,7 @@ export const createLegal = async (req: Request, res: Response) => {
 
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing', method: method 
     });
     await newTransaction.save();
 
@@ -1495,7 +1496,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
     const price = await getServicePriceByName(title);
 
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing', method: method  
     });
     await newTransaction.save();
 
@@ -1652,7 +1653,7 @@ export const chatTransaction = async (req: Request, res: Response) => {
 
 
     const newTransaction = new Transaction({
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' , method: method 
     });
     await newTransaction.save();
 
@@ -1778,7 +1779,7 @@ export const ExtendMyTime = async (req: Request, res: Response) => {
     
     // Generate a unique reference
     const newTransaction = new Transaction({ 
-      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing' 
+      title, userId, type, orderId: generateOrderId(), price: price, reference: '', status: 'processing', method: method 
     });
     await newTransaction.save();
 
@@ -1905,6 +1906,7 @@ export const updateRequestTime = async (req: Request, res: Response) => {
       price: 5000000,
       reference: '',
       status: 'processing',
+      method: method ,
       originalOrderIdFromChat: orderId,
     });
     await newTransaction.save();

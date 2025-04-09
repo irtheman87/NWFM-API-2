@@ -6176,3 +6176,57 @@ export const updateVerificationPhases = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const deletePendingRequestsAndTransactions = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Find all pending requests
+    const pendingRequests = await RequestModel.find({ stattusof: "pending" });
+
+    if (!pendingRequests.length) {
+      return res.status(200).json({ message: "No pending requests found." });
+    }
+
+    // Extract orderIds
+    const orderIds = pendingRequests.map((request) => request.orderId);
+
+    // Delete all matching requests
+    await RequestModel.deleteMany({ orderId: { $in: orderIds } });
+
+    // Delete all matching transactions
+    await Transaction.deleteMany({ orderId: { $in: orderIds } });
+
+    return res.status(200).json({
+      message: "Pending requests and corresponding transactions deleted successfully.",
+      count: orderIds.length,
+    });
+  } catch (error) {
+    console.error("Error deleting pending requests and transactions:", error);
+    return res.status(500).json({
+      message: "Internal server error while deleting data.",
+      error: (error as Error).message,
+    });
+  }
+};

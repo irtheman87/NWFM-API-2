@@ -22,7 +22,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   exportUserssToCSV,
   exportVerifiedCrewCSV,
   exportVerifiedCompaniesCSV,
-  updateVerificationPhases} from '../controllers/adminController';
+  updateVerificationPhases,
+  deletePendingRequestsAndTransactions} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -208,5 +209,8 @@ const upload = multer({ dest: "uploads/" }); // Temporary storage for CSV
 router.post("/send-bulk-emails", upload.single("csv"), sendCustomEmail);
 
 router.put("/update-phases", updateVerificationPhases);
+
+router.delete("/requests/pending", deletePendingRequestsAndTransactions);
+
 
 module.exports = router;
