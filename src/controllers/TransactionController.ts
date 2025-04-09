@@ -633,13 +633,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
       }
     }else if(method === "paypal"){
       try {
-
         const newAmount = (Number(totalPrice)/100)/1500;
-
-        // let currencyConverter = new CC({from:"NGN", to:"USD", amount:totalPrice});
-
-        // log('Converted amount::', currencyConverter.convertedValue);
-
         const cart = {
           currency: "USD",
           total: newAmount.toString(),
@@ -652,7 +646,7 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
         });
         console.log('Order created successfully:', jsonResponse);
       } catch (error) {
-        console.error("Failed to create order:", error);
+        console.error("Failed to create order:", error instanceof Error ? error.message : error);
         res.status(500).json({ error: "Failed to create order." });
       }
     }
@@ -770,7 +764,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
           });
           console.log('Order created successfully:', jsonResponse);
         } catch (error) {
-          console.error("Failed to create order:", error);
+          console.error("Failed to create order:", error instanceof Error ? error.message : error);
           res.status(500).json({ error: "Failed to create order." });
         }
       }
@@ -817,7 +811,7 @@ export const BudgetTransaction = async (req: Request, res: Response) => {
   
   
         } catch (error) {
-          console.error("Failed to create order:", error);
+          console.error("Failed to create order:", error instanceof Error ? error.message : error);
           res.status(500).json({ error: "Failed to create order." });
         }
       }
@@ -963,7 +957,7 @@ export const CreateBudgetTransaction = async (req: Request, res: Response) => {
           });
           console.log('Order created successfully:', jsonResponse);
         } catch (error) {
-          console.error("Failed to create order:", error);
+          console.error("Failed to create order:", error instanceof Error ? error.message : error);
           res.status(500).json({ error: "Failed to create order." });
         }
       }
@@ -1089,7 +1083,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
   
   
         } catch (error) {
-          console.error("Failed to create order:", error);
+          console.error("Failed to create order:", error instanceof Error ? error.message : error);
           res.status(500).json({ error: "Failed to create order." });
         }
       }
@@ -1133,7 +1127,7 @@ export const CreateMarketBudgetTransaction = async (req: Request, res: Response)
           });
           console.log('Order created successfully:', jsonResponse);
         } catch (error) {
-          console.error("Failed to create order:", error);
+          console.error("Failed to create order:", error instanceof Error ? error.message : error);
           res.status(500).json({ error: "Failed to create order." });
         }
       }
@@ -1336,7 +1330,7 @@ export const createAPitch = async (req: Request, res: Response) => {
 
 
       } catch (error) {
-        console.error("Failed to create order:", error);
+        console.error("Failed to create order:", error instanceof Error ? error.message : error);
         res.status(500).json({ error: "Failed to create order." });
       }
     }
@@ -1446,7 +1440,7 @@ export const createLegal = async (req: Request, res: Response) => {
           });
           console.log('Order created successfully:', jsonResponse);
         } catch (error) {
-          console.error("Failed to create order:", error);
+          console.error("Failed to create order:", error instanceof Error ? error.message : error);
           res.status(500).json({ error: "Failed to create order." });
         }
       }
@@ -1572,7 +1566,7 @@ export const createPitchDeckRequest = async (req: Request, res: Response) => {
         });
         console.log('Order created successfully:', jsonResponse);
       } catch (error) {
-        console.error("Failed to create order:", error);
+        console.error("Failed to create order:", error instanceof Error ? error.message : error);
         res.status(500).json({ error: "Failed to create order." });
       }
     }
@@ -1731,7 +1725,7 @@ export const chatTransaction = async (req: Request, res: Response) => {
         });
         console.log('Order created successfully:', jsonResponse);
       } catch (error) {
-        console.error("Failed to create order:", error);
+        console.error("Failed to create order:", error instanceof Error ? error.message : error);
         res.status(500).json({ error: "Failed to create order." });
       }
     }
@@ -1836,7 +1830,7 @@ export const ExtendMyTime = async (req: Request, res: Response) => {
         console.log('Order created successfully:', jsonResponse);
 
       } catch (error) {
-        console.error("Failed to create order:", error);
+        console.error("Failed to create order:", error instanceof Error ? error.message : error);
         res.status(500).json({ error: "Failed to create order." });
       }
     }
