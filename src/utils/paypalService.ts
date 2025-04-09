@@ -12,7 +12,7 @@ import { ApiError, CheckoutPaymentIntent, Client, Environment, LogLevel, OrdersC
       oAuthClientSecret: PAYPAL_CLIENT_SECRET,
     },
     timeout: 0,
-    environment: Environment.Sandbox,
+    environment: Environment.Production,
     logging: {
       logLevel: LogLevel.Info,
       logRequest: { logBody: true },
