@@ -637,9 +637,11 @@ export const CreateFilmTrailerTransaction = async (req: Request, res: Response) 
 
         const newAmount = (totalPrice/100)/1500;
 
+        console.log(`Here Your Pay :::: ${newAmount}`);
+
         const cart = {
           currency: "USD",
-          total: '2000',
+          total: '200',
           id: newTransaction.orderId,
         };
         const { jsonResponse, httpStatusCode } = await createOrder(cart);
