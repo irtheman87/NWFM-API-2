@@ -17,7 +17,7 @@ import moment from 'moment-timezone';
 import Issue from '../models/Issuess';
 import IssuesThread from '../models/Issuess' 
 import Feedback from '../models/Feedback';
-import mongoose from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import MusingModel from '../models/Musing';
 import AdminNotificationModel from '../models/AdminNotification';
 import WalletHistory from '../models/walletHistoryModel';
@@ -6226,6 +6226,80 @@ export const deletePendingRequestsAndTransactions = async (req: Request, res: Re
     console.error("Error deleting pending requests and transactions:", error);
     return res.status(500).json({
       message: "Internal server error while deleting data.",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const updateNFScore = async (req: Request, res: Response) => {
+
+  const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'JWT secret key is not configured' });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { role } = decodedToken as { role: string };
+    if (role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+  const { userId, nfscore, type } = req.body;
+
+  if (!userId || typeof nfscore === "undefined" || !type) {
+    return res.status(400).json({ message: "userId, nfscore, and type are required." });
+  }
+
+  try {
+    let modelToUpdate: Model<any>;
+
+    if (type === "crew") {
+      modelToUpdate = Crew;
+    } else if (type === "company") {
+      modelToUpdate = Company;
+    } else {
+      return res.status(400).json({ message: "Invalid type. Must be 'crew' or 'company'." });
+    }
+
+    const entry = await modelToUpdate.findOne({ userId });
+
+    if (!entry) {
+      return res.status(404).json({ message: `${type} with userId ${userId} not found.` });
+    }
+
+    const currentScore = parseFloat(entry.nfscore || "0");
+    const scoreToAdd = parseFloat(nfscore);
+
+    if (isNaN(scoreToAdd)) {
+      return res.status(400).json({ message: "nfscore must be a numeric value." });
+    }
+
+    const updatedScore = (currentScore + scoreToAdd).toFixed(2);
+
+    entry.nfscore = updatedScore;
+    await entry.save();
+
+    return res.status(200).json({
+      message: `${type} NF score updated successfully.`,
+      newScore: updatedScore,
+      data: entry,
+    });
+  } catch (error) {
+    console.error("Error updating NF score:", error);
+    return res.status(500).json({
+      message: "Internal server error while updating NF score.",
       error: (error as Error).message,
     });
   }

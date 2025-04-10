@@ -23,7 +23,8 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   exportVerifiedCrewCSV,
   exportVerifiedCompaniesCSV,
   updateVerificationPhases,
-  deletePendingRequestsAndTransactions} from '../controllers/adminController';
+  deletePendingRequestsAndTransactions,
+  updateNFScore} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -211,6 +212,8 @@ router.post("/send-bulk-emails", upload.single("csv"), sendCustomEmail);
 router.put("/update-phases", updateVerificationPhases);
 
 router.delete("/requests/pending", deletePendingRequestsAndTransactions);
+
+router.put("/update-nfscore", updateNFScore);
 
 
 module.exports = router;
