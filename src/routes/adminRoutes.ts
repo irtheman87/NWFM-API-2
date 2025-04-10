@@ -213,7 +213,7 @@ router.put("/update-phases", updateVerificationPhases);
 
 router.delete("/requests/pending", deletePendingRequestsAndTransactions);
 
-router.put("/update-nfscore", updateNFScore);
+router.put("/update-nf", updateNFScore);
 
 
 module.exports = router;
