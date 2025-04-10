@@ -6279,14 +6279,14 @@ export const updateNFScore = async (req: Request, res: Response) => {
       return res.status(404).json({ message: `${type} with userId ${userId} not found.` });
     }
 
-    const currentScore = parseFloat(entry.nfscore || "0");
-    const scoreToAdd = parseFloat(nfscore);
+    const currentScore = parseInt(entry.nfscore || "0");
+    const scoreToAdd = parseInt(nfscore);
 
     if (isNaN(scoreToAdd)) {
       return res.status(400).json({ message: "nfscore must be a numeric value." });
     }
 
-    const updatedScore = (currentScore + scoreToAdd).toFixed(2);
+    const updatedScore = (currentScore + scoreToAdd);
 
     entry.nfscore = updatedScore;
     await entry.save();
