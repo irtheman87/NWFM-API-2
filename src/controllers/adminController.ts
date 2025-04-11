@@ -6286,7 +6286,11 @@ export const updateNFScore = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "nfscore must be a numeric value." });
     }
 
-    const updatedScore = (currentScore + scoreToAdd);
+    let updatedScore = (currentScore + scoreToAdd);
+
+    if(updatedScore > 100){
+      updatedScore = 100;
+    }
 
     entry.nfscore = updatedScore;
     await entry.save();
