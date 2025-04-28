@@ -11,6 +11,8 @@ import mongoose from "mongoose";
 import sendEmail from "../utils/sendEmail";
 import EmailList from "../models/EmailList";
 import * as crypto from 'crypto';
+import Question from "../models/Question";
+import QuizMeta from "../models/QuizMeta";
 
 // Initialize S3 client
 // Create an S3 Client with Transfer Acceleration Enabled
@@ -1448,5 +1450,50 @@ export const resetPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error resetting password:', error);
     res.status(500).json({ message: 'Server error, please try again later.' });
+  }
+};
+
+// Utility to shuffle an array randomly
+function shuffleArray(array: any[]) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Fetch randomized 20 questions based on quizMetaId and category
+export const getRandomQuestionsByQuizMetaAndCategory = async (req: Request, res: Response) => {
+  try {
+    const { quizMetaId, category } = req.query;
+
+    if (!quizMetaId || !category) {
+      return res.status(400).json({ message: "quizMetaId and category are required." });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(quizMetaId as string)) {
+      return res.status(400).json({ message: "Invalid quizMetaId." });
+    }
+
+    const quizMeta = await QuizMeta.findById(quizMetaId);
+
+    if (!quizMeta) {
+      return res.status(404).json({ message: "QuizMeta not found." });
+    }
+
+    if (quizMeta.category !== category) {
+      return res.status(400).json({ message: "Category does not match QuizMeta." });
+    }
+
+    // Fetch all questions for the quizMetaId
+    const allQuestions = await Question.find({ quizMetaId });
+
+    // Shuffle and pick only 20 questions
+    const shuffledQuestions = shuffleArray(allQuestions).slice(0, 20);
+
+    res.status(200).json({ questions: shuffledQuestions });
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+    res.status(500).json({ message: "Something went wrong.", error });
   }
 };

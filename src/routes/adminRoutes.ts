@@ -24,7 +24,9 @@ import { registerAdmin, loginAdmin, refreshAdminToken, createExtension, fetchReq
   exportVerifiedCompaniesCSV,
   updateVerificationPhases,
   deletePendingRequestsAndTransactions,
-  updateNFScore} from '../controllers/adminController';
+  updateNFScore,
+  createQuiz,
+  createQuestion} from '../controllers/adminController';
 import { isAdmin } from '../middleware/authMiddleware';
 import { validateUserRequestForAdmin } from '../middleware/TokenValidator';
 import bcrypt from 'bcryptjs';
@@ -214,6 +216,11 @@ router.put("/update-phases", updateVerificationPhases);
 router.delete("/requests/pending", deletePendingRequestsAndTransactions);
 
 router.put("/update-nf", updateNFScore);
+
+router.post("/quiz", createQuiz);
+
+// Create a new question for a quiz (admin only)
+router.post("/question", createQuestion);
 
 
 module.exports = router;
