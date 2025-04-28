@@ -6297,6 +6297,155 @@ export const updateNFScore = async (req: Request, res: Response) => {
     entry.nfscore = updatedScore;
     await entry.save();
 
+    sendEmail({
+      to: entry.email,
+      subject: `Your ${type} NF score has been updated`,
+      text: `What is the NF Score?
+
+The NF Score is a professional credibility rating assigned to verified users listed on the NollywoodFilmmaker.com database.
+It reflects a user’s professional reputation and career track record within Nollywood.
+
+Currently, the NF Score is primarily determined by the number of completed and verified jobs recorded on the platform.
+
+Over time, it will also incorporate additional factors, including:
+
+- Performance on Professional Quizzes
+  (Industry-specific assessments to measure knowledge, skills, and best practices)
+
+- Feedback and Reviews
+  (Ratings and professional ethics evaluations submitted by clients, colleagues, and collaborators)
+
+- Professional Conduct
+  (Adherence to standards of behavior, reliability, and ethical practices on and off set)
+
+Additionally, the NF Score is built on a structured system, outlined in the attached PDF, covering:
+
+- Trainings and Exams
+- Ethics and Professionalism
+- Client Feedback
+- Work History
+- Legal Compliance and Registration
+- Operational Ethics
+- Clientele Assessment
+
+We’re excited to inform you that your NF Score has now been updated!
+Visit your profile on NollywoodFilmmaker.com to view your current rating and see how you can continue building your credibility and unlocking even more opportunities.
+
+The NF Score serves as a trusted guide for hiring decisions, professional collaborations, and career advancement within the Nollywood ecosystem.
+
+Download the Full NF Score Structure PDF Here: https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF_Score_Pdf_presentation.pdf
+`,
+      html: `
+      <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Nollywood Filmmaker Database</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+.container {
+  max-width: 600px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+.header img {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 8px;
+}
+h1 {
+  color: #333;
+}
+p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.footer {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #777;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="header">
+  <a href="https://nollywoodfilmmaker.com">
+    <img src="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/nwfm_header_image.jpg" 
+         alt="Nollywood Filmmaker Database">
+  </a>
+</div>
+
+<h2>What is the NF Score?</h2>
+
+<p>
+The NF Score is a professional credibility rating assigned to verified users listed on the NollywoodFilmmaker.com database.
+It reflects a user’s professional reputation and career track record within Nollywood.
+</p>
+
+<p>
+Currently, the NF Score is primarily determined by the number of completed and verified jobs recorded on the platform.
+</p>
+
+<p>Over time, it will also incorporate additional factors, including:</p>
+
+<ul>
+  <li><strong>Performance on Professional Quizzes</strong><br>
+  (Industry-specific assessments to measure knowledge, skills, and best practices)</li>
+  
+  <li><strong>Feedback and Reviews</strong><br>
+  (Ratings and professional ethics evaluations submitted by clients, colleagues, and collaborators)</li>
+  
+  <li><strong>Professional Conduct</strong><br>
+  (Adherence to standards of behavior, reliability, and ethical practices on and off set)</li>
+</ul>
+
+<p>Additionally, the NF Score is built on a structured system, outlined in the attached PDF, covering:</p>
+
+<ul>
+  <li>Trainings and Exams</li>
+  <li>Ethics and Professionalism</li>
+  <li>Client Feedback</li>
+  <li>Work History</li>
+  <li>Legal Compliance and Registration</li>
+  <li>Operational Ethics</li>
+  <li>Clientele Assessment</li>
+</ul>
+
+<p>
+<strong>We’re excited to inform you that your NF Score has now been updated!</strong><br>
+Visit your profile on <a href="https://nollywoodfilmmaker.com" style="color: #1a73e8;">NollywoodFilmmaker.com</a> to view your current rating and see how you can continue building your credibility and unlocking even more opportunities.
+</p>
+
+<p>
+The NF Score serves as a trusted guide for hiring decisions, professional collaborations, and career advancement within the Nollywood ecosystem.
+</p>
+
+<p>
+<a href="https://ideaafricabucket.s3.eu-north-1.amazonaws.com/NF_Score_Pdf_presentation.pdf" style="background-color: #1a73e8; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Download the Full NF Score Structure PDF Here</a>
+</p>
+
+<p>Best</p>
+<p>Nollywood Filmmaker Database</p>
+<p class="footer">Best regards,<br><strong>Nollywood Filmmaker Database</strong></p>
+</div>
+
+</body>
+</html>
+      `,
+    });
+
     return res.status(200).json({
       message: `${type} NF score updated successfully.`,
       newScore: updatedScore,
@@ -6384,7 +6533,7 @@ export const createQuestion = async (req: Request, res: Response) => {
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
-    
+
     const { quizMetaId, questionText, options, correctAnswer, durationInSeconds, period } = req.body;
 
     if (!quizMetaId || !questionText || !options || !correctAnswer) {
